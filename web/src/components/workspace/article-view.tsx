@@ -23,6 +23,7 @@ import { formatDate } from "@/lib/dates";
 import { ArticleDateControl } from "./article-date-control";
 import { ArticleHistory } from "./article-history";
 import { DecisionList } from "./decision-list";
+import { OldLawCounterparts, RelatedLinks } from "./link-list";
 import { NoteList } from "./note-list";
 import { ParagraphList, paragraphsToText } from "./article-text";
 
@@ -65,6 +66,8 @@ export function ArticleView({ detail, asOf }: { detail: ArticleDetailResponse; a
     aciklama: notesOf("aciklama").length + notesOf("dersNotu").length,
     ictihatlar: detail.decisions.filter((d) => d.kind === "ictihat").length,
     norm: detail.decisions.filter((d) => d.kind === "normDenetimi").length,
+    ilgili: detail.links.filter((l) => l.kind === "ilgili" || l.incoming).length,
+    "765": detail.links.filter((l) => l.kind === "eskiKanunKarsiligi" && !l.incoming).length,
   };
 
   async function copy() {
@@ -201,6 +204,10 @@ export function ArticleView({ detail, asOf }: { detail: ArticleDetailResponse; a
                   decisions={detail.decisions.filter((d) => d.kind === "normDenetimi")}
                   empty="Bu madde hakkında kayıtlı norm denetimi kararı yok."
                 />
+              ) : tab.value === "ilgili" ? (
+                <RelatedLinks links={detail.links} />
+              ) : tab.value === "765" ? (
+                <OldLawCounterparts links={detail.links} />
               ) : tab.value === "gerekce" ? (
                 <NoteList notes={notesOf("gerekce")} empty="Bu maddenin gerekçesi henüz girilmedi." />
               ) : tab.value === "aciklama" ? (

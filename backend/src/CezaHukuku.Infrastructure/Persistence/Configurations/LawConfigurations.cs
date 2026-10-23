@@ -120,3 +120,18 @@ internal sealed class EditorialNoteConfiguration : IEntityTypeConfiguration<Edit
         b.HasIndex(e => new { e.LawId, e.Kind });
     }
 }
+
+internal sealed class ArticleLinkConfiguration : IEntityTypeConfiguration<ArticleLink>
+{
+    public void Configure(EntityTypeBuilder<ArticleLink> b)
+    {
+        b.HasQueryFilter(e => e.DeletedAt == null);
+        b.Property(e => e.Kind).HasConversion<string>().HasMaxLength(32);
+        b.Property(e => e.ExternalLabel).HasMaxLength(200);
+        b.Property(e => e.Note).HasMaxLength(500);
+        b.HasOne<Article>().WithMany().HasForeignKey(e => e.SourceArticleId).OnDelete(DeleteBehavior.Restrict);
+        b.HasOne<Article>().WithMany().HasForeignKey(e => e.TargetArticleId).OnDelete(DeleteBehavior.Restrict);
+        b.HasIndex(e => e.SourceArticleId);
+        b.HasIndex(e => e.TargetArticleId);
+    }
+}

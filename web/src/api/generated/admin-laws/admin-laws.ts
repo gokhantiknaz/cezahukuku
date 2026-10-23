@@ -26,6 +26,7 @@ import type {
 import type {
   AdminDecisionDetail,
   AdminDecisionList,
+  ArticleSearchHit,
   ArticleSummary,
   ArticleVersionDetail,
   EditorialNoteDto,
@@ -39,13 +40,15 @@ import type {
   ListDecisionsParams,
   ParagraphDto,
   ParseArticleTextRequest,
+  SaveArticleLinkRequest,
   SaveArticleRequest,
   SaveArticleVersionRequest,
   SaveDecisionRequest,
   SaveEditorialNoteRequest,
   SaveLawGroupRequest,
   SaveLawNodeRequest,
-  SaveLawRequest
+  SaveLawRequest,
+  SearchArticlesParams
 } from '.././model';
 
 import { apiFetch } from '../../fetcher';
@@ -2726,6 +2729,381 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       > => {
 
       const mutationOptions = getUnlinkDecisionMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    export type searchArticlesResponse200 = {
+  data: ArticleSearchHit[]
+  status: 200
+}
+    
+export type searchArticlesResponseSuccess = (searchArticlesResponse200) & {
+  headers: Headers;
+};
+;
+
+export type searchArticlesResponse = (searchArticlesResponseSuccess)
+
+export const getSearchArticlesUrl = (params?: SearchArticlesParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/admin/article-search?${stringifiedParams}` : `/api/admin/article-search`
+}
+
+export const searchArticles = async (params?: SearchArticlesParams, options?: RequestInit): Promise<searchArticlesResponse> => {
+  
+  return apiFetch<searchArticlesResponse>(getSearchArticlesUrl(params),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getSearchArticlesQueryKey = (params?: SearchArticlesParams,) => {
+    return [
+    `/api/admin/article-search`, ...(params ? [params]: [])
+    ] as const;
+    }
+
+    
+export const getSearchArticlesQueryOptions = <TData = Awaited<ReturnType<typeof searchArticles>>, TError = unknown>(params?: SearchArticlesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof searchArticles>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getSearchArticlesQueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof searchArticles>>> = ({ signal }) => searchArticles(params, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof searchArticles>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type SearchArticlesQueryResult = NonNullable<Awaited<ReturnType<typeof searchArticles>>>
+export type SearchArticlesQueryError = unknown
+
+
+export function useSearchArticles<TData = Awaited<ReturnType<typeof searchArticles>>, TError = unknown>(
+ params: undefined |  SearchArticlesParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof searchArticles>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof searchArticles>>,
+          TError,
+          Awaited<ReturnType<typeof searchArticles>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useSearchArticles<TData = Awaited<ReturnType<typeof searchArticles>>, TError = unknown>(
+ params?: SearchArticlesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof searchArticles>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof searchArticles>>,
+          TError,
+          Awaited<ReturnType<typeof searchArticles>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useSearchArticles<TData = Awaited<ReturnType<typeof searchArticles>>, TError = unknown>(
+ params?: SearchArticlesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof searchArticles>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useSearchArticles<TData = Awaited<ReturnType<typeof searchArticles>>, TError = unknown>(
+ params?: SearchArticlesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof searchArticles>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getSearchArticlesQueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export type createArticleLinkResponse201 = {
+  data: string
+  status: 201
+}
+
+export type createArticleLinkResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type createArticleLinkResponse404 = {
+  data: void
+  status: 404
+}
+    
+export type createArticleLinkResponseSuccess = (createArticleLinkResponse201) & {
+  headers: Headers;
+};
+export type createArticleLinkResponseError = (createArticleLinkResponse400 | createArticleLinkResponse404) & {
+  headers: Headers;
+};
+
+export type createArticleLinkResponse = (createArticleLinkResponseSuccess | createArticleLinkResponseError)
+
+export const getCreateArticleLinkUrl = (articleId: string,) => {
+
+
+  
+
+  return `/api/admin/articles/${articleId}/links`
+}
+
+export const createArticleLink = async (articleId: string,
+    saveArticleLinkRequest: SaveArticleLinkRequest, options?: RequestInit): Promise<createArticleLinkResponse> => {
+  
+  return apiFetch<createArticleLinkResponse>(getCreateArticleLinkUrl(articleId),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      saveArticleLinkRequest,)
+  }
+);}
+
+
+
+
+export const getCreateArticleLinkMutationOptions = <TError = HttpValidationProblemDetails | void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createArticleLink>>, TError,{articleId: string;data: SaveArticleLinkRequest}, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createArticleLink>>, TError,{articleId: string;data: SaveArticleLinkRequest}, TContext> => {
+
+const mutationKey = ['createArticleLink'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createArticleLink>>, {articleId: string;data: SaveArticleLinkRequest}> = (props) => {
+          const {articleId,data} = props ?? {};
+
+          return  createArticleLink(articleId,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateArticleLinkMutationResult = NonNullable<Awaited<ReturnType<typeof createArticleLink>>>
+    export type CreateArticleLinkMutationBody = SaveArticleLinkRequest
+    export type CreateArticleLinkMutationError = HttpValidationProblemDetails | void
+
+    export const useCreateArticleLink = <TError = HttpValidationProblemDetails | void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createArticleLink>>, TError,{articleId: string;data: SaveArticleLinkRequest}, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof createArticleLink>>,
+        TError,
+        {articleId: string;data: SaveArticleLinkRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getCreateArticleLinkMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    export type updateArticleLinkResponse204 = {
+  data: void
+  status: 204
+}
+
+export type updateArticleLinkResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type updateArticleLinkResponse404 = {
+  data: void
+  status: 404
+}
+    
+export type updateArticleLinkResponseSuccess = (updateArticleLinkResponse204) & {
+  headers: Headers;
+};
+export type updateArticleLinkResponseError = (updateArticleLinkResponse400 | updateArticleLinkResponse404) & {
+  headers: Headers;
+};
+
+export type updateArticleLinkResponse = (updateArticleLinkResponseSuccess | updateArticleLinkResponseError)
+
+export const getUpdateArticleLinkUrl = (id: string,) => {
+
+
+  
+
+  return `/api/admin/article-links/${id}`
+}
+
+export const updateArticleLink = async (id: string,
+    saveArticleLinkRequest: SaveArticleLinkRequest, options?: RequestInit): Promise<updateArticleLinkResponse> => {
+  
+  return apiFetch<updateArticleLinkResponse>(getUpdateArticleLinkUrl(id),
+  {      
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      saveArticleLinkRequest,)
+  }
+);}
+
+
+
+
+export const getUpdateArticleLinkMutationOptions = <TError = HttpValidationProblemDetails | void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateArticleLink>>, TError,{id: string;data: SaveArticleLinkRequest}, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateArticleLink>>, TError,{id: string;data: SaveArticleLinkRequest}, TContext> => {
+
+const mutationKey = ['updateArticleLink'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateArticleLink>>, {id: string;data: SaveArticleLinkRequest}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateArticleLink(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateArticleLinkMutationResult = NonNullable<Awaited<ReturnType<typeof updateArticleLink>>>
+    export type UpdateArticleLinkMutationBody = SaveArticleLinkRequest
+    export type UpdateArticleLinkMutationError = HttpValidationProblemDetails | void
+
+    export const useUpdateArticleLink = <TError = HttpValidationProblemDetails | void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateArticleLink>>, TError,{id: string;data: SaveArticleLinkRequest}, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof updateArticleLink>>,
+        TError,
+        {id: string;data: SaveArticleLinkRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getUpdateArticleLinkMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    export type deleteArticleLinkResponse204 = {
+  data: void
+  status: 204
+}
+
+export type deleteArticleLinkResponse404 = {
+  data: void
+  status: 404
+}
+    
+export type deleteArticleLinkResponseSuccess = (deleteArticleLinkResponse204) & {
+  headers: Headers;
+};
+export type deleteArticleLinkResponseError = (deleteArticleLinkResponse404) & {
+  headers: Headers;
+};
+
+export type deleteArticleLinkResponse = (deleteArticleLinkResponseSuccess | deleteArticleLinkResponseError)
+
+export const getDeleteArticleLinkUrl = (id: string,) => {
+
+
+  
+
+  return `/api/admin/article-links/${id}`
+}
+
+export const deleteArticleLink = async (id: string, options?: RequestInit): Promise<deleteArticleLinkResponse> => {
+  
+  return apiFetch<deleteArticleLinkResponse>(getDeleteArticleLinkUrl(id),
+  {      
+    ...options,
+    method: 'DELETE'
+    
+    
+  }
+);}
+
+
+
+
+export const getDeleteArticleLinkMutationOptions = <TError = void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteArticleLink>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteArticleLink>>, TError,{id: string}, TContext> => {
+
+const mutationKey = ['deleteArticleLink'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteArticleLink>>, {id: string}> = (props) => {
+          const {id} = props ?? {};
+
+          return  deleteArticleLink(id,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteArticleLinkMutationResult = NonNullable<Awaited<ReturnType<typeof deleteArticleLink>>>
+    
+    export type DeleteArticleLinkMutationError = void
+
+    export const useDeleteArticleLink = <TError = void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteArticleLink>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof deleteArticleLink>>,
+        TError,
+        {id: string},
+        TContext
+      > => {
+
+      const mutationOptions = getDeleteArticleLinkMutationOptions(options);
 
       return useMutation(mutationOptions, queryClient);
     }

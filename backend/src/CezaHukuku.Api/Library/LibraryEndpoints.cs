@@ -102,6 +102,7 @@ public static class LibraryEndpoints
             .ToListAsync();
         var notes = await VisibleNotesAsync(db, law.Id, item.Article.Id, item.EffectiveVisibility, principal.CanSeePrivate());
         var decisions = await VisibleDecisionsAsync(db, item.Article.Id, item.EffectiveVisibility, principal.CanSeePrivate());
+        var links = await ArticleLinkQueries.VisibleLinksAsync(db, item.Article.Id, principal.CanSeePrivate());
 
         var response = new ArticleDetailResponse(
             item.ToSummary(),
@@ -112,7 +113,8 @@ public static class LibraryEndpoints
             outline.Previous(item.Article.Id)?.ToRef(),
             outline.Next(item.Article.Id)?.ToRef(),
             notes,
-            decisions);
+            decisions,
+            links);
         return TypedResults.Ok(response);
     }
 

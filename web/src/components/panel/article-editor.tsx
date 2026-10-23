@@ -21,6 +21,7 @@ import { ConfirmDelete } from "./confirm-delete";
 import { emptyToNull, Field, FormMessages, OptionSelect, otherMessages, toSortOrder, visibilityLabels } from "./form";
 import { NodeSelect } from "./node-editor";
 import { ArticleDecisions } from "./article-decisions";
+import { ArticleLinks } from "./article-links";
 import { NotesEditor } from "./notes-editor";
 import { useLibraryRefresh } from "./use-library-refresh";
 import { VersionEditor } from "./version-editor";
@@ -169,6 +170,9 @@ function ArticleNotes({ lawSlug, article }: { lawSlug: string; article: ArticleS
       </div>
       <div className="border-t pt-5">
         <ArticleDecisions articleId={article.id} decisions={detailQuery.data.data.decisions} />
+      </div>
+      <div className="border-t pt-5">
+        <ArticleLinks articleId={article.id} links={detailQuery.data.data.links} />
       </div>
     </>
   );

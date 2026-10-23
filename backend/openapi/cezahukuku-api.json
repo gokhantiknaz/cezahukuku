@@ -1756,6 +1756,165 @@
           }
         }
       }
+    },
+    "/api/admin/article-search": {
+      "get": {
+        "tags": [
+          "AdminLaws"
+        ],
+        "operationId": "SearchArticles",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ArticleSearchHit"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/articles/{articleId}/links": {
+      "post": {
+        "tags": [
+          "AdminLaws"
+        ],
+        "operationId": "CreateArticleLink",
+        "parameters": [
+          {
+            "name": "articleId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveArticleLinkRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/article-links/{id}": {
+      "put": {
+        "tags": [
+          "AdminLaws"
+        ],
+        "operationId": "UpdateArticleLink",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveArticleLinkRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "AdminLaws"
+        ],
+        "operationId": "DeleteArticleLink",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -1908,7 +2067,8 @@
           "previous",
           "next",
           "notes",
-          "decisions"
+          "decisions",
+          "links"
         ],
         "type": "object",
         "properties": {
@@ -1971,8 +2131,76 @@
             "items": {
               "$ref": "#/components/schemas/DecisionDto"
             }
+          },
+          "links": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ArticleLinkDto"
+            }
           }
         }
+      },
+      "ArticleLinkDto": {
+        "required": [
+          "id",
+          "kind",
+          "incoming",
+          "article",
+          "externalLabel",
+          "note",
+          "targetVersion"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/ArticleLinkKind"
+          },
+          "incoming": {
+            "type": "boolean"
+          },
+          "article": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/LinkedArticleRef"
+              }
+            ]
+          },
+          "externalLabel": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "note": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "targetVersion": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ArticleVersionDetail"
+              }
+            ]
+          }
+        }
+      },
+      "ArticleLinkKind": {
+        "enum": [
+          "ilgili",
+          "eskiKanunKarsiligi"
+        ]
       },
       "ArticleRef": {
         "required": [
@@ -1983,6 +2211,38 @@
         "type": "object",
         "properties": {
           "slug": {
+            "type": "string"
+          },
+          "number": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          }
+        }
+      },
+      "ArticleSearchHit": {
+        "required": [
+          "articleId",
+          "lawSlug",
+          "lawLabel",
+          "articleSlug",
+          "number",
+          "title"
+        ],
+        "type": "object",
+        "properties": {
+          "articleId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "lawSlug": {
+            "type": "string"
+          },
+          "lawLabel": {
+            "type": "string"
+          },
+          "articleSlug": {
             "type": "string"
           },
           "number": {
@@ -3030,6 +3290,42 @@
           }
         }
       },
+      "LinkedArticleRef": {
+        "required": [
+          "articleId",
+          "lawSlug",
+          "lawLabel",
+          "lawName",
+          "articleSlug",
+          "number",
+          "title"
+        ],
+        "type": "object",
+        "properties": {
+          "articleId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "lawSlug": {
+            "type": "string"
+          },
+          "lawLabel": {
+            "type": "string"
+          },
+          "lawName": {
+            "type": "string"
+          },
+          "articleSlug": {
+            "type": "string"
+          },
+          "number": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          }
+        }
+      },
       "LoginRequest": {
         "required": [
           "email",
@@ -3237,6 +3533,39 @@
         "properties": {
           "newPassword": {
             "type": "string"
+          }
+        }
+      },
+      "SaveArticleLinkRequest": {
+        "required": [
+          "kind",
+          "targetArticleId",
+          "externalLabel",
+          "note"
+        ],
+        "type": "object",
+        "properties": {
+          "kind": {
+            "$ref": "#/components/schemas/ArticleLinkKind"
+          },
+          "targetArticleId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "externalLabel": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "note": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },

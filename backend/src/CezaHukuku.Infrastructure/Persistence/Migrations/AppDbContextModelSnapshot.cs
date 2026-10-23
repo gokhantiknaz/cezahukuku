@@ -214,6 +214,65 @@ namespace CezaHukuku.Infrastructure.Persistence.Migrations
                     b.ToTable("articles", (string)null);
                 });
 
+            modelBuilder.Entity("CezaHukuku.Domain.Laws.ArticleLink", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<string>("ExternalLabel")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("external_label");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("kind");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("note");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer")
+                        .HasColumnName("sort_order");
+
+                    b.Property<Guid>("SourceArticleId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("source_article_id");
+
+                    b.Property<Guid?>("TargetArticleId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("target_article_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_article_links");
+
+                    b.HasIndex("SourceArticleId")
+                        .HasDatabaseName("ix_article_links_source_article_id");
+
+                    b.HasIndex("TargetArticleId")
+                        .HasDatabaseName("ix_article_links_target_article_id");
+
+                    b.ToTable("article_links", (string)null);
+                });
+
             modelBuilder.Entity("CezaHukuku.Domain.Laws.ArticleVersion", b =>
                 {
                     b.Property<Guid>("Id")
@@ -831,6 +890,22 @@ namespace CezaHukuku.Infrastructure.Persistence.Migrations
                         .HasForeignKey("NodeId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .HasConstraintName("fk_articles_law_nodes_node_id");
+                });
+
+            modelBuilder.Entity("CezaHukuku.Domain.Laws.ArticleLink", b =>
+                {
+                    b.HasOne("CezaHukuku.Domain.Laws.Article", null)
+                        .WithMany()
+                        .HasForeignKey("SourceArticleId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_article_links_articles_source_article_id");
+
+                    b.HasOne("CezaHukuku.Domain.Laws.Article", null)
+                        .WithMany()
+                        .HasForeignKey("TargetArticleId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_article_links_articles_target_article_id");
                 });
 
             modelBuilder.Entity("CezaHukuku.Domain.Laws.ArticleVersion", b =>

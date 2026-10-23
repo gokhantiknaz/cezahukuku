@@ -35,6 +35,7 @@ public static class AdminLawEndpoints
         group.MapImportEndpoints();
         group.MapNoteEndpoints();
         group.MapDecisionEndpoints();
+        group.MapLinkEndpoints();
 
         return group;
     }
