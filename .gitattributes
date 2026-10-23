@@ -1,0 +1,6 @@
+# Repoda ve çalışma kopyasında satır sonları LF (Windows'ta core.autocrlf=true olsa da CRLF'ye çevrilmez).
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.ico binary
+*.pdf binary
