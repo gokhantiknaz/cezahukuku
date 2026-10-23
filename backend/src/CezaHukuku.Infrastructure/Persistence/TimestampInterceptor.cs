@@ -1,4 +1,5 @@
 using CezaHukuku.Domain.Common;
+using CezaHukuku.Domain.Decisions;
 using CezaHukuku.Infrastructure.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
@@ -40,6 +41,9 @@ public sealed class TimestampInterceptor(TimeProvider clock) : SaveChangesInterc
                     break;
                 case ApplicationUser user when entry.State == EntityState.Added:
                     user.CreatedAt = now;
+                    break;
+                case ArticleDecision link when entry.State == EntityState.Added:
+                    link.CreatedAt = now;
                     break;
             }
         }

@@ -22,6 +22,7 @@ import { isAdmin, useCurrentUser } from "@/lib/auth";
 import { formatDate } from "@/lib/dates";
 import { ArticleDateControl } from "./article-date-control";
 import { ArticleHistory } from "./article-history";
+import { DecisionList } from "./decision-list";
 import { NoteList } from "./note-list";
 import { ParagraphList, paragraphsToText } from "./article-text";
 
@@ -62,6 +63,8 @@ export function ArticleView({ detail, asOf }: { detail: ArticleDetailResponse; a
     gerekce: notesOf("gerekce").length,
     degisiklikler: detail.versions.length > 1 ? detail.versions.length : 0,
     aciklama: notesOf("aciklama").length + notesOf("dersNotu").length,
+    ictihatlar: detail.decisions.filter((d) => d.kind === "ictihat").length,
+    norm: detail.decisions.filter((d) => d.kind === "normDenetimi").length,
   };
 
   async function copy() {
@@ -188,6 +191,16 @@ export function ArticleView({ detail, asOf }: { detail: ArticleDetailResponse; a
             <TabsContent key={tab.value} value={tab.value} className="rounded-lg border bg-card p-4">
               {tab.value === "degisiklikler" ? (
                 <ArticleHistory lawSlug={law.slug} articleSlug={article.slug} shownVersionId={version?.id} />
+              ) : tab.value === "ictihatlar" ? (
+                <DecisionList
+                  decisions={detail.decisions.filter((d) => d.kind === "ictihat")}
+                  empty="Bu maddeye henüz içtihat bağlanmadı."
+                />
+              ) : tab.value === "norm" ? (
+                <DecisionList
+                  decisions={detail.decisions.filter((d) => d.kind === "normDenetimi")}
+                  empty="Bu madde hakkında kayıtlı norm denetimi kararı yok."
+                />
               ) : tab.value === "gerekce" ? (
                 <NoteList notes={notesOf("gerekce")} empty="Bu maddenin gerekçesi henüz girilmedi." />
               ) : tab.value === "aciklama" ? (

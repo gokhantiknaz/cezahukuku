@@ -12,6 +12,7 @@ import type { ArticleVersionSummary } from './articleVersionSummary';
 import type { ArticleDetailResponsePrevious } from './articleDetailResponsePrevious';
 import type { ArticleDetailResponseNext } from './articleDetailResponseNext';
 import type { EditorialNoteDto } from './editorialNoteDto';
+import type { DecisionDto } from './decisionDto';
 
 export interface ArticleDetailResponse {
   article: ArticleSummary;
@@ -22,4 +23,5 @@ export interface ArticleDetailResponse {
   previous: ArticleDetailResponsePrevious;
   next: ArticleDetailResponseNext;
   notes: EditorialNoteDto[];
+  decisions: DecisionDto[];
 }

@@ -101,6 +101,7 @@ public static class LibraryEndpoints
             .OrderByDescending(v => v.ValidFrom)
             .ToListAsync();
         var notes = await VisibleNotesAsync(db, law.Id, item.Article.Id, item.EffectiveVisibility, principal.CanSeePrivate());
+        var decisions = await VisibleDecisionsAsync(db, item.Article.Id, item.EffectiveVisibility, principal.CanSeePrivate());
 
         var response = new ArticleDetailResponse(
             item.ToSummary(),
@@ -110,7 +111,8 @@ public static class LibraryEndpoints
             [.. versions.Select(v => v.ToSummary())],
             outline.Previous(item.Article.Id)?.ToRef(),
             outline.Next(item.Article.Id)?.ToRef(),
-            notes);
+            notes,
+            decisions);
         return TypedResults.Ok(response);
     }
 
@@ -129,6 +131,26 @@ public static class LibraryEndpoints
 
         var notes = await VisibleNotesAsync(db, law.Id, null, law.Visibility, includePrivate);
         return TypedResults.Ok(kindFilter is null ? notes : [.. notes.Where(n => n.Kind == kindFilter)]);
+    }
+
+    /// <summary>Maddeye bağlı kararlar, en yeni önce; görünürlük maddenin görünürlüğüyle daralır.</summary>
+    internal static async Task<List<DecisionDto>> VisibleDecisionsAsync(
+        AppDbContext db, Guid articleId, Visibility articleVisibility, bool includePrivate)
+    {
+        var decisions = await (
+            from link in db.ArticleDecisions
+            join decision in db.CourtDecisions on link.DecisionId equals decision.Id
+            where link.ArticleId == articleId
+            orderby decision.DecisionDate descending
+            select decision
+        ).AsNoTracking().ToListAsync();
+        return
+        [
+            .. decisions
+                .Select(d => (Decision: d, Effective: articleVisibility.Narrow(d.Visibility)))
+                .Where(x => includePrivate || x.Effective == Visibility.Public)
+                .Select(x => x.Decision.ToDto(x.Effective)),
+        ];
     }
 
     /// <summary>

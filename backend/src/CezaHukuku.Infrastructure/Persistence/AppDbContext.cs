@@ -1,3 +1,4 @@
+using CezaHukuku.Domain.Decisions;
 using CezaHukuku.Domain.Laws;
 using CezaHukuku.Infrastructure.Identity;
 using Microsoft.AspNetCore.Identity;
@@ -15,6 +16,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<Article> Articles => Set<Article>();
     public DbSet<ArticleVersion> ArticleVersions => Set<ArticleVersion>();
     public DbSet<EditorialNote> EditorialNotes => Set<EditorialNote>();
+    public DbSet<CourtDecision> CourtDecisions => Set<CourtDecision>();
+    public DbSet<ArticleDecision> ArticleDecisions => Set<ArticleDecision>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

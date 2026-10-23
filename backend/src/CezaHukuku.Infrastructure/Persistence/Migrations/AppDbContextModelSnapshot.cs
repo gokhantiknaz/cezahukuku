@@ -22,6 +22,129 @@ namespace CezaHukuku.Infrastructure.Persistence.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("CezaHukuku.Domain.Decisions.ArticleDecision", b =>
+                {
+                    b.Property<Guid>("ArticleId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("article_id");
+
+                    b.Property<Guid>("DecisionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("decision_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.HasKey("ArticleId", "DecisionId")
+                        .HasName("pk_article_decisions");
+
+                    b.HasIndex("DecisionId")
+                        .HasDatabaseName("ix_article_decisions_decision_id");
+
+                    b.ToTable("article_decisions", (string)null);
+                });
+
+            modelBuilder.Entity("CezaHukuku.Domain.Decisions.CourtDecision", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("CaseNumber")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("case_number");
+
+                    b.Property<string>("Chamber")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("chamber");
+
+                    b.Property<string>("Court")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("court");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateOnly?>("DecisionDate")
+                        .HasColumnType("date")
+                        .HasColumnName("decision_date");
+
+                    b.Property<string>("DecisionNumber")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("decision_number");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<DateOnly?>("GazetteDate")
+                        .HasColumnType("date")
+                        .HasColumnName("gazette_date");
+
+                    b.Property<string>("GazetteNumber")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("gazette_number");
+
+                    b.Property<string>("Html")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("html");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("kind");
+
+                    b.Property<string>("Outcome")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("outcome");
+
+                    b.Property<string>("PlainText")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("plain_text");
+
+                    b.Property<string>("SourceUrl")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("source_url");
+
+                    b.Property<string>("Summary")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)")
+                        .HasColumnName("summary");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<string>("Visibility")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("visibility");
+
+                    b.HasKey("Id")
+                        .HasName("pk_court_decisions");
+
+                    b.HasIndex("Court", "DecisionDate")
+                        .HasDatabaseName("ix_court_decisions_court_decision_date");
+
+                    b.ToTable("court_decisions", (string)null);
+                });
+
             modelBuilder.Entity("CezaHukuku.Domain.Laws.Article", b =>
                 {
                     b.Property<Guid>("Id")
@@ -675,6 +798,23 @@ namespace CezaHukuku.Infrastructure.Persistence.Migrations
                         .HasName("pk_user_tokens");
 
                     b.ToTable("user_tokens", (string)null);
+                });
+
+            modelBuilder.Entity("CezaHukuku.Domain.Decisions.ArticleDecision", b =>
+                {
+                    b.HasOne("CezaHukuku.Domain.Laws.Article", null)
+                        .WithMany()
+                        .HasForeignKey("ArticleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_article_decisions_articles_article_id");
+
+                    b.HasOne("CezaHukuku.Domain.Decisions.CourtDecision", null)
+                        .WithMany()
+                        .HasForeignKey("DecisionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_article_decisions_court_decisions_decision_id");
                 });
 
             modelBuilder.Entity("CezaHukuku.Domain.Laws.Article", b =>

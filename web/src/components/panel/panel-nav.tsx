@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 
 const sections = [
   { href: "/panel/kutuphane", label: "Kütüphane" },
+  { href: "/panel/kararlar", label: "Kararlar" },
   { href: "/panel/kullanicilar", label: "Kullanıcılar" },
 ];
 

@@ -1488,10 +1488,331 @@
           }
         }
       }
+    },
+    "/api/admin/decisions": {
+      "get": {
+        "tags": [
+          "AdminLaws"
+        ],
+        "operationId": "ListDecisions",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "kind",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminDecisionList"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "AdminLaws"
+        ],
+        "operationId": "CreateDecision",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveDecisionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminDecisionDetail"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/decisions/{id}": {
+      "get": {
+        "tags": [
+          "AdminLaws"
+        ],
+        "operationId": "GetDecision",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminDecisionDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "AdminLaws"
+        ],
+        "operationId": "UpdateDecision",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveDecisionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminDecisionDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "AdminLaws"
+        ],
+        "operationId": "DeleteDecision",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/admin/articles/{articleId}/decisions/{decisionId}": {
+      "put": {
+        "tags": [
+          "AdminLaws"
+        ],
+        "operationId": "LinkDecision",
+        "parameters": [
+          {
+            "name": "articleId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "decisionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "AdminLaws"
+        ],
+        "operationId": "UnlinkDecision",
+        "parameters": [
+          {
+            "name": "articleId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "decisionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        }
+      }
     }
   },
   "components": {
     "schemas": {
+      "AdminDecisionDetail": {
+        "required": [
+          "decision",
+          "articles"
+        ],
+        "type": "object",
+        "properties": {
+          "decision": {
+            "$ref": "#/components/schemas/DecisionDto"
+          },
+          "articles": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LinkedArticle"
+            }
+          }
+        }
+      },
+      "AdminDecisionList": {
+        "required": [
+          "items",
+          "total"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminDecisionListItem"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "AdminDecisionListItem": {
+        "required": [
+          "decision",
+          "articleCount"
+        ],
+        "type": "object",
+        "properties": {
+          "decision": {
+            "$ref": "#/components/schemas/DecisionDto"
+          },
+          "articleCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
       "AnonymousTypeOfstring": {
         "required": [
           "status"
@@ -1586,7 +1907,8 @@
           "versions",
           "previous",
           "next",
-          "notes"
+          "notes",
+          "decisions"
         ],
         "type": "object",
         "properties": {
@@ -1642,6 +1964,12 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/EditorialNoteDto"
+            }
+          },
+          "decisions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DecisionDto"
             }
           }
         }
@@ -1810,6 +2138,17 @@
           }
         }
       },
+      "Court": {
+        "enum": [
+          "yargitay",
+          "anayasaMahkemesi",
+          "aihm",
+          "danistay",
+          "bolgeAdliyeMahkemesi",
+          "uyusmazlikMahkemesi",
+          "diger"
+        ]
+      },
       "CreateUserRequest": {
         "required": [
           "email",
@@ -1859,6 +2198,110 @@
             }
           }
         }
+      },
+      "DecisionDto": {
+        "required": [
+          "id",
+          "court",
+          "chamber",
+          "kind",
+          "caseNumber",
+          "decisionNumber",
+          "decisionDate",
+          "outcome",
+          "gazetteDate",
+          "gazetteNumber",
+          "summary",
+          "html",
+          "sourceUrl",
+          "visibility",
+          "effectiveVisibility"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "court": {
+            "$ref": "#/components/schemas/Court"
+          },
+          "chamber": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "kind": {
+            "$ref": "#/components/schemas/DecisionKind"
+          },
+          "caseNumber": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "decisionNumber": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "decisionDate": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "outcome": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/NormReviewOutcome"
+              }
+            ]
+          },
+          "gazetteDate": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "gazetteNumber": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "summary": {
+            "type": "string"
+          },
+          "html": {
+            "type": "string"
+          },
+          "sourceUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "visibility": {
+            "$ref": "#/components/schemas/Visibility"
+          },
+          "effectiveVisibility": {
+            "$ref": "#/components/schemas/Visibility"
+          }
+        }
+      },
+      "DecisionKind": {
+        "enum": [
+          "ictihat",
+          "normDenetimi"
+        ]
       },
       "EditorialNoteDto": {
         "required": [
@@ -2555,6 +2998,38 @@
           }
         }
       },
+      "LinkedArticle": {
+        "required": [
+          "articleId",
+          "lawSlug",
+          "lawLabel",
+          "articleSlug",
+          "number",
+          "title"
+        ],
+        "type": "object",
+        "properties": {
+          "articleId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "lawSlug": {
+            "type": "string"
+          },
+          "lawLabel": {
+            "type": "string"
+          },
+          "articleSlug": {
+            "type": "string"
+          },
+          "number": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          }
+        }
+      },
       "LoginRequest": {
         "required": [
           "email",
@@ -2573,6 +3048,15 @@
             "default": false
           }
         }
+      },
+      "NormReviewOutcome": {
+        "enum": [
+          "iptal",
+          "kismenIptal",
+          "ret",
+          "diger",
+          null
+        ]
       },
       "ParagraphDto": {
         "required": [
@@ -2846,6 +3330,112 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/ParagraphInput"
+            }
+          }
+        }
+      },
+      "SaveDecisionRequest": {
+        "required": [
+          "court",
+          "chamber",
+          "kind",
+          "caseNumber",
+          "decisionNumber",
+          "decisionDate",
+          "outcome",
+          "gazetteDate",
+          "gazetteNumber",
+          "summary",
+          "html",
+          "sourceUrl",
+          "visibility",
+          "articleIds"
+        ],
+        "type": "object",
+        "properties": {
+          "court": {
+            "$ref": "#/components/schemas/Court"
+          },
+          "chamber": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "kind": {
+            "$ref": "#/components/schemas/DecisionKind"
+          },
+          "caseNumber": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "decisionNumber": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "decisionDate": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "outcome": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/NormReviewOutcome"
+              }
+            ]
+          },
+          "gazetteDate": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "gazetteNumber": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "summary": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "html": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "sourceUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "visibility": {
+            "$ref": "#/components/schemas/Visibility"
+          },
+          "articleIds": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string",
+              "format": "uuid"
             }
           }
         }

@@ -1,3 +1,4 @@
+using CezaHukuku.Domain.Decisions;
 using CezaHukuku.Domain.Laws;
 
 namespace CezaHukuku.Api.Library;
@@ -89,7 +90,27 @@ public sealed record ArticleDetailResponse(
     List<ArticleVersionSummary> Versions,
     ArticleRef? Previous,
     ArticleRef? Next,
-    List<EditorialNoteDto> Notes);
+    List<EditorialNoteDto> Notes,
+    List<DecisionDto> Decisions);
+
+/// <param name="Html">Kararın tam metni ya da ilgili kısmı (sunucuda temizlenmiş HTML); boş olabilir.</param>
+/// <param name="EffectiveVisibility">Maddenin altında gösterilirken maddenin görünürlüğüyle daraltılmış hâli.</param>
+public sealed record DecisionDto(
+    Guid Id,
+    Court Court,
+    string? Chamber,
+    DecisionKind Kind,
+    string? CaseNumber,
+    string? DecisionNumber,
+    DateOnly? DecisionDate,
+    NormReviewOutcome? Outcome,
+    DateOnly? GazetteDate,
+    string? GazetteNumber,
+    string Summary,
+    string Html,
+    string? SourceUrl,
+    Visibility Visibility,
+    Visibility EffectiveVisibility);
 
 public sealed record ArticleVersionSummary(Guid Id, DateOnly? ValidFrom, DateOnly? ValidTo, string? AmendedBy, bool IsRepealed);
 

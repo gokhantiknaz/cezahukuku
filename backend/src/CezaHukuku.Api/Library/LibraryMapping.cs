@@ -1,3 +1,4 @@
+using CezaHukuku.Domain.Decisions;
 using CezaHukuku.Domain.Laws;
 
 namespace CezaHukuku.Api.Library;
@@ -35,6 +36,10 @@ internal static class LibraryMapping
 
     public static EditorialNoteDto ToDto(this EditorialNote n, Visibility effectiveVisibility) =>
         new(n.Id, n.Kind, n.Title, n.Html, n.Visibility, effectiveVisibility, n.SortOrder, n.UpdatedAt);
+
+    public static DecisionDto ToDto(this CourtDecision d, Visibility effectiveVisibility) =>
+        new(d.Id, d.Court, d.Chamber, d.Kind, d.CaseNumber, d.DecisionNumber, d.DecisionDate, d.Outcome,
+            d.GazetteDate, d.GazetteNumber, d.Summary, d.Html, d.SourceUrl, d.Visibility, effectiveVisibility);
 
     public static ParagraphDto ToDto(this Paragraph p) =>
         new(p.Id, p.Number, p.Text, [.. p.Items.Select(i => new ParagraphItemDto(i.Id, i.Level, i.Label, i.Text))]);

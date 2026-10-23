@@ -14,7 +14,11 @@ export function useLibraryRefresh() {
     await queryClient.invalidateQueries({
       predicate: (query) => {
         const key = String(query.queryKey[0] ?? "");
-        return key.startsWith("/api/library") || key.startsWith("/api/admin/article-versions");
+        return (
+          key.startsWith("/api/library") ||
+          key.startsWith("/api/admin/article-versions") ||
+          key.startsWith("/api/admin/decisions")
+        );
       },
     });
     router.refresh();
