@@ -16,6 +16,7 @@ export function UserMenu() {
       onSettled: async () => {
         await refreshUser();
         router.push("/");
+        router.refresh(); // private içerik ekrandan kalksın
       },
     },
   });

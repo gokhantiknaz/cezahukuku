@@ -17,6 +17,8 @@
 
   <ItemGroup>
     <Using Include="Xunit" />
+    <!-- Testler API'nin ayar dosyalarını okur; derleme çıktısı nereye giderse gitsin klasör bulunabilsin. -->
+    <AssemblyMetadata Include="ApiProjectDirectory" Value="$(MSBuildThisFileDirectory)..\..\src\CezaHukuku.Api" />
   </ItemGroup>
 
   <ItemGroup>

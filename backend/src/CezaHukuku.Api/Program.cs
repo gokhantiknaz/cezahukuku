@@ -73,6 +73,11 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 });
 
 builder.Services.AddProblemDetails();
+// Okunamayan istek gövdesi (bozuk JSON, yanlış tip) istemci hatasıdır; geliştirmede minimal API bunu istisna
+// olarak fırlattığından hata yakalayıcı 500 yerine istisnanın kendi kodunu (400) dönsün.
+builder.Services.Configure<ExceptionHandlerOptions>(options =>
+    options.StatusCodeSelector = exception =>
+        exception is BadHttpRequestException badRequest ? badRequest.StatusCode : StatusCodes.Status500InternalServerError);
 builder.Services.AddOpenApi();
 
 var app = builder.Build();

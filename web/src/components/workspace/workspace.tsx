@@ -2,6 +2,7 @@
 
 import { useState, type ReactNode } from "react";
 import { BookOpen, NotebookPen, PanelRightClose, PanelRightOpen } from "lucide-react";
+import { usePathname } from "next/navigation";
 import { useDefaultLayout, usePanelRef } from "react-resizable-panels";
 import { Button } from "@/components/ui/button";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
@@ -15,8 +16,6 @@ type WorkspaceProps = {
   content: ReactNode;
   /** Sağ panel: kişisel notlar ve vurgular. */
   notes: ReactNode;
-  /** Seçili içeriğin anahtarı; değişince mobilde açık çekmece kapanır (madde seçildi → içeriğe dön). */
-  selectionKey?: string;
 };
 
 // localStorage gizli pencerede ya da engelliyken hata atabilir; panel boyutu hatırlanmasa da düzen çalışır.
@@ -105,11 +104,13 @@ function DesktopWorkspace({ navigation, content, notes }: WorkspaceProps) {
   );
 }
 
-function MobileWorkspace({ navigation, content, notes, selectionKey }: WorkspaceProps) {
+function MobileWorkspace({ navigation, content, notes }: WorkspaceProps) {
   const [open, setOpen] = useState<"navigation" | "notes" | null>(null);
-  const [lastSelectionKey, setLastSelectionKey] = useState(selectionKey);
-  if (selectionKey !== lastSelectionKey) {
-    setLastSelectionKey(selectionKey);
+  // Çekmeceden bir madde seçilince (adres değişince) çekmece kapanır, okuyucu içeriğe döner.
+  const pathname = usePathname();
+  const [lastPathname, setLastPathname] = useState(pathname);
+  if (pathname !== lastPathname) {
+    setLastPathname(pathname);
     setOpen(null);
   }
 

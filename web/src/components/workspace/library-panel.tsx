@@ -1,48 +1,59 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
+import { useParams } from "next/navigation";
 import {
-  Archive,
   ArrowLeft,
   BookOpen,
   ChevronDown,
   ChevronRight,
   FileText,
   Gavel,
+  Lock,
   Scale,
-  ScrollText,
   Search,
   type LucideIcon,
 } from "lucide-react";
+import type { ArticleSummary, LawGroupWithLaws, LawNodeTree, LawTreeResponse } from "@/api/generated/model";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import type { ArticleSummary, LawGroup, LawGroupKind, LawNode, LawTree } from "@/lib/library-types";
 import { matchesTr } from "@/lib/turkish";
 import { cn } from "@/lib/utils";
 
-const groupIcons: Record<LawGroupKind, LucideIcon> = {
+// Bilinen grupların simgesi; yönetim panelinden eklenen yeni gruplar varsayılan simgeyle görünür.
+const groupIcons: Record<string, LucideIcon> = {
   temel: Scale,
   ozel: FileText,
-  kabahat: Gavel,
-  tuzuk: ScrollText,
-  mulga: Archive,
+  kabahatler: Gavel,
 };
 
 type LibraryPanelProps = {
-  groups: LawGroup[];
+  groups: LawGroupWithLaws[];
   /** Açık kanunun ağacı; null ise kütüphane listesi gösterilir. */
-  tree: LawTree | null;
-  selectedArticleId: string | null;
-  onOpenLaw: (lawId: string) => void;
-  onBackToLibrary: () => void;
-  onSelectArticle: (articleId: string) => void;
+  tree: LawTreeResponse | null;
 };
 
-/** Sol panel: önce kütüphane (kanun grupları), bir kanuna girilince o kanunun kitap/bölüm/madde ağacı. */
-export function LibraryPanel({ tree, ...props }: LibraryPanelProps) {
-  return tree ? <LawTreeView key={tree.id} tree={tree} {...props} /> : <LibraryList {...props} />;
+/**
+ * Sol panel: kütüphane (kanun grupları) ya da açık kanunun kitap/bölüm/madde ağacı. "← Kütüphane" yalnız paneli
+ * kütüphaneye çevirir; okunan madde ortada açık kalır.
+ */
+export function LibraryPanel({ groups, tree }: LibraryPanelProps) {
+  const [showLibrary, setShowLibrary] = useState(false);
+  // Başka bir kanuna geçilince panel yeniden o kanunun ağacını göstersin.
+  const [lastLawId, setLastLawId] = useState(tree?.law.id);
+  if (tree?.law.id !== lastLawId) {
+    setLastLawId(tree?.law.id);
+    setShowLibrary(false);
+  }
+
+  return tree && !showLibrary ? (
+    <LawTreeView key={tree.law.id} tree={tree} onBackToLibrary={() => setShowLibrary(true)} />
+  ) : (
+    <LibraryList groups={groups} />
+  );
 }
 
 function PanelHeader({ children }: { children: React.ReactNode }) {
@@ -51,7 +62,30 @@ function PanelHeader({ children }: { children: React.ReactNode }) {
   );
 }
 
-function LibraryList({ groups, onOpenLaw }: Pick<LibraryPanelProps, "groups" | "onOpenLaw">) {
+/** Ağaç yüklenirken gösterilen iskelet (sunucudan akarken düzen kaymasın). */
+export function LibraryPanelSkeleton() {
+  return (
+    <div className="flex h-full flex-col">
+      <PanelHeader>
+        <BookOpen className="size-5" aria-hidden />
+        Kütüphane
+      </PanelHeader>
+      <div className="space-y-3 p-4" aria-busy="true" aria-label="Yükleniyor">
+        {[70, 55, 80, 60, 45].map((width) => (
+          <div key={width} className="h-4 animate-pulse rounded bg-muted" style={{ width: `${width}%` }} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function PrivateMark() {
+  return <Lock className="size-3.5 shrink-0 opacity-70" aria-label="Yalnız giriş yapanlar görür" />;
+}
+
+function LibraryList({ groups }: { groups: LawGroupWithLaws[] }) {
+  const visibleGroups = groups.filter((group) => group.laws.length > 0);
+
   return (
     <div className="flex h-full flex-col">
       <PanelHeader>
@@ -59,9 +93,12 @@ function LibraryList({ groups, onOpenLaw }: Pick<LibraryPanelProps, "groups" | "
         Kütüphane
       </PanelHeader>
       <ScrollArea className="min-h-0 flex-1">
+        {visibleGroups.length === 0 && (
+          <p className="px-4 py-4 text-sm text-muted-foreground">Kütüphanede henüz kanun yok.</p>
+        )}
         <ul className="divide-y px-2">
-          {groups.map((group) => {
-            const Icon = groupIcons[group.kind];
+          {visibleGroups.map((group) => {
+            const Icon = groupIcons[group.slug] ?? BookOpen;
             return (
               <li key={group.id} className="py-3">
                 <div className="flex items-center gap-2 px-2 text-primary">
@@ -71,15 +108,15 @@ function LibraryList({ groups, onOpenLaw }: Pick<LibraryPanelProps, "groups" | "
                 <ul className="mt-1.5">
                   {group.laws.map((law) => (
                     <li key={law.id}>
-                      <button
-                        type="button"
-                        onClick={() => onOpenLaw(law.id)}
+                      <Link
+                        href={`/${law.slug}`}
                         className="flex w-full items-start gap-2 rounded-md px-2 py-1.5 pl-9 text-left hover:bg-accent hover:text-accent-foreground"
                       >
                         <span>
                           {law.name} <span className="text-muted-foreground">({law.number})</span>
                         </span>
-                      </button>
+                        {law.visibility === "private" && <PrivateMark />}
+                      </Link>
                     </li>
                   ))}
                 </ul>
@@ -92,14 +129,13 @@ function LibraryList({ groups, onOpenLaw }: Pick<LibraryPanelProps, "groups" | "
   );
 }
 
-function LawTreeView({
-  tree,
-  selectedArticleId,
-  onBackToLibrary,
-  onSelectArticle,
-}: Omit<LibraryPanelProps, "tree" | "groups" | "onOpenLaw"> & { tree: LawTree }) {
+function LawTreeView({ tree, onBackToLibrary }: { tree: LawTreeResponse; onBackToLibrary: () => void }) {
   const [query, setQuery] = useState("");
+  const params = useParams<{ article?: string }>();
+  const selectedSlug = params.article ?? null;
   const filtering = query.trim().length > 0;
+  const { law } = tree;
+  const isEmpty = tree.nodes.length === 0 && tree.articles.length === 0;
 
   return (
     <div className="flex h-full flex-col">
@@ -114,12 +150,14 @@ function LawTreeView({
         >
           <ArrowLeft />
         </Button>
-        <span className="truncate">{tree.shortName || tree.name}</span>
+        <Link href={`/${law.slug}`} className="truncate hover:underline">
+          {law.shortName || law.name}
+        </Link>
       </PanelHeader>
 
       <div className="space-y-2 border-b p-2">
         <p className="px-1 text-sm text-muted-foreground">
-          {tree.name} ({tree.number})
+          {law.name} ({law.number})
         </p>
         <label className="relative block">
           <Search className="absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
@@ -136,12 +174,7 @@ function LawTreeView({
       <ScrollArea className="min-h-0 flex-1">
         <div className="p-2">
           {filtering ? (
-            <FilteredArticles
-              tree={tree}
-              query={query}
-              selectedArticleId={selectedArticleId}
-              onSelectArticle={onSelectArticle}
-            />
+            <FilteredArticles tree={tree} query={query} selectedSlug={selectedSlug} />
           ) : (
             <>
               {/* Kanun düzeyi içerikler M3'te açılacak. */}
@@ -153,17 +186,12 @@ function LawTreeView({
                   <FileText className="size-4" aria-hidden /> Genel Gerekçe
                 </p>
               </div>
-              {tree.nodes.length === 0 && (
+              {isEmpty && (
                 <p className="px-2 py-4 text-sm text-muted-foreground">Bu kanunun maddeleri henüz girilmedi.</p>
               )}
+              <ArticleList articles={tree.articles} lawSlug={law.slug} indent={0} selectedSlug={selectedSlug} />
               {tree.nodes.map((node) => (
-                <NodeItem
-                  key={node.id}
-                  node={node}
-                  depth={0}
-                  selectedArticleId={selectedArticleId}
-                  onSelectArticle={onSelectArticle}
-                />
+                <NodeItem key={node.id} node={node} lawSlug={law.slug} depth={0} selectedSlug={selectedSlug} />
               ))}
             </>
           )}
@@ -173,23 +201,23 @@ function LawTreeView({
   );
 }
 
-function containsArticle(node: LawNode, articleId: string | null): boolean {
-  if (!articleId) return false;
-  return node.articles.some((a) => a.id === articleId) || node.children.some((c) => containsArticle(c, articleId));
+function containsArticle(node: LawNodeTree, slug: string | null): boolean {
+  if (!slug) return false;
+  return node.articles.some((a) => a.slug === slug) || node.children.some((c) => containsArticle(c, slug));
 }
 
 function NodeItem({
   node,
+  lawSlug,
   depth,
-  selectedArticleId,
-  onSelectArticle,
+  selectedSlug,
 }: {
-  node: LawNode;
+  node: LawNodeTree;
+  lawSlug: string;
   depth: number;
-  selectedArticleId: string | null;
-  onSelectArticle: (id: string) => void;
+  selectedSlug: string | null;
 }) {
-  const [open, setOpen] = useState(() => containsArticle(node, selectedArticleId));
+  const [open, setOpen] = useState(() => containsArticle(node, selectedSlug));
   const isEmpty = node.children.length === 0 && node.articles.length === 0;
 
   return (
@@ -203,10 +231,11 @@ function NodeItem({
         ) : (
           <ChevronRight className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden />
         )}
-        <span className="leading-tight">
+        <span className="min-w-0 flex-1 leading-tight">
           <span className="block">{node.number}</span>
           <span className="block text-sm text-muted-foreground">{node.title}</span>
         </span>
+        {node.effectiveVisibility === "private" && <PrivateMark />}
       </CollapsibleTrigger>
       <CollapsibleContent>
         {isEmpty && (
@@ -214,21 +243,15 @@ function NodeItem({
             Henüz madde girilmedi.
           </p>
         )}
-        {node.children.map((child) => (
-          <NodeItem
-            key={child.id}
-            node={child}
-            depth={depth + 1}
-            selectedArticleId={selectedArticleId}
-            onSelectArticle={onSelectArticle}
-          />
-        ))}
         <ArticleList
           articles={node.articles}
+          lawSlug={lawSlug}
           indent={(depth + 1) * 12 + 4}
-          selectedArticleId={selectedArticleId}
-          onSelectArticle={onSelectArticle}
+          selectedSlug={selectedSlug}
         />
+        {node.children.map((child) => (
+          <NodeItem key={child.id} node={child} lawSlug={lawSlug} depth={depth + 1} selectedSlug={selectedSlug} />
+        ))}
       </CollapsibleContent>
     </Collapsible>
   );
@@ -236,28 +259,27 @@ function NodeItem({
 
 function ArticleList({
   articles,
+  lawSlug,
   indent,
-  selectedArticleId,
-  onSelectArticle,
+  selectedSlug,
 }: {
   articles: ArticleSummary[];
+  lawSlug: string;
   indent: number;
-  selectedArticleId: string | null;
-  onSelectArticle: (id: string) => void;
+  selectedSlug: string | null;
 }) {
   if (articles.length === 0) return null;
   return (
     <ul style={{ paddingLeft: `${indent}px` }}>
       {articles.map((article) => {
-        const selected = article.id === selectedArticleId;
+        const selected = article.slug === selectedSlug;
         return (
           <li key={article.id}>
-            <button
-              type="button"
-              onClick={() => onSelectArticle(article.id)}
+            <Link
+              href={`/${lawSlug}/${article.slug}`}
               aria-current={selected ? "page" : undefined}
               className={cn(
-                "grid w-full grid-cols-[4.5rem_1fr] gap-1 rounded-md px-2 py-1 text-left text-sm",
+                "grid w-full grid-cols-[4.5rem_1fr_auto] items-center gap-1 rounded-md px-2 py-1 text-left text-sm",
                 selected ? "bg-primary text-primary-foreground" : "hover:bg-accent hover:text-accent-foreground",
               )}
             >
@@ -265,7 +287,8 @@ function ArticleList({
               <span className="truncate" title={article.title}>
                 {article.title}
               </span>
-            </button>
+              {article.effectiveVisibility === "private" ? <PrivateMark /> : <span />}
+            </Link>
           </li>
         );
       })}
@@ -273,34 +296,25 @@ function ArticleList({
   );
 }
 
-function flattenArticles(nodes: LawNode[]): ArticleSummary[] {
-  return nodes.flatMap((node) => [...flattenArticles(node.children), ...node.articles]);
+function flattenArticles(nodes: LawNodeTree[]): ArticleSummary[] {
+  return nodes.flatMap((node) => [...node.articles, ...flattenArticles(node.children)]);
 }
 
 /** Kanun içi anlık filtre: tüm madde listesi istemcide olduğundan sunucuya gidilmez. */
 function FilteredArticles({
   tree,
   query,
-  selectedArticleId,
-  onSelectArticle,
+  selectedSlug,
 }: {
-  tree: LawTree;
+  tree: LawTreeResponse;
   query: string;
-  selectedArticleId: string | null;
-  onSelectArticle: (id: string) => void;
+  selectedSlug: string | null;
 }) {
   const normalizedNumber = query.trim().replace(/^(m(adde)?\.?\s*)/i, "");
-  const results = flattenArticles(tree.nodes).filter(
+  const results = [...tree.articles, ...flattenArticles(tree.nodes)].filter(
     (a) => a.number === normalizedNumber || matchesTr(a.title, query) || matchesTr(`madde ${a.number}`, query),
   );
 
   if (results.length === 0) return <p className="px-2 py-4 text-sm text-muted-foreground">Eşleşen madde yok.</p>;
-  return (
-    <ArticleList
-      articles={results}
-      indent={0}
-      selectedArticleId={selectedArticleId}
-      onSelectArticle={onSelectArticle}
-    />
-  );
+  return <ArticleList articles={results} lawSlug={tree.law.slug} indent={0} selectedSlug={selectedSlug} />;
 }

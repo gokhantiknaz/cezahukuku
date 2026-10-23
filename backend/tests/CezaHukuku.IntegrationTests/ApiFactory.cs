@@ -1,4 +1,5 @@
 using System.Net.Http.Json;
+using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using CezaHukuku.Api.Auth;
@@ -84,13 +85,11 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
 
     private static string FindApiDirectory()
     {
-        for (var dir = new DirectoryInfo(AppContext.BaseDirectory); dir is not null; dir = dir.Parent)
-        {
-            var candidate = Path.Combine(dir.FullName, "src", "CezaHukuku.Api");
-            if (Directory.Exists(candidate))
-                return candidate;
-        }
-        throw new InvalidOperationException("CezaHukuku.Api klasörü bulunamadı; CEZAHUKUKU_TEST_CONNECTION ayarlayın.");
+        var directory = typeof(ApiFactory).Assembly.GetCustomAttributes<AssemblyMetadataAttribute>()
+            .FirstOrDefault(a => a.Key == "ApiProjectDirectory")?.Value;
+        return directory is not null && Directory.Exists(directory)
+            ? Path.GetFullPath(directory)
+            : throw new InvalidOperationException("CezaHukuku.Api klasörü bulunamadı; CEZAHUKUKU_TEST_CONNECTION ayarlayın.");
     }
 }
 

@@ -17,6 +17,8 @@ export function LoginForm() {
       onSuccess: async () => {
         await refreshUser();
         router.push("/");
+        // Sunucuda çizilen içerik oturuma bağlı (private kanunlar); önbellekteki anonim hâli yenilensin.
+        router.refresh();
       },
     },
   });

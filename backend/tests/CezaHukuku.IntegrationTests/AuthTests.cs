@@ -26,6 +26,14 @@ public class AuthTests(ApiFactory factory)
     }
 
     [Fact]
+    public async Task MalformedJsonBody_Returns400()
+    {
+        var content = new StringContent("{\"email\": ", System.Text.Encoding.UTF8, "application/json");
+
+        await factory.CreateAnonymousClient().PostAsync("/api/auth/login", content).ExpectAsync(400);
+    }
+
+    [Fact]
     public async Task Me_WithoutSession_Returns401()
     {
         await factory.CreateAnonymousClient().GetAsync("/api/auth/me").ExpectAsync(401);
