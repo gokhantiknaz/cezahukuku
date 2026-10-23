@@ -55,6 +55,7 @@ cd web && npm run gen:api                         # API değişince: backend bui
 cd web && npm run lint && npm run build
 ```
 
-Entegrasyon testleri gerçek API'yi aynı sunucudaki ayrı bir veritabanına (`<geliştirme veritabanı>_test`,
-ör. `cezahukuku_test`) karşı çalıştırır; bu veritabanı her test oturumunda silinip yeniden kurulur.
+Entegrasyon testleri gerçek API'yi aynı sunucudaki ayrı `cezahukuku_integration` veritabanına karşı
+çalıştırır; bu veritabanı her test oturumunda silinip yeniden kurulur. Elle deneme yaptığınız geliştirme
+veritabanından (user-secrets'taki `Database=`) bilerek ayrıdır.
 Başka bir sunucu için `CEZAHUKUKU_TEST_CONNECTION` ortam değişkenini ayarlayın.

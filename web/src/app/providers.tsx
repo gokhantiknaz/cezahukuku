@@ -33,7 +33,8 @@ export function Providers({ children }: { children: ReactNode }) {
     <QueryClientProvider client={getQueryClient()}>
       <TooltipProvider>
         {children}
-        <Toaster position="bottom-right" />
+        {/* Alttaki haber şeridinin (≈44 px) üstünde dursun. */}
+        <Toaster position="bottom-right" offset={{ bottom: 64, right: 24 }} mobileOffset={{ bottom: 60 }} />
       </TooltipProvider>
     </QueryClientProvider>
   );

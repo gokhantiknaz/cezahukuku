@@ -116,6 +116,33 @@ public class LibraryTests(ApiFactory factory)
     }
 
     [Fact]
+    public async Task ParseText_KeepsIdsOfBaseVersion_AndResultCanBeSavedAsNewVersion()
+    {
+        var admin = await factory.CreateAdminClientAsync();
+        var (law, node) = await CreateLawAsync(admin);
+        var article = await CreateArticleAsync(admin, law, node, "82", "Nitelikli haller");
+        var first = await CreateVersionAsync(admin, article, new DateOnly(2005, 6, 1), "Eski metin.");
+
+        var parsed = await (await admin.PostJsonAsync("/api/admin/article-text/parse",
+                new ParseArticleTextRequest("(1) Kasten öldürme suçunun;\na) Tasarlayarak,\nİşlenmesi hâlinde ... cezalandırılır.", first.Id)))
+            .ReadAsync<List<ParagraphDto>>();
+
+        var paragraph = Assert.Single(parsed);
+        Assert.Equal(first.Paragraphs.Single().Id, paragraph.Id);
+        Assert.Equal([1, 0], paragraph.Items.Select(i => i.Level));
+
+        var request = new SaveArticleVersionRequest(new DateOnly(2014, 7, 2), null, null, null, null, false,
+            [.. parsed.Select(p => new ParagraphInput(p.Id, p.Number, p.Text,
+                [.. p.Items.Select(i => new ParagraphItemInput(i.Id, i.Level, i.Label, i.Text))]))]);
+        var second = await (await admin.PostJsonAsync($"/api/admin/articles/{article.Id}/versions", request))
+            .ReadAsync<ArticleVersionDetail>(201);
+
+        var stored = await (await admin.GetAsync($"/api/admin/article-versions/{second.Id}")).ReadAsync<ArticleVersionDetail>();
+        Assert.Equal(paragraph.Id, stored.Paragraphs.Single().Id);
+        Assert.Equal("a)", stored.Paragraphs.Single().Items[0].Label);
+    }
+
+    [Fact]
     public async Task ArticleNumber_MustBeUniqueWithinLaw()
     {
         var admin = await factory.CreateAdminClientAsync();

@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -18,7 +17,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { isAdmin, useCurrentUser } from "@/lib/auth";
+import { useCurrentUser } from "@/lib/auth";
 import { allRoles, roleLabels, Roles, type Role } from "@/lib/roles";
 
 function errorText(error: unknown) {
@@ -26,22 +25,10 @@ function errorText(error: unknown) {
   return error instanceof ApiError ? error.messages.join(" ") : "İşlem başarısız.";
 }
 
+/** Yönetici kontrolü panel layout'undaki AdminGate'te yapılır. */
 export function UsersAdmin() {
-  const { data: currentUser, isPending } = useCurrentUser();
-
-  if (isPending) return <p className="mt-6 text-muted-foreground">Yükleniyor…</p>;
-  if (!currentUser) {
-    return (
-      <p className="mt-6">
-        Bu sayfa için{" "}
-        <Link href="/giris" className="text-primary underline">
-          giriş yapın
-        </Link>
-        .
-      </p>
-    );
-  }
-  if (!isAdmin(currentUser)) return <p className="mt-6">Bu sayfa yalnızca sistem yöneticisine açıktır.</p>;
+  const { data: currentUser } = useCurrentUser();
+  if (!currentUser) return null;
 
   return (
     <>

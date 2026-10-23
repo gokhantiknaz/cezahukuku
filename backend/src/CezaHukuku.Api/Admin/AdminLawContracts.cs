@@ -48,3 +48,8 @@ public sealed record ParagraphInput(Guid? Id, int? Number, string? Text, List<Pa
 
 /// <param name="Level">1 bent, 2 alt bent, 0 bentlerden sonra gelen bağlayıcı metin.</param>
 public sealed record ParagraphItemInput(Guid? Id, int Level, string? Label, string Text);
+
+/// <param name="Text">Mevzuat biçiminde madde metni: "(1) ...", "a) ...", "1. ...".</param>
+/// <param name="BaseVersionId">Düzenlenen ya da yeni sürümün dayandığı sürüm; eşleşen fıkra ve bentler onun
+/// kimliklerini alır.</param>
+public sealed record ParseArticleTextRequest(string? Text, Guid? BaseVersionId);

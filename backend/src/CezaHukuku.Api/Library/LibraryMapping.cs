@@ -31,6 +31,8 @@ internal static class LibraryMapping
 
     public static ArticleVersionDetail ToDetail(this ArticleVersion v) =>
         new(v.Id, v.ValidFrom, v.ValidTo, v.AmendedBy, v.GazetteDate, v.GazetteNumber, v.IsRepealed,
-            [.. v.Paragraphs.Select(p => new ParagraphDto(p.Id, p.Number, p.Text,
-                [.. p.Items.Select(i => new ParagraphItemDto(i.Id, i.Level, i.Label, i.Text))]))]);
+            [.. v.Paragraphs.Select(ToDto)]);
+
+    public static ParagraphDto ToDto(this Paragraph p) =>
+        new(p.Id, p.Number, p.Text, [.. p.Items.Select(i => new ParagraphItemDto(i.Id, i.Level, i.Label, i.Text))]);
 }

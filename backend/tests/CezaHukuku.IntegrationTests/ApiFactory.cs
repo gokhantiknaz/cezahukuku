@@ -15,13 +15,15 @@ namespace CezaHukuku.IntegrationTests;
 /// <summary>
 /// Gerçek API'yi ayrı bir test veritabanına karşı çalıştırır. Veritabanı her test oturumunda silinip
 /// migration'larla yeniden kurulur; testler birbirini etkilemesin diye her biri kendi kanununu açar.
-/// Bağlantı: CEZAHUKUKU_TEST_CONNECTION ortam değişkeni, yoksa API'nin geliştirme bağlantısı (appsettings +
-/// user-secrets) ile aynı sunucuda adı "_test" ile biten ayrı veritabanı.
+/// Bağlantı: CEZAHUKUKU_TEST_CONNECTION ortam değişkeni, yoksa API'nin geliştirme bağlantısının (appsettings +
+/// user-secrets) sunucusunda sabit adlı <see cref="DatabaseName"/> veritabanı. Ad, elle deneme yapılan
+/// geliştirme veritabanından bilerek ayrıdır; o veritabanı testlerde silinmesin.
 /// </summary>
 public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
 {
     public const string AdminEmail = "admin@test.local";
     public const string AdminPassword = "TestYonetici123";
+    public const string DatabaseName = "cezahukuku_integration";
 
     public static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web)
     {
@@ -79,7 +81,7 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
             .AddUserSecrets(typeof(Program).Assembly, optional: true)
             .Build();
         var builder = new NpgsqlConnectionStringBuilder(configuration.GetConnectionString("Default"));
-        builder.Database = (builder.Database ?? "cezahukuku") + "_test";
+        builder.Database = DatabaseName;
         return builder.ConnectionString;
     }
 

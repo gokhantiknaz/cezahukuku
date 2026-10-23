@@ -38,7 +38,7 @@ export function UserMenu() {
       <span className="mr-1 hidden text-muted-foreground 2xl:inline">{user.displayName}</span>
       {isAdmin(user) && (
         <Button variant="ghost" size="lg" asChild>
-          <Link href="/panel/kullanicilar" title="Yönetim paneli">
+          <Link href="/panel/kutuphane" title="Yönetim paneli">
             <Settings /> Panel
           </Link>
         </Button>

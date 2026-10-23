@@ -919,15 +919,15 @@
         }
       }
     },
-    "/api/admin/articles/{articleId}/versions": {
-      "post": {
+    "/api/admin/article-versions/{id}": {
+      "get": {
         "tags": [
           "AdminLaws"
         ],
-        "operationId": "CreateArticleVersion",
+        "operationId": "GetArticleVersion",
         "parameters": [
           {
-            "name": "articleId",
+            "name": "id",
             "in": "path",
             "required": true,
             "schema": {
@@ -936,19 +936,9 @@
             }
           }
         ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/SaveArticleVersionRequest"
-              }
-            }
-          },
-          "required": true
-        },
         "responses": {
-          "201": {
-            "description": "Created",
+          "200": {
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -959,21 +949,9 @@
           },
           "404": {
             "description": "Not Found"
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
-                }
-              }
-            }
           }
         }
-      }
-    },
-    "/api/admin/article-versions/{id}": {
+      },
       "put": {
         "tags": [
           "AdminLaws"
@@ -1048,6 +1026,93 @@
           },
           "404": {
             "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/admin/articles/{articleId}/versions": {
+      "post": {
+        "tags": [
+          "AdminLaws"
+        ],
+        "operationId": "CreateArticleVersion",
+        "parameters": [
+          {
+            "name": "articleId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveArticleVersionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArticleVersionDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/article-text/parse": {
+      "post": {
+        "tags": [
+          "AdminLaws"
+        ],
+        "operationId": "ParseArticleText",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ParseArticleTextRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ParagraphDto"
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -1837,6 +1902,28 @@
           },
           "text": {
             "type": "string"
+          }
+        }
+      },
+      "ParseArticleTextRequest": {
+        "required": [
+          "text",
+          "baseVersionId"
+        ],
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "baseVersionId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
           }
         }
       },

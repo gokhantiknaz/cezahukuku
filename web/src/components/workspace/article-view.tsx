@@ -2,9 +2,9 @@
 
 import { Fragment } from "react";
 import Link from "next/link";
-import { ChevronLeft, ChevronRight, Copy, FileDown, FileText, Lock, Printer, Share2, Star } from "lucide-react";
+import { ChevronLeft, ChevronRight, Copy, FileDown, FileText, Lock, Pencil, Printer, Share2, Star } from "lucide-react";
 import { toast } from "sonner";
-import type { ArticleDetailResponse, ArticleRef, ParagraphDto } from "@/api/generated/model";
+import type { ArticleDetailResponse, ArticleRef } from "@/api/generated/model";
 import { Badge } from "@/components/ui/badge";
 import {
   Breadcrumb,
@@ -17,7 +17,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useHydrated } from "@/hooks/use-hydrated";
+import { isAdmin, useCurrentUser } from "@/lib/auth";
 import { formatDate } from "@/lib/dates";
+import { ParagraphList, paragraphsToText } from "./article-text";
 
 // Sekmeler ve dolacakları kilometre taşı.
 const tabs = [
@@ -30,15 +33,9 @@ const tabs = [
   { value: "765", label: "765 Sayılı Kanun", milestone: "M3" },
 ];
 
-function paragraphAsText(p: ParagraphDto) {
-  const head = [p.number != null ? `(${p.number})` : null, p.text || null].filter(Boolean).join(" ");
-  const items = p.items.map((i) => `${"  ".repeat(i.level)}${i.label ? `${i.label} ` : ""}${i.text}`);
-  return [head, ...items].filter(Boolean).join("\n");
-}
-
 function articleAsText({ law, article, version }: ArticleDetailResponse) {
   const title = `${law.name} (${law.number}) — Madde ${article.number}: ${article.title}`;
-  return [title, ...(version?.paragraphs ?? []).map(paragraphAsText)].join("\n");
+  return [title, paragraphsToText(version?.paragraphs ?? [])].join("\n");
 }
 
 /** "01.06.2005 tarihinden beri yürürlükte · 5377 s.K. m.12" gibi kısa sürüm açıklaması. */
@@ -54,6 +51,8 @@ export function ArticleView({ detail }: { detail: ArticleDetailResponse }) {
   const { article, law, path, version } = detail;
   const paragraphs = version?.paragraphs ?? [];
   const note = versionNote(version);
+  const { data: user } = useCurrentUser();
+  const canEdit = useHydrated() && isAdmin(user);
 
   async function copy() {
     try {
@@ -105,6 +104,13 @@ export function ArticleView({ detail }: { detail: ArticleDetailResponse }) {
             <h2 className="text-3xl leading-tight text-primary">{article.title}</h2>
           </div>
           <div className="flex flex-wrap gap-2 print:hidden">
+            {canEdit && (
+              <Button variant="outline" asChild>
+                <Link href={`/panel/kutuphane/${law.slug}?madde=${article.slug}`}>
+                  <Pencil /> Düzenle
+                </Link>
+              </Button>
+            )}
             <Button variant="outline" disabled title="Yakında">
               <Star /> Favorilere ekle
             </Button>
@@ -134,11 +140,7 @@ export function ArticleView({ detail }: { detail: ArticleDetailResponse }) {
                 {version?.isRepealed ? "Bu madde mülgadır." : "Bu maddenin metni henüz girilmedi."}
               </p>
             ) : (
-              <ol className="reading space-y-2">
-                {paragraphs.map((p) => (
-                  <ParagraphView key={p.id} paragraph={p} />
-                ))}
-              </ol>
+              <ParagraphList paragraphs={paragraphs} />
             )}
             {note && <p className="mt-4 border-t pt-3 text-sm text-muted-foreground">{note}</p>}
           </div>
@@ -169,32 +171,6 @@ export function ArticleView({ detail }: { detail: ArticleDetailResponse }) {
         </Tabs>
       </article>
     </ScrollArea>
-  );
-}
-
-function ParagraphView({ paragraph: p }: { paragraph: ParagraphDto }) {
-  return (
-    <li className="grid grid-cols-[2.25rem_1fr]">
-      <span className="text-muted-foreground">{p.number != null ? `(${p.number})` : ""}</span>
-      <div>
-        {p.text && <p>{p.text}</p>}
-        {p.items.length > 0 && (
-          <ul className="mt-1 space-y-1">
-            {p.items.map((item) => (
-              // Seviye 0: bentlerden sonra fıkrayı bağlayan düz metin; 1 bent, 2 alt bent.
-              <li
-                key={item.id}
-                className="flex gap-2"
-                style={{ paddingLeft: `${Math.max(item.level - 1, 0) * 1.5}rem` }}
-              >
-                {item.label && <span className="shrink-0">{item.label}</span>}
-                <span>{item.text}</span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-    </li>
   );
 }
 

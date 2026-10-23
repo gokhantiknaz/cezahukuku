@@ -5,13 +5,22 @@
  * OpenAPI spec version: 1.0.0
  */
 import {
-  useMutation
+  useMutation,
+  useQuery
 } from '@tanstack/react-query';
 import type {
+  DataTag,
+  DefinedInitialDataOptions,
+  DefinedUseQueryResult,
   MutationFunction,
   QueryClient,
+  QueryFunction,
+  QueryKey,
+  UndefinedInitialDataOptions,
   UseMutationOptions,
-  UseMutationResult
+  UseMutationResult,
+  UseQueryOptions,
+  UseQueryResult
 } from '@tanstack/react-query';
 
 import type {
@@ -21,6 +30,8 @@ import type {
   LawGroupSummary,
   LawNodeSummary,
   LawSummary,
+  ParagraphDto,
+  ParseArticleTextRequest,
   SaveArticleRequest,
   SaveArticleVersionRequest,
   SaveLawGroupRequest,
@@ -1085,97 +1096,119 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
       return useMutation(mutationOptions, queryClient);
     }
-    export type createArticleVersionResponse201 = {
+    export type getArticleVersionResponse200 = {
   data: ArticleVersionDetail
-  status: 201
+  status: 200
 }
 
-export type createArticleVersionResponse400 = {
-  data: HttpValidationProblemDetails
-  status: 400
-}
-
-export type createArticleVersionResponse404 = {
+export type getArticleVersionResponse404 = {
   data: void
   status: 404
 }
     
-export type createArticleVersionResponseSuccess = (createArticleVersionResponse201) & {
+export type getArticleVersionResponseSuccess = (getArticleVersionResponse200) & {
   headers: Headers;
 };
-export type createArticleVersionResponseError = (createArticleVersionResponse400 | createArticleVersionResponse404) & {
+export type getArticleVersionResponseError = (getArticleVersionResponse404) & {
   headers: Headers;
 };
 
-export type createArticleVersionResponse = (createArticleVersionResponseSuccess | createArticleVersionResponseError)
+export type getArticleVersionResponse = (getArticleVersionResponseSuccess | getArticleVersionResponseError)
 
-export const getCreateArticleVersionUrl = (articleId: string,) => {
+export const getGetArticleVersionUrl = (id: string,) => {
 
 
   
 
-  return `/api/admin/articles/${articleId}/versions`
+  return `/api/admin/article-versions/${id}`
 }
 
-export const createArticleVersion = async (articleId: string,
-    saveArticleVersionRequest: SaveArticleVersionRequest, options?: RequestInit): Promise<createArticleVersionResponse> => {
+export const getArticleVersion = async (id: string, options?: RequestInit): Promise<getArticleVersionResponse> => {
   
-  return apiFetch<createArticleVersionResponse>(getCreateArticleVersionUrl(articleId),
+  return apiFetch<getArticleVersionResponse>(getGetArticleVersionUrl(id),
   {      
     ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(
-      saveArticleVersionRequest,)
+    method: 'GET'
+    
+    
   }
 );}
 
 
 
 
-export const getCreateArticleVersionMutationOptions = <TError = HttpValidationProblemDetails | void,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createArticleVersion>>, TError,{articleId: string;data: SaveArticleVersionRequest}, TContext>, request?: SecondParameter<typeof apiFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof createArticleVersion>>, TError,{articleId: string;data: SaveArticleVersionRequest}, TContext> => {
 
-const mutationKey = ['createArticleVersion'];
-const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
+export const getGetArticleVersionQueryKey = (id?: string,) => {
+    return [
+    `/api/admin/article-versions/${id}`
+    ] as const;
+    }
+
+    
+export const getGetArticleVersionQueryOptions = <TData = Awaited<ReturnType<typeof getArticleVersion>>, TError = void>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getArticleVersion>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetArticleVersionQueryKey(id);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getArticleVersion>>> = ({ signal }) => getArticleVersion(id, { signal, ...requestOptions });
 
       
 
+      
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createArticleVersion>>, {articleId: string;data: SaveArticleVersionRequest}> = (props) => {
-          const {articleId,data} = props ?? {};
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getArticleVersion>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
 
-          return  createArticleVersion(articleId,data,requestOptions)
-        }
-
-        
+export type GetArticleVersionQueryResult = NonNullable<Awaited<ReturnType<typeof getArticleVersion>>>
+export type GetArticleVersionQueryError = void
 
 
-  return  { mutationFn, ...mutationOptions }}
+export function useGetArticleVersion<TData = Awaited<ReturnType<typeof getArticleVersion>>, TError = void>(
+ id: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getArticleVersion>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getArticleVersion>>,
+          TError,
+          Awaited<ReturnType<typeof getArticleVersion>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetArticleVersion<TData = Awaited<ReturnType<typeof getArticleVersion>>, TError = void>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getArticleVersion>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getArticleVersion>>,
+          TError,
+          Awaited<ReturnType<typeof getArticleVersion>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetArticleVersion<TData = Awaited<ReturnType<typeof getArticleVersion>>, TError = void>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getArticleVersion>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 
-    export type CreateArticleVersionMutationResult = NonNullable<Awaited<ReturnType<typeof createArticleVersion>>>
-    export type CreateArticleVersionMutationBody = SaveArticleVersionRequest
-    export type CreateArticleVersionMutationError = HttpValidationProblemDetails | void
+export function useGetArticleVersion<TData = Awaited<ReturnType<typeof getArticleVersion>>, TError = void>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getArticleVersion>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-    export const useCreateArticleVersion = <TError = HttpValidationProblemDetails | void,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createArticleVersion>>, TError,{articleId: string;data: SaveArticleVersionRequest}, TContext>, request?: SecondParameter<typeof apiFetch>}
- , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof createArticleVersion>>,
-        TError,
-        {articleId: string;data: SaveArticleVersionRequest},
-        TContext
-      > => {
+  const queryOptions = getGetArticleVersionQueryOptions(id,options)
 
-      const mutationOptions = getCreateArticleVersionMutationOptions(options);
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
-      return useMutation(mutationOptions, queryClient);
-    }
-    export type updateArticleVersionResponse200 = {
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export type updateArticleVersionResponse200 = {
   data: ArticleVersionDetail
   status: 200
 }
@@ -1345,6 +1378,173 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       > => {
 
       const mutationOptions = getDeleteArticleVersionMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    export type createArticleVersionResponse201 = {
+  data: ArticleVersionDetail
+  status: 201
+}
+
+export type createArticleVersionResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type createArticleVersionResponse404 = {
+  data: void
+  status: 404
+}
+    
+export type createArticleVersionResponseSuccess = (createArticleVersionResponse201) & {
+  headers: Headers;
+};
+export type createArticleVersionResponseError = (createArticleVersionResponse400 | createArticleVersionResponse404) & {
+  headers: Headers;
+};
+
+export type createArticleVersionResponse = (createArticleVersionResponseSuccess | createArticleVersionResponseError)
+
+export const getCreateArticleVersionUrl = (articleId: string,) => {
+
+
+  
+
+  return `/api/admin/articles/${articleId}/versions`
+}
+
+export const createArticleVersion = async (articleId: string,
+    saveArticleVersionRequest: SaveArticleVersionRequest, options?: RequestInit): Promise<createArticleVersionResponse> => {
+  
+  return apiFetch<createArticleVersionResponse>(getCreateArticleVersionUrl(articleId),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      saveArticleVersionRequest,)
+  }
+);}
+
+
+
+
+export const getCreateArticleVersionMutationOptions = <TError = HttpValidationProblemDetails | void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createArticleVersion>>, TError,{articleId: string;data: SaveArticleVersionRequest}, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createArticleVersion>>, TError,{articleId: string;data: SaveArticleVersionRequest}, TContext> => {
+
+const mutationKey = ['createArticleVersion'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createArticleVersion>>, {articleId: string;data: SaveArticleVersionRequest}> = (props) => {
+          const {articleId,data} = props ?? {};
+
+          return  createArticleVersion(articleId,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateArticleVersionMutationResult = NonNullable<Awaited<ReturnType<typeof createArticleVersion>>>
+    export type CreateArticleVersionMutationBody = SaveArticleVersionRequest
+    export type CreateArticleVersionMutationError = HttpValidationProblemDetails | void
+
+    export const useCreateArticleVersion = <TError = HttpValidationProblemDetails | void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createArticleVersion>>, TError,{articleId: string;data: SaveArticleVersionRequest}, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof createArticleVersion>>,
+        TError,
+        {articleId: string;data: SaveArticleVersionRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getCreateArticleVersionMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    export type parseArticleTextResponse200 = {
+  data: ParagraphDto[]
+  status: 200
+}
+    
+export type parseArticleTextResponseSuccess = (parseArticleTextResponse200) & {
+  headers: Headers;
+};
+;
+
+export type parseArticleTextResponse = (parseArticleTextResponseSuccess)
+
+export const getParseArticleTextUrl = () => {
+
+
+  
+
+  return `/api/admin/article-text/parse`
+}
+
+export const parseArticleText = async (parseArticleTextRequest: ParseArticleTextRequest, options?: RequestInit): Promise<parseArticleTextResponse> => {
+  
+  return apiFetch<parseArticleTextResponse>(getParseArticleTextUrl(),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      parseArticleTextRequest,)
+  }
+);}
+
+
+
+
+export const getParseArticleTextMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof parseArticleText>>, TError,{data: ParseArticleTextRequest}, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof parseArticleText>>, TError,{data: ParseArticleTextRequest}, TContext> => {
+
+const mutationKey = ['parseArticleText'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof parseArticleText>>, {data: ParseArticleTextRequest}> = (props) => {
+          const {data} = props ?? {};
+
+          return  parseArticleText(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ParseArticleTextMutationResult = NonNullable<Awaited<ReturnType<typeof parseArticleText>>>
+    export type ParseArticleTextMutationBody = ParseArticleTextRequest
+    export type ParseArticleTextMutationError = unknown
+
+    export const useParseArticleText = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof parseArticleText>>, TError,{data: ParseArticleTextRequest}, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof parseArticleText>>,
+        TError,
+        {data: ParseArticleTextRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getParseArticleTextMutationOptions(options);
 
       return useMutation(mutationOptions, queryClient);
     }

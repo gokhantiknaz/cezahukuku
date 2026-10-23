@@ -2,6 +2,7 @@ using CezaHukuku.Api.Common;
 using CezaHukuku.Api.Library;
 using CezaHukuku.Domain.Laws;
 using CezaHukuku.Infrastructure.Persistence;
+using CezaHukuku.Parsing.Legislation;
 using CezaHukuku.Parsing.Text;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
@@ -19,9 +20,40 @@ internal static class AdminArticleEndpoints
         group.MapPut("/articles/{id:guid}", UpdateAsync).WithName("UpdateArticle");
         group.MapDelete("/articles/{id:guid}", DeleteAsync).WithName("DeleteArticle");
 
+        group.MapGet("/article-versions/{id:guid}", GetVersionAsync).WithName("GetArticleVersion");
         group.MapPost("/articles/{articleId:guid}/versions", CreateVersionAsync).WithName("CreateArticleVersion");
         group.MapPut("/article-versions/{id:guid}", UpdateVersionAsync).WithName("UpdateArticleVersion");
         group.MapDelete("/article-versions/{id:guid}", DeleteVersionAsync).WithName("DeleteArticleVersion");
+
+        group.MapPost("/article-text/parse", ParseTextAsync).WithName("ParseArticleText");
+    }
+
+    private static async Task<Results<Ok<ArticleVersionDetail>, NotFound>> GetVersionAsync(Guid id, AppDbContext db)
+    {
+        var version = await db.ArticleVersions.AsNoTracking().FirstOrDefaultAsync(v => v.Id == id);
+        return version is null ? TypedResults.NotFound() : TypedResults.Ok(version.ToDetail());
+    }
+
+    /// <summary>
+    /// Metni kaydetmeden fıkra ve bentlere ayırır (yazarken önizleme). Dönen fıkralar kimlikleriyle birlikte
+    /// sürüm kaydetme isteğine aynen gönderilir.
+    /// </summary>
+    private static async Task<Ok<List<ParagraphDto>>> ParseTextAsync(ParseArticleTextRequest request, AppDbContext db)
+    {
+        IReadOnlyList<Paragraph> paragraphs =
+        [
+            .. ArticleTextParser.Parse(request.Text).Select(p => new Paragraph(
+                Guid.CreateVersion7(), p.Number, p.Text,
+                [.. p.Items.Select(i => new ParagraphItem(Guid.CreateVersion7(), i.Level, i.Label, i.Text))])),
+        ];
+
+        if (request.BaseVersionId is { } baseId
+            && await db.ArticleVersions.AsNoTracking().FirstOrDefaultAsync(v => v.Id == baseId) is { } baseVersion)
+        {
+            paragraphs = ParagraphIdentity.CarryOver(baseVersion.Paragraphs, paragraphs);
+        }
+
+        return TypedResults.Ok(paragraphs.Select(p => p.ToDto()).ToList());
     }
 
     private static async Task<Results<Created<ArticleSummary>, NotFound, ValidationProblem>> CreateAsync(
