@@ -3107,4 +3107,80 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
       return useMutation(mutationOptions, queryClient);
     }
+    export type rebuildCitationsResponse200 = {
+  data: number
+  status: 200
+}
+    
+export type rebuildCitationsResponseSuccess = (rebuildCitationsResponse200) & {
+  headers: Headers;
+};
+;
+
+export type rebuildCitationsResponse = (rebuildCitationsResponseSuccess)
+
+export const getRebuildCitationsUrl = () => {
+
+
+  
+
+  return `/api/admin/citations/rebuild`
+}
+
+export const rebuildCitations = async ( options?: RequestInit): Promise<rebuildCitationsResponse> => {
+  
+  return apiFetch<rebuildCitationsResponse>(getRebuildCitationsUrl(),
+  {      
+    ...options,
+    method: 'POST'
+    
+    
+  }
+);}
+
+
+
+
+export const getRebuildCitationsMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof rebuildCitations>>, TError,void, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof rebuildCitations>>, TError,void, TContext> => {
+
+const mutationKey = ['rebuildCitations'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof rebuildCitations>>, void> = () => {
+          
+
+          return  rebuildCitations(requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RebuildCitationsMutationResult = NonNullable<Awaited<ReturnType<typeof rebuildCitations>>>
+    
+    export type RebuildCitationsMutationError = unknown
+
+    export const useRebuildCitations = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof rebuildCitations>>, TError,void, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof rebuildCitations>>,
+        TError,
+        void,
+        TContext
+      > => {
+
+      const mutationOptions = getRebuildCitationsMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
     

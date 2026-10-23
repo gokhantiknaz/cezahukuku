@@ -92,7 +92,9 @@ public sealed record ArticleDetailResponse(
     ArticleRef? Next,
     List<EditorialNoteDto> Notes,
     List<DecisionDto> Decisions,
-    List<ArticleLinkDto> Links);
+    List<ArticleLinkDto> Links,
+    List<CitationSpan> Citations,
+    List<LinkedArticleRef> CitedBy);
 
 /// <param name="Html">Kararın tam metni ya da ilgili kısmı (sunucuda temizlenmiş HTML); boş olabilir.</param>
 /// <param name="EffectiveVisibility">Maddenin altında gösterilirken maddenin görünürlüğüyle daraltılmış hâli.</param>

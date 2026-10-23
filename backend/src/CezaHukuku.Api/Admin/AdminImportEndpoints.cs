@@ -52,6 +52,7 @@ internal static class AdminImportEndpoints
             law.GazetteDate ??= preview.Metadata.GazetteDate;
             law.GazetteNumber ??= preview.Metadata.GazetteNumber;
         }
+        await CitationIndex.ReplaceForPendingVersionsAsync(db);
         await db.SaveChangesAsync();
 
         return TypedResults.Ok(preview.Update is { } update

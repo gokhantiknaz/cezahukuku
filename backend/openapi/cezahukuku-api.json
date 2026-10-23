@@ -1915,6 +1915,27 @@
           }
         }
       }
+    },
+    "/api/admin/citations/rebuild": {
+      "post": {
+        "tags": [
+          "AdminLaws"
+        ],
+        "operationId": "RebuildCitations",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -2068,7 +2089,9 @@
           "next",
           "notes",
           "decisions",
-          "links"
+          "links",
+          "citations",
+          "citedBy"
         ],
         "type": "object",
         "properties": {
@@ -2136,6 +2159,18 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/ArticleLinkDto"
+            }
+          },
+          "citations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CitationSpan"
+            }
+          },
+          "citedBy": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LinkedArticleRef"
             }
           }
         }
@@ -2395,6 +2430,40 @@
           },
           "isRepealed": {
             "type": "boolean"
+          }
+        }
+      },
+      "CitationSpan": {
+        "required": [
+          "paragraphId",
+          "itemId",
+          "start",
+          "length",
+          "target"
+        ],
+        "type": "object",
+        "properties": {
+          "paragraphId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "itemId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "start": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "length": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "target": {
+            "$ref": "#/components/schemas/LinkedArticleRef"
           }
         }
       },

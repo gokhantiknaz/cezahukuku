@@ -107,6 +107,14 @@ if (!IsBuildTimeOpenApiGeneration())
     if (app.Environment.IsDevelopment())
         await scope.ServiceProvider.GetRequiredService<AppDbContext>().Database.MigrateAsync();
     await scope.ServiceProvider.GetRequiredService<IdentitySeeder>().SeedAsync();
+
+    // Atıf tablosu sonradan eklendi: tablo boşken metni olan sürümler varsa (eski kayıtlar) bir kez taranır.
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    if (!await db.ArticleCitations.AnyAsync() && await db.ArticleVersions.AnyAsync())
+    {
+        var count = await CitationIndex.RebuildAllAsync(db);
+        app.Logger.LogInformation("Mevcut sürümler atıflar için tarandı: {Count} atıf bulundu.", count);
+    }
     if (app.Environment.IsDevelopment())
         await scope.ServiceProvider.GetRequiredService<DemoLibrarySeeder>().SeedAsync();
 }

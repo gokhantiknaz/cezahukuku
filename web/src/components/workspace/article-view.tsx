@@ -66,7 +66,7 @@ export function ArticleView({ detail, asOf }: { detail: ArticleDetailResponse; a
     aciklama: notesOf("aciklama").length + notesOf("dersNotu").length,
     ictihatlar: detail.decisions.filter((d) => d.kind === "ictihat").length,
     norm: detail.decisions.filter((d) => d.kind === "normDenetimi").length,
-    ilgili: detail.links.filter((l) => l.kind === "ilgili" || l.incoming).length,
+    ilgili: detail.links.filter((l) => l.kind === "ilgili" || l.incoming).length + detail.citedBy.length,
     "765": detail.links.filter((l) => l.kind === "eskiKanunKarsiligi" && !l.incoming).length,
   };
 
@@ -166,7 +166,7 @@ export function ArticleView({ detail, asOf }: { detail: ArticleDetailResponse; a
                 {version?.isRepealed ? "Bu madde mülgadır." : "Bu maddenin metni henüz girilmedi."}
               </p>
             ) : (
-              <ParagraphList paragraphs={paragraphs} />
+              <ParagraphList paragraphs={paragraphs} citations={detail.citations} />
             )}
             {note && <p className="mt-4 border-t pt-3 text-sm text-muted-foreground">{note}</p>}
           </div>
@@ -205,7 +205,7 @@ export function ArticleView({ detail, asOf }: { detail: ArticleDetailResponse; a
                   empty="Bu madde hakkında kayıtlı norm denetimi kararı yok."
                 />
               ) : tab.value === "ilgili" ? (
-                <RelatedLinks links={detail.links} />
+                <RelatedLinks links={detail.links} citedBy={detail.citedBy} />
               ) : tab.value === "765" ? (
                 <OldLawCounterparts links={detail.links} />
               ) : tab.value === "gerekce" ? (

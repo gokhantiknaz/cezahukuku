@@ -17,6 +17,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<ArticleVersion> ArticleVersions => Set<ArticleVersion>();
     public DbSet<EditorialNote> EditorialNotes => Set<EditorialNote>();
     public DbSet<ArticleLink> ArticleLinks => Set<ArticleLink>();
+    public DbSet<ArticleCitation> ArticleCitations => Set<ArticleCitation>();
     public DbSet<CourtDecision> CourtDecisions => Set<CourtDecision>();
     public DbSet<ArticleDecision> ArticleDecisions => Set<ArticleDecision>();
 

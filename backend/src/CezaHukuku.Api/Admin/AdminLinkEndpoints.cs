@@ -23,7 +23,12 @@ internal static class AdminLinkEndpoints
         group.MapPost("/articles/{articleId:guid}/links", CreateAsync).WithName("CreateArticleLink");
         group.MapPut("/article-links/{id:guid}", UpdateAsync).WithName("UpdateArticleLink");
         group.MapDelete("/article-links/{id:guid}", DeleteAsync).WithName("DeleteArticleLink");
+        group.MapPost("/citations/rebuild", RebuildCitationsAsync).WithName("RebuildCitations");
     }
+
+    /// <summary>Bütün sürümlerdeki madde atıflarını yeniden tarar (atıf kuralları güncellendiğinde).</summary>
+    private static async Task<Ok<int>> RebuildCitationsAsync(AppDbContext db, CancellationToken cancellationToken) =>
+        TypedResults.Ok(await CitationIndex.RebuildAllAsync(db, cancellationToken));
 
     /// <summary>
     /// "tck 81", "765 448", "5237/81" gibi göndermede doğrudan o madde; değilse başlık ya da numarada geçen ifade.

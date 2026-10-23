@@ -214,6 +214,69 @@ namespace CezaHukuku.Infrastructure.Persistence.Migrations
                     b.ToTable("articles", (string)null);
                 });
 
+            modelBuilder.Entity("CezaHukuku.Domain.Laws.ArticleCitation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid?>("ItemId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("item_id");
+
+                    b.Property<int>("Length")
+                        .HasColumnType("integer")
+                        .HasColumnName("length");
+
+                    b.Property<Guid>("ParagraphId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("paragraph_id");
+
+                    b.Property<Guid>("SourceArticleId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("source_article_id");
+
+                    b.Property<Guid>("SourceVersionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("source_version_id");
+
+                    b.Property<int>("Start")
+                        .HasColumnType("integer")
+                        .HasColumnName("start");
+
+                    b.Property<string>("TargetArticleSlug")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("target_article_slug");
+
+                    b.Property<string>("TargetKind")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("target_kind");
+
+                    b.Property<string>("TargetLaw")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("target_law");
+
+                    b.HasKey("Id")
+                        .HasName("pk_article_citations");
+
+                    b.HasIndex("SourceArticleId")
+                        .HasDatabaseName("ix_article_citations_source_article_id");
+
+                    b.HasIndex("SourceVersionId")
+                        .HasDatabaseName("ix_article_citations_source_version_id");
+
+                    b.HasIndex("TargetArticleSlug")
+                        .HasDatabaseName("ix_article_citations_target_article_slug");
+
+                    b.ToTable("article_citations", (string)null);
+                });
+
             modelBuilder.Entity("CezaHukuku.Domain.Laws.ArticleLink", b =>
                 {
                     b.Property<Guid>("Id")
@@ -890,6 +953,23 @@ namespace CezaHukuku.Infrastructure.Persistence.Migrations
                         .HasForeignKey("NodeId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .HasConstraintName("fk_articles_law_nodes_node_id");
+                });
+
+            modelBuilder.Entity("CezaHukuku.Domain.Laws.ArticleCitation", b =>
+                {
+                    b.HasOne("CezaHukuku.Domain.Laws.Article", null)
+                        .WithMany()
+                        .HasForeignKey("SourceArticleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_article_citations_articles_source_article_id");
+
+                    b.HasOne("CezaHukuku.Domain.Laws.ArticleVersion", null)
+                        .WithMany()
+                        .HasForeignKey("SourceVersionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_article_citations_article_versions_source_version_id");
                 });
 
             modelBuilder.Entity("CezaHukuku.Domain.Laws.ArticleLink", b =>

@@ -38,6 +38,8 @@ export * from './articleVersionSummary';
 export * from './articleVersionSummaryAmendedBy';
 export * from './articleVersionSummaryValidFrom';
 export * from './articleVersionSummaryValidTo';
+export * from './citationSpan';
+export * from './citationSpanItemId';
 export * from './court';
 export * from './createUserRequest';
 export * from './currentUserResponse';

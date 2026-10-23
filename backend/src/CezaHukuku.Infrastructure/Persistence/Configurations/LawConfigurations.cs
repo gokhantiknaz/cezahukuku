@@ -135,3 +135,17 @@ internal sealed class ArticleLinkConfiguration : IEntityTypeConfiguration<Articl
         b.HasIndex(e => e.TargetArticleId);
     }
 }
+
+internal sealed class ArticleCitationConfiguration : IEntityTypeConfiguration<ArticleCitation>
+{
+    public void Configure(EntityTypeBuilder<ArticleCitation> b)
+    {
+        b.Property(e => e.TargetKind).HasConversion<string>().HasMaxLength(16);
+        b.Property(e => e.TargetLaw).HasMaxLength(500);
+        b.Property(e => e.TargetArticleSlug).HasMaxLength(100);
+        b.HasOne<ArticleVersion>().WithMany().HasForeignKey(e => e.SourceVersionId).OnDelete(DeleteBehavior.Cascade);
+        b.HasOne<Article>().WithMany().HasForeignKey(e => e.SourceArticleId).OnDelete(DeleteBehavior.Cascade);
+        b.HasIndex(e => e.SourceVersionId);
+        b.HasIndex(e => e.TargetArticleSlug);
+    }
+}

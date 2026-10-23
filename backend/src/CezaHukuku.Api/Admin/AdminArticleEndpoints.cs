@@ -163,6 +163,7 @@ internal static class AdminArticleEndpoints
             return errors.ToProblem();
 
         db.ArticleVersions.Add(version);
+        await CitationIndex.ReplaceForPendingVersionsAsync(db);
         await db.SaveChangesAsync();
         return TypedResults.Created($"/api/admin/article-versions/{version.Id}", version.ToDetail());
     }
@@ -183,6 +184,7 @@ internal static class AdminArticleEndpoints
         if (errors.HasErrors)
             return errors.ToProblem();
 
+        await CitationIndex.ReplaceForPendingVersionsAsync(db);
         await db.SaveChangesAsync();
         return TypedResults.Ok(version.ToDetail());
     }

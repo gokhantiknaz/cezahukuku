@@ -14,6 +14,8 @@ import type { ArticleDetailResponseNext } from './articleDetailResponseNext';
 import type { EditorialNoteDto } from './editorialNoteDto';
 import type { DecisionDto } from './decisionDto';
 import type { ArticleLinkDto } from './articleLinkDto';
+import type { CitationSpan } from './citationSpan';
+import type { LinkedArticleRef } from './linkedArticleRef';
 
 export interface ArticleDetailResponse {
   article: ArticleSummary;
@@ -26,4 +28,6 @@ export interface ArticleDetailResponse {
   notes: EditorialNoteDto[];
   decisions: DecisionDto[];
   links: ArticleLinkDto[];
+  citations: CitationSpan[];
+  citedBy: LinkedArticleRef[];
 }

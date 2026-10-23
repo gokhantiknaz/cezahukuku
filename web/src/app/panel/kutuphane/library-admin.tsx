@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { FolderPlus, ListTree, Lock, Pencil, Plus, Trash2 } from "lucide-react";
+import { FolderPlus, ListTree, Lock, Pencil, Plus, RefreshCw, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { ApiError } from "@/api/fetcher";
-import { useDeleteLaw, useDeleteLawGroup } from "@/api/generated/admin-laws/admin-laws";
+import { useDeleteLaw, useDeleteLawGroup, useRebuildCitations } from "@/api/generated/admin-laws/admin-laws";
 import { useGetLibrary } from "@/api/generated/library/library";
 import type { LawGroupWithLaws } from "@/api/generated/model";
 import { ConfirmDelete } from "@/components/panel/confirm-delete";
@@ -29,6 +29,7 @@ export function LibraryAdmin() {
           Kanunları gruplar hâlinde ekleyin; maddeleri “Yapı ve maddeler” ekranından girin.
         </p>
         <div className="flex gap-2">
+          <RebuildCitationsButton />
           <LawGroupDialog
             trigger={
               <Button variant="outline">
@@ -58,6 +59,33 @@ export function LibraryAdmin() {
         <GroupCard key={group.id} group={group} groups={groups} />
       ))}
     </div>
+  );
+}
+
+/**
+ * Madde metinlerindeki atıflar sürüm kaydedilirken çıkarılır; atıf kuralları güncellendiğinde eski kayıtları yeniden
+ * taramak için.
+ */
+function RebuildCitationsButton() {
+  const refresh = useLibraryRefresh();
+  const rebuild = useRebuildCitations();
+  return (
+    <Button
+      variant="ghost"
+      disabled={rebuild.isPending}
+      title="Bütün madde metinlerindeki atıfları yeniden tarar"
+      onClick={async () => {
+        try {
+          const result = await rebuild.mutateAsync();
+          await refresh();
+          toast.success(`Atıflar yeniden tarandı${result.status === 200 ? `: ${result.data} atıf` : ""}.`);
+        } catch {
+          toast.error("Atıflar taranamadı.");
+        }
+      }}
+    >
+      <RefreshCw className={rebuild.isPending ? "animate-spin" : undefined} /> Atıfları tara
+    </Button>
   );
 }
 

@@ -47,21 +47,7 @@ internal static class ArticleLinkQueries
             .Distinct()
             .ToList();
         var articles = await db.Articles.AsNoTracking().Where(a => otherIds.Contains(a.Id)).ToListAsync();
-        var lawIds = articles.Select(a => a.LawId).Distinct().ToList();
-        var laws = await db.Laws.AsNoTracking().Where(l => lawIds.Contains(l.Id)).ToDictionaryAsync(l => l.Id);
-        var nodesByLaw = (await db.LawNodes.AsNoTracking().Where(n => lawIds.Contains(n.LawId)).ToListAsync())
-            .ToLookup(n => n.LawId);
-
-        var visibleArticles = new Dictionary<Guid, (Article Article, Law Law)>();
-        foreach (var article in articles)
-        {
-            // Silinmiş kanunun maddesi gösterilmez (sorgu filtresi kanunu getirmez).
-            if (!laws.TryGetValue(article.LawId, out var law))
-                continue;
-            var outline = LawOutline.Build(law, nodesByLaw[law.Id], [], includePrivate: true);
-            if (includePrivate || outline.EffectiveVisibilityOf(article) == Visibility.Public)
-                visibleArticles[article.Id] = (article, law);
-        }
+        var visibleArticles = await VisibleArticles.FilterAsync(db, articles, includePrivate);
 
         // Eski kanun karşılığında hedef maddenin metni de gösterilir.
         var counterpartIds = links
@@ -90,8 +76,7 @@ internal static class ArticleLinkQueries
                 // İki madde birbirine ayrı ayrı "ilgili" bağlanmışsa bir kez gösterilir.
                 if (link.Kind == ArticleLinkKind.Ilgili && !seenRelated.Add(id))
                     continue;
-                other = new LinkedArticleRef(id, target.Law.Slug, target.Law.ShortName ?? target.Law.Number, target.Law.Name,
-                    target.Article.Slug, target.Article.Number, target.Article.Title);
+                other = VisibleArticles.ToRef(target.Article, target.Law);
             }
             else if (incoming)
             {

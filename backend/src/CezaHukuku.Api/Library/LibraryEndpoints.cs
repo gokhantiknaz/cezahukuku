@@ -103,18 +103,25 @@ public static class LibraryEndpoints
         var notes = await VisibleNotesAsync(db, law.Id, item.Article.Id, item.EffectiveVisibility, principal.CanSeePrivate());
         var decisions = await VisibleDecisionsAsync(db, item.Article.Id, item.EffectiveVisibility, principal.CanSeePrivate());
         var links = await ArticleLinkQueries.VisibleLinksAsync(db, item.Article.Id, principal.CanSeePrivate());
+        var shown = ArticleVersion.Select(versions, asOf);
+        var citations = shown is null
+            ? []
+            : await CitationQueries.ForVersionAsync(db, shown.Id, law, outline, principal.CanSeePrivate());
+        var citedBy = await CitationQueries.CitedByAsync(db, item.Article, law, principal.CanSeePrivate());
 
         var response = new ArticleDetailResponse(
             item.ToSummary(),
             law.ToSummary(),
             [.. outline.PathOf(item.Article).Select(n => n.ToRef())],
-            ArticleVersion.Select(versions, asOf)?.ToDetail(),
+            shown?.ToDetail(),
             [.. versions.Select(v => v.ToSummary())],
             outline.Previous(item.Article.Id)?.ToRef(),
             outline.Next(item.Article.Id)?.ToRef(),
             notes,
             decisions,
-            links);
+            links,
+            citations,
+            citedBy);
         return TypedResults.Ok(response);
     }
 

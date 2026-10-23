@@ -1,23 +1,28 @@
 import Link from "next/link";
-import type { ArticleLinkDto } from "@/api/generated/model";
+import type { ArticleLinkDto, LinkedArticleRef } from "@/api/generated/model";
 import { ParagraphList } from "./article-text";
 
 function Target({ link }: { link: ArticleLinkDto }) {
-  if (!link.article) return <span className="font-medium">{link.externalLabel}</span>;
-  const { lawSlug, lawLabel, articleSlug, number, title } = link.article;
+  return link.article ? <ArticleLink article={link.article} /> : <span className="font-medium">{link.externalLabel}</span>;
+}
+
+function ArticleLink({ article }: { article: LinkedArticleRef }) {
   return (
-    <Link href={`/${lawSlug}/${articleSlug}`} className="font-medium text-primary underline-offset-2 hover:underline">
-      {lawLabel} Madde {number}
-      {title && <span className="font-normal text-foreground"> — {title}</span>}
+    <Link href={`/${article.lawSlug}/${article.articleSlug}`} className="font-medium text-primary underline-offset-2 hover:underline">
+      {article.lawLabel} Madde {article.number}
+      {article.title && <span className="font-normal text-foreground"> — {article.title}</span>}
     </Link>
   );
 }
 
-/** İlgili Maddeler sekmesi: iki yönlü ilgili maddeler ve (eski kanun maddesinde) yeni kanundaki karşılığı. */
-export function RelatedLinks({ links }: { links: ArticleLinkDto[] }) {
+/**
+ * İlgili Maddeler sekmesi: iki yönlü ilgili maddeler, (eski kanun maddesinde) yeni kanundaki karşılığı ve metninde
+ * bu maddeye atıf yapan maddeler.
+ */
+export function RelatedLinks({ links, citedBy }: { links: ArticleLinkDto[]; citedBy: LinkedArticleRef[] }) {
   const related = links.filter((l) => l.kind === "ilgili");
   const newer = links.filter((l) => l.kind === "eskiKanunKarsiligi" && l.incoming);
-  if (related.length === 0 && newer.length === 0) {
+  if (related.length === 0 && newer.length === 0 && citedBy.length === 0) {
     return <p className="text-muted-foreground">Bu maddeye henüz ilgili madde bağlanmadı.</p>;
   }
   return (
@@ -40,6 +45,18 @@ export function RelatedLinks({ links }: { links: ArticleLinkDto[] }) {
               <li key={link.id}>
                 <Target link={link} />
                 {link.note && <p className="text-sm text-muted-foreground">{link.note}</p>}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+      {citedBy.length > 0 && (
+        <section>
+          <h4 className="mb-2 text-sm font-medium text-muted-foreground">Bu maddeye atıf yapan maddeler</h4>
+          <ul className="space-y-2">
+            {citedBy.map((article) => (
+              <li key={article.articleId}>
+                <ArticleLink article={article} />
               </li>
             ))}
           </ul>
