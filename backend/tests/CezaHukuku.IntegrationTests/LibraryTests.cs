@@ -83,6 +83,24 @@ public class LibraryTests(ApiFactory factory)
 
         var beforeLaw = await (await admin.GetAsync(url + "?asOf=2000-01-01")).ReadAsync<ArticleDetailResponse>();
         Assert.Null(beforeLaw.Version);
+
+        var history = await (await admin.GetAsync(url + "/history")).ReadAsync<List<ArticleVersionDetail>>();
+        Assert.Equal(["Değişen metin.", "İlk metin."], history.Select(v => v.Paragraphs.Single().Text));
+    }
+
+    [Fact]
+    public async Task History_OfPrivateArticle_IsHiddenFromAnonymous()
+    {
+        var admin = await factory.CreateAdminClientAsync();
+        var (law, node) = await CreateLawAsync(admin);
+        var article = await CreateArticleAsync(admin, law, node, "1", "Amaç");
+        await CreateVersionAsync(admin, article, new DateOnly(2005, 6, 1), "Metin.");
+        await admin.PutJsonAsync($"/api/admin/articles/{article.Id}",
+            new SaveArticleRequest(node.Id, "1", "Amaç", Visibility.Private, null)).ExpectAsync(200);
+
+        var url = $"/api/library/laws/{law.Slug}/articles/madde-1/history";
+        await factory.CreateAnonymousClient().GetAsync(url).ExpectAsync(404);
+        await admin.GetAsync(url).ExpectAsync(200);
     }
 
     [Fact]

@@ -21,6 +21,7 @@ import type {
 
 import type {
   ArticleDetailResponse,
+  ArticleVersionDetail,
   GetArticleParams,
   LawTreeResponse,
   LibraryResponse
@@ -375,6 +376,126 @@ export function useGetArticle<TData = Awaited<ReturnType<typeof getArticle>>, TE
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
   const queryOptions = getGetArticleQueryOptions(lawSlug,articleSlug,params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export type getArticleHistoryResponse200 = {
+  data: ArticleVersionDetail[]
+  status: 200
+}
+
+export type getArticleHistoryResponse404 = {
+  data: void
+  status: 404
+}
+    
+export type getArticleHistoryResponseSuccess = (getArticleHistoryResponse200) & {
+  headers: Headers;
+};
+export type getArticleHistoryResponseError = (getArticleHistoryResponse404) & {
+  headers: Headers;
+};
+
+export type getArticleHistoryResponse = (getArticleHistoryResponseSuccess | getArticleHistoryResponseError)
+
+export const getGetArticleHistoryUrl = (lawSlug: string,
+    articleSlug: string,) => {
+
+
+  
+
+  return `/api/library/laws/${lawSlug}/articles/${articleSlug}/history`
+}
+
+export const getArticleHistory = async (lawSlug: string,
+    articleSlug: string, options?: RequestInit): Promise<getArticleHistoryResponse> => {
+  
+  return apiFetch<getArticleHistoryResponse>(getGetArticleHistoryUrl(lawSlug,articleSlug),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getGetArticleHistoryQueryKey = (lawSlug?: string,
+    articleSlug?: string,) => {
+    return [
+    `/api/library/laws/${lawSlug}/articles/${articleSlug}/history`
+    ] as const;
+    }
+
+    
+export const getGetArticleHistoryQueryOptions = <TData = Awaited<ReturnType<typeof getArticleHistory>>, TError = void>(lawSlug: string,
+    articleSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getArticleHistory>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetArticleHistoryQueryKey(lawSlug,articleSlug);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getArticleHistory>>> = ({ signal }) => getArticleHistory(lawSlug,articleSlug, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(lawSlug && articleSlug), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getArticleHistory>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetArticleHistoryQueryResult = NonNullable<Awaited<ReturnType<typeof getArticleHistory>>>
+export type GetArticleHistoryQueryError = void
+
+
+export function useGetArticleHistory<TData = Awaited<ReturnType<typeof getArticleHistory>>, TError = void>(
+ lawSlug: string,
+    articleSlug: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getArticleHistory>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getArticleHistory>>,
+          TError,
+          Awaited<ReturnType<typeof getArticleHistory>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetArticleHistory<TData = Awaited<ReturnType<typeof getArticleHistory>>, TError = void>(
+ lawSlug: string,
+    articleSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getArticleHistory>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getArticleHistory>>,
+          TError,
+          Awaited<ReturnType<typeof getArticleHistory>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetArticleHistory<TData = Awaited<ReturnType<typeof getArticleHistory>>, TError = void>(
+ lawSlug: string,
+    articleSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getArticleHistory>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useGetArticleHistory<TData = Awaited<ReturnType<typeof getArticleHistory>>, TError = void>(
+ lawSlug: string,
+    articleSlug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getArticleHistory>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetArticleHistoryQueryOptions(lawSlug,articleSlug,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 

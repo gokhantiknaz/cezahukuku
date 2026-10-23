@@ -20,6 +20,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useHydrated } from "@/hooks/use-hydrated";
 import { isAdmin, useCurrentUser } from "@/lib/auth";
 import { formatDate } from "@/lib/dates";
+import { ArticleDateControl } from "./article-date-control";
+import { ArticleHistory } from "./article-history";
 import { ParagraphList, paragraphsToText } from "./article-text";
 
 // Sekmeler ve dolacakları kilometre taşı.
@@ -47,7 +49,8 @@ function versionNote(version: ArticleDetailResponse["version"]) {
   return [range, version.amendedBy].filter(Boolean).join(" · ") || null;
 }
 
-export function ArticleView({ detail }: { detail: ArticleDetailResponse }) {
+/** @param asOf Seçilen gün (?tarih=); verilirse o gün yürürlükte olan metin gösterilir. */
+export function ArticleView({ detail, asOf }: { detail: ArticleDetailResponse; asOf?: string }) {
   const { article, law, path, version } = detail;
   const paragraphs = version?.paragraphs ?? [];
   const note = versionNote(version);
@@ -129,13 +132,23 @@ export function ArticleView({ detail }: { detail: ArticleDetailResponse }) {
           </div>
         </header>
 
-        <section className="mt-5 rounded-lg border bg-card">
-          <h3 className="flex items-center gap-2 border-b bg-accent px-4 py-2.5 text-lg text-accent-foreground">
+        <div className="mt-5">
+          <ArticleDateControl key={asOf ?? ""} asOf={asOf} />
+        </div>
+
+        <section className="mt-3 rounded-lg border bg-card">
+          <h3 className="flex flex-wrap items-center gap-2 border-b bg-accent px-4 py-2.5 text-lg text-accent-foreground">
             <FileText className="size-5" aria-hidden />
             Kanun Metni
+            {asOf && <span className="text-base">— {formatDate(asOf)} tarihinde yürürlükte olan metin</span>}
           </h3>
           <div className="px-4 py-4">
-            {paragraphs.length === 0 ? (
+            {asOf && !version ? (
+              <p className="text-muted-foreground">
+                {formatDate(asOf)} tarihinde yürürlükte olan bir metin kayıtlı değil: madde o tarihte henüz yürürlükte
+                değildi ya da o tarihteki metni girilmedi. Kayıtlı sürümler için Değişiklikler sekmesine bakın.
+              </p>
+            ) : paragraphs.length === 0 ? (
               <p className="text-muted-foreground">
                 {version?.isRepealed ? "Bu madde mülgadır." : "Bu maddenin metni henüz girilmedi."}
               </p>
@@ -146,7 +159,7 @@ export function ArticleView({ detail }: { detail: ArticleDetailResponse }) {
           </div>
         </section>
 
-        <ArticlePager lawSlug={law.slug} previous={detail.previous} next={detail.next} />
+        <ArticlePager lawSlug={law.slug} previous={detail.previous} next={detail.next} asOf={asOf} />
 
         <Tabs defaultValue={tabs[0].value} className="mt-6 print:hidden">
           {/* Dar ekranda tek satır, yatay kaydırılır (alt alta kayıp içeriğin üstüne binmesin). */}
@@ -158,14 +171,21 @@ export function ArticleView({ detail }: { detail: ArticleDetailResponse }) {
                 className="text-base data-active:text-primary after:bg-primary"
               >
                 {tab.label}
+                {tab.value === "degisiklikler" && detail.versions.length > 1 && (
+                  <span className="text-sm text-muted-foreground">({detail.versions.length})</span>
+                )}
               </TabsTrigger>
             ))}
           </TabsList>
           {tabs.map((tab) => (
             <TabsContent key={tab.value} value={tab.value} className="rounded-lg border bg-card p-4">
-              <p className="text-muted-foreground">
-                {tab.label} içeriği yönetim panelinden girildiğinde burada görünecek ({tab.milestone}).
-              </p>
+              {tab.value === "degisiklikler" ? (
+                <ArticleHistory lawSlug={law.slug} articleSlug={article.slug} shownVersionId={version?.id} />
+              ) : (
+                <p className="text-muted-foreground">
+                  {tab.label} içeriği yönetim panelinden girildiğinde burada görünecek ({tab.milestone}).
+                </p>
+              )}
             </TabsContent>
           ))}
         </Tabs>
@@ -178,17 +198,21 @@ function ArticlePager({
   lawSlug,
   previous,
   next,
+  asOf,
 }: {
   lawSlug: string;
   previous: ArticleRef | null;
   next: ArticleRef | null;
+  asOf?: string;
 }) {
   if (!previous && !next) return null;
+  // Seçilen tarih korunur: aynı suç tarihi için birkaç maddeye bakılabilsin.
+  const query = asOf ? `?tarih=${asOf}` : "";
   return (
     <nav className="mt-4 flex justify-between gap-2 print:hidden" aria-label="Madde gezinmesi">
       {previous ? (
         <Button variant="ghost" asChild>
-          <Link href={`/${lawSlug}/${previous.slug}`} title={previous.title}>
+          <Link href={`/${lawSlug}/${previous.slug}${query}`} title={previous.title}>
             <ChevronLeft /> Madde {previous.number}
           </Link>
         </Button>
@@ -197,7 +221,7 @@ function ArticlePager({
       )}
       {next && (
         <Button variant="ghost" asChild>
-          <Link href={`/${lawSlug}/${next.slug}`} title={next.title}>
+          <Link href={`/${lawSlug}/${next.slug}${query}`} title={next.title}>
             Madde {next.number} <ChevronRight />
           </Link>
         </Button>

@@ -31,6 +31,15 @@ export const getLaw = cache(async (lawSlug: string) =>
   isSlug(lawSlug) ? apiGet<LawTreeResponse>(getGetLawUrl(lawSlug)) : null,
 );
 
-export const getArticle = cache(async (lawSlug: string, articleSlug: string) =>
-  isSlug(lawSlug) && isSlug(articleSlug) ? apiGet<ArticleDetailResponse>(getGetArticleUrl(lawSlug, articleSlug)) : null,
+/** `asOf` verilirse o gün yürürlükte olan metin (suç tarihi); verilmezse güncel metin. */
+export const getArticle = cache(async (lawSlug: string, articleSlug: string, asOf?: string) =>
+  isSlug(lawSlug) && isSlug(articleSlug)
+    ? apiGet<ArticleDetailResponse>(getGetArticleUrl(lawSlug, articleSlug, asOf ? { asOf } : undefined))
+    : null,
 );
+
+/** Adresteki "?tarih=2010-03-15" değeri; geçersizse yok sayılır. */
+export function parseDateParam(value: string | string[] | undefined) {
+  const text = Array.isArray(value) ? value[0] : value;
+  return text && /^\d{4}-\d{2}-\d{2}$/.test(text) && !Number.isNaN(Date.parse(text)) ? text : undefined;
+}

@@ -20,8 +20,31 @@ public static class LibraryEndpoints
         group.MapGet("/", GetLibraryAsync).WithName("GetLibrary");
         group.MapGet("/laws/{lawSlug}", GetLawAsync).WithName("GetLaw");
         group.MapGet("/laws/{lawSlug}/articles/{articleSlug}", GetArticleAsync).WithName("GetArticle");
+        group.MapGet("/laws/{lawSlug}/articles/{articleSlug}/history", GetArticleHistoryAsync).WithName("GetArticleHistory");
 
         return group;
+    }
+
+    /// <summary>Maddenin tüm sürümleri metinleriyle, en yeni önce (Değişiklikler sekmesi ve zaman tüneli).</summary>
+    private static async Task<Results<Ok<List<ArticleVersionDetail>>, NotFound>> GetArticleHistoryAsync(
+        string lawSlug, string articleSlug, ClaimsPrincipal principal, AppDbContext db)
+    {
+        var loaded = await LoadOutlineAsync(db, lawSlug, principal.CanSeePrivate());
+        if (loaded is not ({ }, { } outline))
+            return TypedResults.NotFound();
+
+        var slug = articleSlug.ToLowerInvariant();
+        var item = outline.ReadingOrder.FirstOrDefault(a => a.Article.Slug == slug);
+        if (item is null)
+            return TypedResults.NotFound();
+
+        var versions = await db.ArticleVersions.AsNoTracking()
+            .Where(v => v.ArticleId == item.Article.Id)
+            .ToListAsync();
+        return TypedResults.Ok(versions
+            .OrderByDescending(v => v.ValidFrom ?? DateOnly.MinValue)
+            .Select(v => v.ToDetail())
+            .ToList());
     }
 
     private static async Task<Ok<LibraryResponse>> GetLibraryAsync(ClaimsPrincipal principal, AppDbContext db)

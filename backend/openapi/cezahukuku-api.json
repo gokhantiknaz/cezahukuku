@@ -395,6 +395,50 @@
         }
       }
     },
+    "/api/library/laws/{lawSlug}/articles/{articleSlug}/history": {
+      "get": {
+        "tags": [
+          "Library"
+        ],
+        "operationId": "GetArticleHistory",
+        "parameters": [
+          {
+            "name": "lawSlug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "articleSlug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ArticleVersionDetail"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
     "/api/admin/law-groups": {
       "post": {
         "tags": [
