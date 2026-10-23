@@ -27,7 +27,10 @@ import type {
   ArticleSummary,
   ArticleVersionDetail,
   HttpValidationProblemDetails,
+  ImportLawTextRequest,
   LawGroupSummary,
+  LawImportPreview,
+  LawImportResult,
   LawNodeSummary,
   LawSummary,
   ParagraphDto,
@@ -1545,6 +1548,181 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       > => {
 
       const mutationOptions = getParseArticleTextMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    export type previewLawImportResponse200 = {
+  data: LawImportPreview
+  status: 200
+}
+
+export type previewLawImportResponse404 = {
+  data: void
+  status: 404
+}
+    
+export type previewLawImportResponseSuccess = (previewLawImportResponse200) & {
+  headers: Headers;
+};
+export type previewLawImportResponseError = (previewLawImportResponse404) & {
+  headers: Headers;
+};
+
+export type previewLawImportResponse = (previewLawImportResponseSuccess | previewLawImportResponseError)
+
+export const getPreviewLawImportUrl = (lawId: string,) => {
+
+
+  
+
+  return `/api/admin/laws/${lawId}/import/preview`
+}
+
+export const previewLawImport = async (lawId: string,
+    importLawTextRequest: ImportLawTextRequest, options?: RequestInit): Promise<previewLawImportResponse> => {
+  
+  return apiFetch<previewLawImportResponse>(getPreviewLawImportUrl(lawId),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      importLawTextRequest,)
+  }
+);}
+
+
+
+
+export const getPreviewLawImportMutationOptions = <TError = void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof previewLawImport>>, TError,{lawId: string;data: ImportLawTextRequest}, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof previewLawImport>>, TError,{lawId: string;data: ImportLawTextRequest}, TContext> => {
+
+const mutationKey = ['previewLawImport'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof previewLawImport>>, {lawId: string;data: ImportLawTextRequest}> = (props) => {
+          const {lawId,data} = props ?? {};
+
+          return  previewLawImport(lawId,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PreviewLawImportMutationResult = NonNullable<Awaited<ReturnType<typeof previewLawImport>>>
+    export type PreviewLawImportMutationBody = ImportLawTextRequest
+    export type PreviewLawImportMutationError = void
+
+    export const usePreviewLawImport = <TError = void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof previewLawImport>>, TError,{lawId: string;data: ImportLawTextRequest}, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof previewLawImport>>,
+        TError,
+        {lawId: string;data: ImportLawTextRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getPreviewLawImportMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    export type importLawResponse200 = {
+  data: LawImportResult
+  status: 200
+}
+
+export type importLawResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type importLawResponse404 = {
+  data: void
+  status: 404
+}
+    
+export type importLawResponseSuccess = (importLawResponse200) & {
+  headers: Headers;
+};
+export type importLawResponseError = (importLawResponse400 | importLawResponse404) & {
+  headers: Headers;
+};
+
+export type importLawResponse = (importLawResponseSuccess | importLawResponseError)
+
+export const getImportLawUrl = (lawId: string,) => {
+
+
+  
+
+  return `/api/admin/laws/${lawId}/import`
+}
+
+export const importLaw = async (lawId: string,
+    importLawTextRequest: ImportLawTextRequest, options?: RequestInit): Promise<importLawResponse> => {
+  
+  return apiFetch<importLawResponse>(getImportLawUrl(lawId),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      importLawTextRequest,)
+  }
+);}
+
+
+
+
+export const getImportLawMutationOptions = <TError = HttpValidationProblemDetails | void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof importLaw>>, TError,{lawId: string;data: ImportLawTextRequest}, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof importLaw>>, TError,{lawId: string;data: ImportLawTextRequest}, TContext> => {
+
+const mutationKey = ['importLaw'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof importLaw>>, {lawId: string;data: ImportLawTextRequest}> = (props) => {
+          const {lawId,data} = props ?? {};
+
+          return  importLaw(lawId,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ImportLawMutationResult = NonNullable<Awaited<ReturnType<typeof importLaw>>>
+    export type ImportLawMutationBody = ImportLawTextRequest
+    export type ImportLawMutationError = HttpValidationProblemDetails | void
+
+    export const useImportLaw = <TError = HttpValidationProblemDetails | void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof importLaw>>, TError,{lawId: string;data: ImportLawTextRequest}, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof importLaw>>,
+        TError,
+        {lawId: string;data: ImportLawTextRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getImportLawMutationOptions(options);
 
       return useMutation(mutationOptions, queryClient);
     }

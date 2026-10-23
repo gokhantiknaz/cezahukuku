@@ -22,6 +22,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- İçe aktarma testleri birim testlerindeki gerçek TCK kesitini kullanır. -->
+    <None Include="..\CezaHukuku.UnitTests\Parsing\Fixtures\tck-kesit.txt" Link="Fixtures\tck-kesit.txt" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\src\CezaHukuku.Api\CezaHukuku.Api.csproj" />
   </ItemGroup>
 

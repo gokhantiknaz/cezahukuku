@@ -1116,6 +1116,104 @@
           }
         }
       }
+    },
+    "/api/admin/laws/{lawId}/import/preview": {
+      "post": {
+        "tags": [
+          "AdminLaws"
+        ],
+        "operationId": "PreviewLawImport",
+        "parameters": [
+          {
+            "name": "lawId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImportLawTextRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LawImportPreview"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/admin/laws/{lawId}/import": {
+      "post": {
+        "tags": [
+          "AdminLaws"
+        ],
+        "operationId": "ImportLaw",
+        "parameters": [
+          {
+            "name": "lawId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImportLawTextRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LawImportResult"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -1455,6 +1553,124 @@
           }
         }
       },
+      "ImportArticlePreview": {
+        "required": [
+          "number",
+          "slug",
+          "title",
+          "isRepealed",
+          "sortOrder",
+          "validFrom",
+          "amendedBy",
+          "paragraphs"
+        ],
+        "type": "object",
+        "properties": {
+          "number": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "isRepealed": {
+            "type": "boolean"
+          },
+          "sortOrder": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "validFrom": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "amendedBy": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "paragraphs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ParagraphDto"
+            }
+          }
+        }
+      },
+      "ImportLawTextRequest": {
+        "required": [
+          "text",
+          "joinWrappedLines",
+          "validFrom",
+          "applyMetadata"
+        ],
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "joinWrappedLines": {
+            "type": "boolean"
+          },
+          "validFrom": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "applyMetadata": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ImportNodePreview": {
+        "required": [
+          "kind",
+          "number",
+          "title",
+          "sortOrder",
+          "children",
+          "articles"
+        ],
+        "type": "object",
+        "properties": {
+          "kind": {
+            "$ref": "#/components/schemas/LawNodeKind"
+          },
+          "number": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "sortOrder": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "children": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ImportNodePreview"
+            }
+          },
+          "articles": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ImportArticlePreview"
+            }
+          }
+        }
+      },
       "LawGroupSummary": {
         "required": [
           "id",
@@ -1508,6 +1724,126 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/LawSummary"
+            }
+          }
+        }
+      },
+      "LawImportMetadata": {
+        "required": [
+          "number",
+          "acceptedOn",
+          "gazetteDate",
+          "gazetteNumber"
+        ],
+        "type": "object",
+        "properties": {
+          "number": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "acceptedOn": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "gazetteDate": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "gazetteNumber": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "LawImportPreview": {
+        "required": [
+          "metadata",
+          "nodes",
+          "articles",
+          "nodeCount",
+          "articleCount",
+          "repealedCount",
+          "footnoteCount",
+          "warnings",
+          "blockers"
+        ],
+        "type": "object",
+        "properties": {
+          "metadata": {
+            "$ref": "#/components/schemas/LawImportMetadata"
+          },
+          "nodes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ImportNodePreview"
+            }
+          },
+          "articles": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ImportArticlePreview"
+            }
+          },
+          "nodeCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "articleCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "repealedCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "footnoteCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "blockers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "LawImportResult": {
+        "required": [
+          "nodeCount",
+          "articleCount",
+          "warnings"
+        ],
+        "type": "object",
+        "properties": {
+          "nodeCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "articleCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
             }
           }
         }

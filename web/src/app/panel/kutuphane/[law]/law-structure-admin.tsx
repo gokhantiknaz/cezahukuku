@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
-import { ArrowLeft, ExternalLink, FilePlus, FolderPlus, Lock } from "lucide-react";
+import { ArrowLeft, ExternalLink, FileInput, FilePlus, FolderPlus, Lock } from "lucide-react";
 import { ApiError } from "@/api/fetcher";
 import { useGetLaw } from "@/api/generated/library/library";
 import type { LawTreeResponse } from "@/api/generated/model";
@@ -64,11 +64,18 @@ function StructureEditor({ tree }: { tree: LawTreeResponse }) {
             {law.name}
           </h1>
         </div>
-        <Button variant="ghost" size="sm" asChild>
-          <Link href={`/${law.slug}`} target="_blank">
-            <ExternalLink /> Okuma ekranında aç
-          </Link>
-        </Button>
+        <div className="flex gap-1">
+          <Button variant="outline" size="sm" asChild>
+            <Link href={`/panel/kutuphane/${law.slug}/ice-aktar`}>
+              <FileInput /> Metinden içe aktar
+            </Link>
+          </Button>
+          <Button variant="ghost" size="sm" asChild>
+            <Link href={`/${law.slug}`} target="_blank">
+              <ExternalLink /> Okuma ekranında aç
+            </Link>
+          </Button>
+        </div>
       </div>
 
       <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(18rem,26rem)_1fr]">
@@ -83,7 +90,11 @@ function StructureEditor({ tree }: { tree: LawTreeResponse }) {
           </div>
           {rows.length === 0 ? (
             <p className="p-4 text-sm text-muted-foreground">
-              Kanun boş. Önce “Birinci Kitap” gibi bir düğüm ya da bölümsüz bir kanunsa doğrudan madde ekleyin.
+              Kanun boş. Kanunun tamamını{" "}
+              <Link href={`/panel/kutuphane/${law.slug}/ice-aktar`} className="text-primary underline">
+                metinden içe aktarabilir
+              </Link>{" "}
+              ya da “Birinci Kitap” gibi bir düğüm (bölümsüz kanunda doğrudan madde) ekleyerek elle girebilirsiniz.
             </p>
           ) : (
             <ul className="max-h-[70vh] overflow-y-auto p-1">

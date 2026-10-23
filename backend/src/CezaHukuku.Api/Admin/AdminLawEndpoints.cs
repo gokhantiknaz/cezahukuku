@@ -32,6 +32,7 @@ public static class AdminLawEndpoints
 
         group.MapLawNodeEndpoints();
         group.MapArticleEndpoints();
+        group.MapImportEndpoints();
 
         return group;
     }
