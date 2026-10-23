@@ -154,6 +154,76 @@ namespace CezaHukuku.Infrastructure.Persistence.Migrations
                     b.ToTable("article_versions", (string)null);
                 });
 
+            modelBuilder.Entity("CezaHukuku.Domain.Laws.EditorialNote", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid?>("ArticleId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("article_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<string>("Html")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("html");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("kind");
+
+                    b.Property<Guid>("LawId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("law_id");
+
+                    b.Property<string>("PlainText")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("plain_text");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer")
+                        .HasColumnName("sort_order");
+
+                    b.Property<string>("Title")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("title");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<string>("Visibility")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("visibility");
+
+                    b.HasKey("Id")
+                        .HasName("pk_editorial_notes");
+
+                    b.HasIndex("LawId", "Kind")
+                        .HasDatabaseName("ix_editorial_notes_law_id_kind");
+
+                    b.HasIndex("ArticleId", "Kind", "SortOrder")
+                        .HasDatabaseName("ix_editorial_notes_article_id_kind_sort_order");
+
+                    b.ToTable("editorial_notes", (string)null);
+                });
+
             modelBuilder.Entity("CezaHukuku.Domain.Laws.Law", b =>
                 {
                     b.Property<Guid>("Id")
@@ -631,6 +701,22 @@ namespace CezaHukuku.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_article_versions_articles_article_id");
+                });
+
+            modelBuilder.Entity("CezaHukuku.Domain.Laws.EditorialNote", b =>
+                {
+                    b.HasOne("CezaHukuku.Domain.Laws.Article", null)
+                        .WithMany()
+                        .HasForeignKey("ArticleId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_editorial_notes_articles_article_id");
+
+                    b.HasOne("CezaHukuku.Domain.Laws.Law", null)
+                        .WithMany()
+                        .HasForeignKey("LawId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_editorial_notes_laws_law_id");
                 });
 
             modelBuilder.Entity("CezaHukuku.Domain.Laws.Law", b =>

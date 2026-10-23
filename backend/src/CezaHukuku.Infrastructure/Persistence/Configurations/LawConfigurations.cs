@@ -105,3 +105,18 @@ internal static class ParagraphJson
     public static IReadOnlyList<Paragraph> Deserialize(string json) =>
         JsonSerializer.Deserialize<List<Paragraph>>(json, Options) ?? [];
 }
+
+internal sealed class EditorialNoteConfiguration : IEntityTypeConfiguration<EditorialNote>
+{
+    public void Configure(EntityTypeBuilder<EditorialNote> b)
+    {
+        b.HasQueryFilter(e => e.DeletedAt == null);
+        b.Property(e => e.Kind).HasConversion<string>().HasMaxLength(20);
+        b.Property(e => e.Title).HasMaxLength(500);
+        b.Property(e => e.Visibility).HasConversion<string>().HasMaxLength(16);
+        b.HasOne<Law>().WithMany().HasForeignKey(e => e.LawId).OnDelete(DeleteBehavior.Restrict);
+        b.HasOne<Article>().WithMany().HasForeignKey(e => e.ArticleId).OnDelete(DeleteBehavior.Restrict);
+        b.HasIndex(e => new { e.ArticleId, e.Kind, e.SortOrder });
+        b.HasIndex(e => new { e.LawId, e.Kind });
+    }
+}

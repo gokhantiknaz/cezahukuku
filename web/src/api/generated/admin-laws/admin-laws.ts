@@ -26,6 +26,7 @@ import type {
 import type {
   ArticleSummary,
   ArticleVersionDetail,
+  EditorialNoteDto,
   HttpValidationProblemDetails,
   ImportLawTextRequest,
   LawGroupSummary,
@@ -37,6 +38,7 @@ import type {
   ParseArticleTextRequest,
   SaveArticleRequest,
   SaveArticleVersionRequest,
+  SaveEditorialNoteRequest,
   SaveLawGroupRequest,
   SaveLawNodeRequest,
   SaveLawRequest
@@ -1723,6 +1725,359 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       > => {
 
       const mutationOptions = getImportLawMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    export type createArticleNoteResponse201 = {
+  data: EditorialNoteDto
+  status: 201
+}
+
+export type createArticleNoteResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type createArticleNoteResponse404 = {
+  data: void
+  status: 404
+}
+    
+export type createArticleNoteResponseSuccess = (createArticleNoteResponse201) & {
+  headers: Headers;
+};
+export type createArticleNoteResponseError = (createArticleNoteResponse400 | createArticleNoteResponse404) & {
+  headers: Headers;
+};
+
+export type createArticleNoteResponse = (createArticleNoteResponseSuccess | createArticleNoteResponseError)
+
+export const getCreateArticleNoteUrl = (articleId: string,) => {
+
+
+  
+
+  return `/api/admin/articles/${articleId}/notes`
+}
+
+export const createArticleNote = async (articleId: string,
+    saveEditorialNoteRequest: SaveEditorialNoteRequest, options?: RequestInit): Promise<createArticleNoteResponse> => {
+  
+  return apiFetch<createArticleNoteResponse>(getCreateArticleNoteUrl(articleId),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      saveEditorialNoteRequest,)
+  }
+);}
+
+
+
+
+export const getCreateArticleNoteMutationOptions = <TError = HttpValidationProblemDetails | void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createArticleNote>>, TError,{articleId: string;data: SaveEditorialNoteRequest}, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createArticleNote>>, TError,{articleId: string;data: SaveEditorialNoteRequest}, TContext> => {
+
+const mutationKey = ['createArticleNote'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createArticleNote>>, {articleId: string;data: SaveEditorialNoteRequest}> = (props) => {
+          const {articleId,data} = props ?? {};
+
+          return  createArticleNote(articleId,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateArticleNoteMutationResult = NonNullable<Awaited<ReturnType<typeof createArticleNote>>>
+    export type CreateArticleNoteMutationBody = SaveEditorialNoteRequest
+    export type CreateArticleNoteMutationError = HttpValidationProblemDetails | void
+
+    export const useCreateArticleNote = <TError = HttpValidationProblemDetails | void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createArticleNote>>, TError,{articleId: string;data: SaveEditorialNoteRequest}, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof createArticleNote>>,
+        TError,
+        {articleId: string;data: SaveEditorialNoteRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getCreateArticleNoteMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    export type createLawNoteResponse201 = {
+  data: EditorialNoteDto
+  status: 201
+}
+
+export type createLawNoteResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type createLawNoteResponse404 = {
+  data: void
+  status: 404
+}
+    
+export type createLawNoteResponseSuccess = (createLawNoteResponse201) & {
+  headers: Headers;
+};
+export type createLawNoteResponseError = (createLawNoteResponse400 | createLawNoteResponse404) & {
+  headers: Headers;
+};
+
+export type createLawNoteResponse = (createLawNoteResponseSuccess | createLawNoteResponseError)
+
+export const getCreateLawNoteUrl = (lawId: string,) => {
+
+
+  
+
+  return `/api/admin/laws/${lawId}/notes`
+}
+
+export const createLawNote = async (lawId: string,
+    saveEditorialNoteRequest: SaveEditorialNoteRequest, options?: RequestInit): Promise<createLawNoteResponse> => {
+  
+  return apiFetch<createLawNoteResponse>(getCreateLawNoteUrl(lawId),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      saveEditorialNoteRequest,)
+  }
+);}
+
+
+
+
+export const getCreateLawNoteMutationOptions = <TError = HttpValidationProblemDetails | void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createLawNote>>, TError,{lawId: string;data: SaveEditorialNoteRequest}, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createLawNote>>, TError,{lawId: string;data: SaveEditorialNoteRequest}, TContext> => {
+
+const mutationKey = ['createLawNote'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createLawNote>>, {lawId: string;data: SaveEditorialNoteRequest}> = (props) => {
+          const {lawId,data} = props ?? {};
+
+          return  createLawNote(lawId,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateLawNoteMutationResult = NonNullable<Awaited<ReturnType<typeof createLawNote>>>
+    export type CreateLawNoteMutationBody = SaveEditorialNoteRequest
+    export type CreateLawNoteMutationError = HttpValidationProblemDetails | void
+
+    export const useCreateLawNote = <TError = HttpValidationProblemDetails | void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createLawNote>>, TError,{lawId: string;data: SaveEditorialNoteRequest}, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof createLawNote>>,
+        TError,
+        {lawId: string;data: SaveEditorialNoteRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getCreateLawNoteMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    export type updateEditorialNoteResponse200 = {
+  data: EditorialNoteDto
+  status: 200
+}
+
+export type updateEditorialNoteResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type updateEditorialNoteResponse404 = {
+  data: void
+  status: 404
+}
+    
+export type updateEditorialNoteResponseSuccess = (updateEditorialNoteResponse200) & {
+  headers: Headers;
+};
+export type updateEditorialNoteResponseError = (updateEditorialNoteResponse400 | updateEditorialNoteResponse404) & {
+  headers: Headers;
+};
+
+export type updateEditorialNoteResponse = (updateEditorialNoteResponseSuccess | updateEditorialNoteResponseError)
+
+export const getUpdateEditorialNoteUrl = (id: string,) => {
+
+
+  
+
+  return `/api/admin/notes/${id}`
+}
+
+export const updateEditorialNote = async (id: string,
+    saveEditorialNoteRequest: SaveEditorialNoteRequest, options?: RequestInit): Promise<updateEditorialNoteResponse> => {
+  
+  return apiFetch<updateEditorialNoteResponse>(getUpdateEditorialNoteUrl(id),
+  {      
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      saveEditorialNoteRequest,)
+  }
+);}
+
+
+
+
+export const getUpdateEditorialNoteMutationOptions = <TError = HttpValidationProblemDetails | void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateEditorialNote>>, TError,{id: string;data: SaveEditorialNoteRequest}, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateEditorialNote>>, TError,{id: string;data: SaveEditorialNoteRequest}, TContext> => {
+
+const mutationKey = ['updateEditorialNote'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateEditorialNote>>, {id: string;data: SaveEditorialNoteRequest}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateEditorialNote(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateEditorialNoteMutationResult = NonNullable<Awaited<ReturnType<typeof updateEditorialNote>>>
+    export type UpdateEditorialNoteMutationBody = SaveEditorialNoteRequest
+    export type UpdateEditorialNoteMutationError = HttpValidationProblemDetails | void
+
+    export const useUpdateEditorialNote = <TError = HttpValidationProblemDetails | void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateEditorialNote>>, TError,{id: string;data: SaveEditorialNoteRequest}, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof updateEditorialNote>>,
+        TError,
+        {id: string;data: SaveEditorialNoteRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getUpdateEditorialNoteMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    export type deleteEditorialNoteResponse204 = {
+  data: void
+  status: 204
+}
+
+export type deleteEditorialNoteResponse404 = {
+  data: void
+  status: 404
+}
+    
+export type deleteEditorialNoteResponseSuccess = (deleteEditorialNoteResponse204) & {
+  headers: Headers;
+};
+export type deleteEditorialNoteResponseError = (deleteEditorialNoteResponse404) & {
+  headers: Headers;
+};
+
+export type deleteEditorialNoteResponse = (deleteEditorialNoteResponseSuccess | deleteEditorialNoteResponseError)
+
+export const getDeleteEditorialNoteUrl = (id: string,) => {
+
+
+  
+
+  return `/api/admin/notes/${id}`
+}
+
+export const deleteEditorialNote = async (id: string, options?: RequestInit): Promise<deleteEditorialNoteResponse> => {
+  
+  return apiFetch<deleteEditorialNoteResponse>(getDeleteEditorialNoteUrl(id),
+  {      
+    ...options,
+    method: 'DELETE'
+    
+    
+  }
+);}
+
+
+
+
+export const getDeleteEditorialNoteMutationOptions = <TError = void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteEditorialNote>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteEditorialNote>>, TError,{id: string}, TContext> => {
+
+const mutationKey = ['deleteEditorialNote'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteEditorialNote>>, {id: string}> = (props) => {
+          const {id} = props ?? {};
+
+          return  deleteEditorialNote(id,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteEditorialNoteMutationResult = NonNullable<Awaited<ReturnType<typeof deleteEditorialNote>>>
+    
+    export type DeleteEditorialNoteMutationError = void
+
+    export const useDeleteEditorialNote = <TError = void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteEditorialNote>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof deleteEditorialNote>>,
+        TError,
+        {id: string},
+        TContext
+      > => {
+
+      const mutationOptions = getDeleteEditorialNoteMutationOptions(options);
 
       return useMutation(mutationOptions, queryClient);
     }

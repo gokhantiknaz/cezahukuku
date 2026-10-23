@@ -3,13 +3,14 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
-import { ArrowLeft, ExternalLink, FileInput, FilePlus, FolderPlus, Lock } from "lucide-react";
+import { ArrowLeft, ExternalLink, FileInput, FilePlus, FolderPlus, Lock, NotebookText } from "lucide-react";
 import { ApiError } from "@/api/fetcher";
-import { useGetLaw } from "@/api/generated/library/library";
+import { useGetLaw, useGetLawNotes } from "@/api/generated/library/library";
 import type { LawTreeResponse } from "@/api/generated/model";
 import { ArticleEditor } from "@/components/panel/article-editor";
 import { nodeKindLabels } from "@/components/panel/form";
 import { NodeEditor } from "@/components/panel/node-editor";
+import { NotesEditor } from "@/components/panel/notes-editor";
 import { allArticles, findNode, selfAndDescendantIds, treeRows } from "@/components/panel/tree-utils";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -18,7 +19,8 @@ type Selection =
   | { kind: "node"; id: string }
   | { kind: "article"; id: string }
   | { kind: "new-node"; parentId: string | null }
-  | { kind: "new-article"; nodeId: string | null };
+  | { kind: "new-article"; nodeId: string | null }
+  | { kind: "law-notes" };
 
 /** Kanunun yapısı (kitap/bölüm ağacı) solda, seçili düğüm ya da madde sağda düzenlenir. */
 export function LawStructureAdmin() {
@@ -86,6 +88,14 @@ function StructureEditor({ tree }: { tree: LawTreeResponse }) {
             </Button>
             <Button variant="outline" size="sm" onClick={() => setSelection({ kind: "new-article", nodeId: null })}>
               <FilePlus /> Madde
+            </Button>
+            <Button
+              variant={selection?.kind === "law-notes" ? "default" : "outline"}
+              size="sm"
+              className="ml-auto"
+              onClick={() => setSelection({ kind: "law-notes" })}
+            >
+              <NotebookText /> Kanun notları
             </Button>
           </div>
           {rows.length === 0 ? (
@@ -168,6 +178,7 @@ function StructureEditor({ tree }: { tree: LawTreeResponse }) {
               altına bölüm veya madde eklenir.
             </p>
           )}
+          {selection?.kind === "law-notes" && <LawNotes lawId={law.id} lawSlug={law.slug} />}
           {selection?.kind === "new-node" && (
             <NodeEditor
               key={`new-node:${selection.parentId}`}
@@ -215,4 +226,11 @@ function StructureEditor({ tree }: { tree: LawTreeResponse }) {
       </div>
     </div>
   );
+}
+
+/** Kanun düzeyindeki notlar: genel gerekçe ve ders notları (okuma ekranında sol paneldeki bağlantılar). */
+function LawNotes({ lawId, lawSlug }: { lawId: string; lawSlug: string }) {
+  const notesQuery = useGetLawNotes(lawSlug);
+  if (notesQuery.data?.status !== 200) return <p className="text-muted-foreground">Yükleniyor…</p>;
+  return <NotesEditor target={{ level: "law", id: lawId }} notes={notesQuery.data.data} />;
 }

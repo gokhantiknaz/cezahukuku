@@ -7,9 +7,11 @@
 import type { LawSummary } from './lawSummary';
 import type { LawNodeTree } from './lawNodeTree';
 import type { ArticleSummary } from './articleSummary';
+import type { EditorialNoteKind } from './editorialNoteKind';
 
 export interface LawTreeResponse {
   law: LawSummary;
   nodes: LawNodeTree[];
   articles: ArticleSummary[];
+  noteKinds: EditorialNoteKind[];
 }

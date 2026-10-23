@@ -33,6 +33,9 @@ internal static class LibraryMapping
         new(v.Id, v.ValidFrom, v.ValidTo, v.AmendedBy, v.GazetteDate, v.GazetteNumber, v.IsRepealed,
             [.. v.Paragraphs.Select(ToDto)]);
 
+    public static EditorialNoteDto ToDto(this EditorialNote n, Visibility effectiveVisibility) =>
+        new(n.Id, n.Kind, n.Title, n.Html, n.Visibility, effectiveVisibility, n.SortOrder, n.UpdatedAt);
+
     public static ParagraphDto ToDto(this Paragraph p) =>
         new(p.Id, p.Number, p.Text, [.. p.Items.Select(i => new ParagraphItemDto(i.Id, i.Level, i.Label, i.Text))]);
 }

@@ -14,6 +14,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<LawNode> LawNodes => Set<LawNode>();
     public DbSet<Article> Articles => Set<Article>();
     public DbSet<ArticleVersion> ArticleVersions => Set<ArticleVersion>();
+    public DbSet<EditorialNote> EditorialNotes => Set<EditorialNote>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

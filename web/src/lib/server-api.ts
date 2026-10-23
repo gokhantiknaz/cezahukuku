@@ -4,8 +4,8 @@
 
 import { cache } from "react";
 import { cookies } from "next/headers";
-import { getGetArticleUrl, getGetLawUrl, getGetLibraryUrl } from "@/api/generated/library/library";
-import type { ArticleDetailResponse, LawTreeResponse, LibraryResponse } from "@/api/generated/model";
+import { getGetArticleUrl, getGetLawNotesUrl, getGetLawUrl, getGetLibraryUrl } from "@/api/generated/library/library";
+import type { ArticleDetailResponse, EditorialNoteDto, LawTreeResponse, LibraryResponse } from "@/api/generated/model";
 
 const apiUrl = process.env.API_URL ?? "http://localhost:5080";
 
@@ -36,6 +36,11 @@ export const getArticle = cache(async (lawSlug: string, articleSlug: string, asO
   isSlug(lawSlug) && isSlug(articleSlug)
     ? apiGet<ArticleDetailResponse>(getGetArticleUrl(lawSlug, articleSlug, asOf ? { asOf } : undefined))
     : null,
+);
+
+/** Kanun düzeyindeki notlar: "genelGerekce" ya da "dersNotu". */
+export const getLawNotes = cache(async (lawSlug: string, kind: "genelGerekce" | "dersNotu") =>
+  isSlug(lawSlug) ? apiGet<EditorialNoteDto[]>(getGetLawNotesUrl(lawSlug, { kind })) : null,
 );
 
 /** Adresteki "?tarih=2010-03-15" değeri; geçersizse yok sayılır. */

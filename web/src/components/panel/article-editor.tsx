@@ -20,6 +20,7 @@ import { cn } from "@/lib/utils";
 import { ConfirmDelete } from "./confirm-delete";
 import { emptyToNull, Field, FormMessages, OptionSelect, otherMessages, toSortOrder, visibilityLabels } from "./form";
 import { NodeSelect } from "./node-editor";
+import { NotesEditor } from "./notes-editor";
 import { useLibraryRefresh } from "./use-library-refresh";
 import { VersionEditor } from "./version-editor";
 
@@ -151,6 +152,18 @@ export function ArticleEditor({
       </form>
 
       {article && <ArticleVersions key={article.id} lawSlug={lawSlug} article={article} />}
+      {article && <ArticleNotes lawSlug={lawSlug} article={article} />}
+    </div>
+  );
+}
+
+/** Maddenin gerekçe, açıklama ve ders notları (madde ayrıntısıyla aynı sorgudan). */
+function ArticleNotes({ lawSlug, article }: { lawSlug: string; article: ArticleSummary }) {
+  const detailQuery = useGetArticle(lawSlug, article.slug);
+  if (detailQuery.data?.status !== 200) return null;
+  return (
+    <div className="border-t pt-5">
+      <NotesEditor target={{ level: "article", id: article.id }} notes={detailQuery.data.data.notes} />
     </div>
   );
 }

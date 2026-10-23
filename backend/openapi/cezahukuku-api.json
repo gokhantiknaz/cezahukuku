@@ -439,6 +439,49 @@
         }
       }
     },
+    "/api/library/laws/{lawSlug}/notes": {
+      "get": {
+        "tags": [
+          "Library"
+        ],
+        "operationId": "GetLawNotes",
+        "parameters": [
+          {
+            "name": "lawSlug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "kind",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/EditorialNoteDto"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
     "/api/admin/law-groups": {
       "post": {
         "tags": [
@@ -1258,6 +1301,193 @@
           }
         }
       }
+    },
+    "/api/admin/articles/{articleId}/notes": {
+      "post": {
+        "tags": [
+          "AdminLaws"
+        ],
+        "operationId": "CreateArticleNote",
+        "parameters": [
+          {
+            "name": "articleId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveEditorialNoteRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EditorialNoteDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/laws/{lawId}/notes": {
+      "post": {
+        "tags": [
+          "AdminLaws"
+        ],
+        "operationId": "CreateLawNote",
+        "parameters": [
+          {
+            "name": "lawId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveEditorialNoteRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EditorialNoteDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/notes/{id}": {
+      "put": {
+        "tags": [
+          "AdminLaws"
+        ],
+        "operationId": "UpdateEditorialNote",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveEditorialNoteRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EditorialNoteDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "AdminLaws"
+        ],
+        "operationId": "DeleteEditorialNote",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -1355,7 +1585,8 @@
           "version",
           "versions",
           "previous",
-          "next"
+          "next",
+          "notes"
         ],
         "type": "object",
         "properties": {
@@ -1406,6 +1637,12 @@
                 "$ref": "#/components/schemas/ArticleRef"
               }
             ]
+          },
+          "notes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EditorialNoteDto"
+            }
           }
         }
       },
@@ -1622,6 +1859,59 @@
             }
           }
         }
+      },
+      "EditorialNoteDto": {
+        "required": [
+          "id",
+          "kind",
+          "title",
+          "html",
+          "visibility",
+          "effectiveVisibility",
+          "sortOrder",
+          "updatedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/EditorialNoteKind"
+          },
+          "title": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "html": {
+            "type": "string"
+          },
+          "visibility": {
+            "$ref": "#/components/schemas/Visibility"
+          },
+          "effectiveVisibility": {
+            "$ref": "#/components/schemas/Visibility"
+          },
+          "sortOrder": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "EditorialNoteKind": {
+        "enum": [
+          "gerekce",
+          "aciklama",
+          "dersNotu",
+          "genelGerekce"
+        ]
       },
       "HttpValidationProblemDetails": {
         "type": "object",
@@ -2187,7 +2477,8 @@
         "required": [
           "law",
           "nodes",
-          "articles"
+          "articles",
+          "noteKinds"
         ],
         "type": "object",
         "properties": {
@@ -2204,6 +2495,12 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/ArticleSummary"
+            }
+          },
+          "noteKinds": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EditorialNoteKind"
             }
           }
         }
@@ -2550,6 +2847,43 @@
             "items": {
               "$ref": "#/components/schemas/ParagraphInput"
             }
+          }
+        }
+      },
+      "SaveEditorialNoteRequest": {
+        "required": [
+          "kind",
+          "title",
+          "html",
+          "visibility",
+          "sortOrder"
+        ],
+        "type": "object",
+        "properties": {
+          "kind": {
+            "$ref": "#/components/schemas/EditorialNoteKind"
+          },
+          "title": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "html": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "visibility": {
+            "$ref": "#/components/schemas/Visibility"
+          },
+          "sortOrder": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
           }
         }
       },

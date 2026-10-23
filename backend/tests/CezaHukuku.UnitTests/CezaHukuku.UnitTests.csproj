@@ -25,6 +25,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\CezaHukuku.Domain\CezaHukuku.Domain.csproj" />
     <ProjectReference Include="..\..\src\CezaHukuku.Parsing\CezaHukuku.Parsing.csproj" />
+    <ProjectReference Include="..\..\src\CezaHukuku.Infrastructure\CezaHukuku.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>

@@ -22,7 +22,9 @@ import type {
 import type {
   ArticleDetailResponse,
   ArticleVersionDetail,
+  EditorialNoteDto,
   GetArticleParams,
+  GetLawNotesParams,
   LawTreeResponse,
   LibraryResponse
 } from '.././model';
@@ -496,6 +498,133 @@ export function useGetArticleHistory<TData = Awaited<ReturnType<typeof getArticl
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
   const queryOptions = getGetArticleHistoryQueryOptions(lawSlug,articleSlug,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export type getLawNotesResponse200 = {
+  data: EditorialNoteDto[]
+  status: 200
+}
+
+export type getLawNotesResponse404 = {
+  data: void
+  status: 404
+}
+    
+export type getLawNotesResponseSuccess = (getLawNotesResponse200) & {
+  headers: Headers;
+};
+export type getLawNotesResponseError = (getLawNotesResponse404) & {
+  headers: Headers;
+};
+
+export type getLawNotesResponse = (getLawNotesResponseSuccess | getLawNotesResponseError)
+
+export const getGetLawNotesUrl = (lawSlug: string,
+    params?: GetLawNotesParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/library/laws/${lawSlug}/notes?${stringifiedParams}` : `/api/library/laws/${lawSlug}/notes`
+}
+
+export const getLawNotes = async (lawSlug: string,
+    params?: GetLawNotesParams, options?: RequestInit): Promise<getLawNotesResponse> => {
+  
+  return apiFetch<getLawNotesResponse>(getGetLawNotesUrl(lawSlug,params),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getGetLawNotesQueryKey = (lawSlug?: string,
+    params?: GetLawNotesParams,) => {
+    return [
+    `/api/library/laws/${lawSlug}/notes`, ...(params ? [params]: [])
+    ] as const;
+    }
+
+    
+export const getGetLawNotesQueryOptions = <TData = Awaited<ReturnType<typeof getLawNotes>>, TError = void>(lawSlug: string,
+    params?: GetLawNotesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getLawNotes>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetLawNotesQueryKey(lawSlug,params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getLawNotes>>> = ({ signal }) => getLawNotes(lawSlug,params, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(lawSlug), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getLawNotes>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetLawNotesQueryResult = NonNullable<Awaited<ReturnType<typeof getLawNotes>>>
+export type GetLawNotesQueryError = void
+
+
+export function useGetLawNotes<TData = Awaited<ReturnType<typeof getLawNotes>>, TError = void>(
+ lawSlug: string,
+    params: undefined |  GetLawNotesParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getLawNotes>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getLawNotes>>,
+          TError,
+          Awaited<ReturnType<typeof getLawNotes>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetLawNotes<TData = Awaited<ReturnType<typeof getLawNotes>>, TError = void>(
+ lawSlug: string,
+    params?: GetLawNotesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getLawNotes>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getLawNotes>>,
+          TError,
+          Awaited<ReturnType<typeof getLawNotes>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetLawNotes<TData = Awaited<ReturnType<typeof getLawNotes>>, TError = void>(
+ lawSlug: string,
+    params?: GetLawNotesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getLawNotes>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useGetLawNotes<TData = Awaited<ReturnType<typeof getLawNotes>>, TError = void>(
+ lawSlug: string,
+    params?: GetLawNotesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getLawNotes>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetLawNotesQueryOptions(lawSlug,params,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 

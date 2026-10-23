@@ -22,6 +22,7 @@ import { isAdmin, useCurrentUser } from "@/lib/auth";
 import { formatDate } from "@/lib/dates";
 import { ArticleDateControl } from "./article-date-control";
 import { ArticleHistory } from "./article-history";
+import { NoteList } from "./note-list";
 import { ParagraphList, paragraphsToText } from "./article-text";
 
 // Sekmeler ve dolacakları kilometre taşı.
@@ -56,6 +57,12 @@ export function ArticleView({ detail, asOf }: { detail: ArticleDetailResponse; a
   const note = versionNote(version);
   const { data: user } = useCurrentUser();
   const canEdit = useHydrated() && isAdmin(user);
+  const notesOf = (kind: string) => detail.notes.filter((n) => n.kind === kind);
+  const tabCounts: Record<string, number> = {
+    gerekce: notesOf("gerekce").length,
+    degisiklikler: detail.versions.length > 1 ? detail.versions.length : 0,
+    aciklama: notesOf("aciklama").length + notesOf("dersNotu").length,
+  };
 
   async function copy() {
     try {
@@ -171,8 +178,8 @@ export function ArticleView({ detail, asOf }: { detail: ArticleDetailResponse; a
                 className="text-base data-active:text-primary after:bg-primary"
               >
                 {tab.label}
-                {tab.value === "degisiklikler" && detail.versions.length > 1 && (
-                  <span className="text-sm text-muted-foreground">({detail.versions.length})</span>
+                {(tabCounts[tab.value] ?? 0) > 0 && (
+                  <span className="text-sm text-muted-foreground">({tabCounts[tab.value]})</span>
                 )}
               </TabsTrigger>
             ))}
@@ -181,9 +188,21 @@ export function ArticleView({ detail, asOf }: { detail: ArticleDetailResponse; a
             <TabsContent key={tab.value} value={tab.value} className="rounded-lg border bg-card p-4">
               {tab.value === "degisiklikler" ? (
                 <ArticleHistory lawSlug={law.slug} articleSlug={article.slug} shownVersionId={version?.id} />
+              ) : tab.value === "gerekce" ? (
+                <NoteList notes={notesOf("gerekce")} empty="Bu maddenin gerekçesi henüz girilmedi." />
+              ) : tab.value === "aciklama" ? (
+                <div className="space-y-6">
+                  <NoteList notes={notesOf("aciklama")} empty="Bu maddeye henüz açıklama girilmedi." />
+                  {notesOf("dersNotu").length > 0 && (
+                    <section>
+                      <h3 className="mb-3 border-t pt-4 text-xl text-primary">Ders notu</h3>
+                      <NoteList notes={notesOf("dersNotu")} empty="" />
+                    </section>
+                  )}
+                </div>
               ) : (
                 <p className="text-muted-foreground">
-                  {tab.label} içeriği yönetim panelinden girildiğinde burada görünecek ({tab.milestone}).
+                  {tab.label} bölümü yakında eklenecek.
                 </p>
               )}
             </TabsContent>

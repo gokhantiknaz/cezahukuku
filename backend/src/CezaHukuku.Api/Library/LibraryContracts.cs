@@ -22,7 +22,23 @@ public sealed record LawSummary(
     int SortOrder);
 
 /// <summary>Kanunun ağacı: kök düğümler ve hiçbir düğüme bağlı olmayan maddeler.</summary>
-public sealed record LawTreeResponse(LawSummary Law, List<LawNodeTree> Nodes, List<ArticleSummary> Articles);
+/// <param name="NoteKinds">Kanun düzeyinde okunabilir notların türleri (sol paneldeki Genel Gerekçe / Ders Notları).</param>
+public sealed record LawTreeResponse(
+    LawSummary Law,
+    List<LawNodeTree> Nodes,
+    List<ArticleSummary> Articles,
+    List<EditorialNoteKind> NoteKinds);
+
+/// <param name="Html">Sunucuda temizlenmiş HTML (izin verilen etiketler); olduğu gibi gösterilebilir.</param>
+public sealed record EditorialNoteDto(
+    Guid Id,
+    EditorialNoteKind Kind,
+    string? Title,
+    string Html,
+    Visibility Visibility,
+    Visibility EffectiveVisibility,
+    int SortOrder,
+    DateTimeOffset UpdatedAt);
 
 /// <param name="Visibility">Öğenin kendi ayarı (yönetim ekranı için).</param>
 /// <param name="EffectiveVisibility">Üst öğelerle birlikte geçerli görünürlük.</param>
@@ -72,7 +88,8 @@ public sealed record ArticleDetailResponse(
     ArticleVersionDetail? Version,
     List<ArticleVersionSummary> Versions,
     ArticleRef? Previous,
-    ArticleRef? Next);
+    ArticleRef? Next,
+    List<EditorialNoteDto> Notes);
 
 public sealed record ArticleVersionSummary(Guid Id, DateOnly? ValidFrom, DateOnly? ValidTo, string? AmendedBy, bool IsRepealed);
 

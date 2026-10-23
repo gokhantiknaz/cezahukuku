@@ -148,6 +148,44 @@
   .reading {
     @apply max-w-[75ch] font-reading text-[17px] leading-[1.7];
   }
+
+  /* Editoryal notların (gerekçe, açıklama, ders notu) biçimleri; düzenleyicide de aynısı görünür. */
+  .rich-text {
+    @apply font-reading;
+    & > * + * {
+      @apply mt-3;
+    }
+    & h2 {
+      @apply mt-5 font-heading text-xl text-primary;
+    }
+    & h3 {
+      @apply mt-4 font-heading text-lg;
+    }
+    & h4 {
+      @apply mt-3 font-heading text-base font-semibold;
+    }
+    & ul {
+      @apply list-disc pl-6;
+    }
+    & ol {
+      @apply list-decimal pl-6;
+    }
+    & li + li {
+      @apply mt-1;
+    }
+    & blockquote {
+      @apply border-l-4 border-primary/40 pl-4 text-muted-foreground italic;
+    }
+    & a {
+      @apply text-primary underline underline-offset-2;
+    }
+    & hr {
+      @apply border-border;
+    }
+    & mark {
+      @apply rounded bg-highlight-yellow px-0.5;
+    }
+  }
 }
 
 /* Yazdırırken kaydırma alanları kesilmesin; madde metni tam basılsın. */

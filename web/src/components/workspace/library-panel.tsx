@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, usePathname } from "next/navigation";
 import {
   ArrowLeft,
   BookOpen,
@@ -15,7 +15,13 @@ import {
   Search,
   type LucideIcon,
 } from "lucide-react";
-import type { ArticleSummary, LawGroupWithLaws, LawNodeTree, LawTreeResponse } from "@/api/generated/model";
+import type {
+  ArticleSummary,
+  EditorialNoteKind,
+  LawGroupWithLaws,
+  LawNodeTree,
+  LawTreeResponse,
+} from "@/api/generated/model";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Input } from "@/components/ui/input";
@@ -177,14 +183,10 @@ function LawTreeView({ tree, onBackToLibrary }: { tree: LawTreeResponse; onBackT
             <FilteredArticles tree={tree} query={query} selectedSlug={selectedSlug} />
           ) : (
             <>
-              {/* Kanun düzeyi içerikler M3'te açılacak. */}
-              <div className="mb-2 space-y-0.5 border-b pb-2 text-muted-foreground">
-                <p className="flex items-center gap-2 px-2 py-1" title="Yakında">
-                  <FileText className="size-4" aria-hidden /> Ders Notları
-                </p>
-                <p className="flex items-center gap-2 px-2 py-1" title="Yakında">
-                  <FileText className="size-4" aria-hidden /> Genel Gerekçe
-                </p>
+              {/* Kanun düzeyindeki notlar; girilmemişse soluk durur. */}
+              <div className="mb-2 space-y-0.5 border-b pb-2">
+                <LawNoteLink tree={tree} kind="dersNotu" slug="ders-notlari" label="Ders Notları" />
+                <LawNoteLink tree={tree} kind="genelGerekce" slug="genel-gerekce" label="Genel Gerekçe" />
               </div>
               {isEmpty && (
                 <p className="px-2 py-4 text-sm text-muted-foreground">Bu kanunun maddeleri henüz girilmedi.</p>
@@ -198,6 +200,41 @@ function LawTreeView({ tree, onBackToLibrary }: { tree: LawTreeResponse; onBackT
         </div>
       </ScrollArea>
     </div>
+  );
+}
+
+function LawNoteLink({
+  tree,
+  kind,
+  slug,
+  label,
+}: {
+  tree: LawTreeResponse;
+  kind: EditorialNoteKind;
+  slug: string;
+  label: string;
+}) {
+  const pathname = usePathname();
+  const href = `/${tree.law.slug}/${slug}`;
+  if (!tree.noteKinds.includes(kind)) {
+    return (
+      <p className="flex items-center gap-2 px-2 py-1 text-muted-foreground/70" title="Henüz girilmedi">
+        <FileText className="size-4" aria-hidden /> {label}
+      </p>
+    );
+  }
+  const selected = pathname === href;
+  return (
+    <Link
+      href={href}
+      aria-current={selected ? "page" : undefined}
+      className={cn(
+        "flex items-center gap-2 rounded-md px-2 py-1",
+        selected ? "bg-primary text-primary-foreground" : "hover:bg-accent hover:text-accent-foreground",
+      )}
+    >
+      <FileText className="size-4" aria-hidden /> {label}
+    </Link>
   );
 }
 
