@@ -1,0 +1,20 @@
+@api = http://localhost:5080
+
+GET {{api}}/api/health
+
+###
+
+POST {{api}}/api/auth/login
+Content-Type: application/json
+
+{ "email": "admin@cezahukuku.local", "password": "Gelistirme123" }
+
+###
+
+GET {{api}}/api/auth/me
+
+###
+
+GET {{api}}/api/admin/users
+
+###

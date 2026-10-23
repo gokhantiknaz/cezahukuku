@@ -1,0 +1,179 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * Tema: shadcn değişkenleri, tasarımdaki bordo (#9b1c1f) ana renk.
+ * Bileşenlerde ham renk değil bu anlamsal adlar kullanılır (bg-primary, text-muted-foreground, bg-accent…);
+ * gece modu yalnızca .dark bloğunu değiştirerek çalışır.
+ */
+:root {
+  --background: #f6f4f4;
+  --foreground: #1f1f1f;
+  --card: #ffffff;
+  --card-foreground: #1f1f1f;
+  --popover: #ffffff;
+  --popover-foreground: #1f1f1f;
+  --primary: #9b1c1f;
+  --primary-foreground: #ffffff;
+  --secondary: #f3efef;
+  --secondary-foreground: #1f1f1f;
+  --muted: #f3efef;
+  --muted-foreground: #6b6b6b;
+  --accent: #fbeeee;
+  --accent-foreground: #9b1c1f;
+  --destructive: #c62828;
+  --border: #e6e1e1;
+  --input: #e6e1e1;
+  --ring: #9b1c1f;
+  --radius: 0.5rem;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #1f1f1f;
+  --sidebar-primary: #9b1c1f;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #fbeeee;
+  --sidebar-accent-foreground: #9b1c1f;
+  --sidebar-border: #e6e1e1;
+  --sidebar-ring: #9b1c1f;
+
+  /* Kişisel vurgu renkleri (kırmızı bilerek yok: ana renk ve hata rengiyle karışır). */
+  --highlight-yellow: #fff3a3;
+  --highlight-green: #c8f0c4;
+  --highlight-blue: #c9e3ff;
+  --highlight-orange: #ffd9a8;
+}
+
+/* Gece modu hazır; <html class="dark"> ile açılır (anahtar ileride eklenecek). */
+.dark {
+  --background: #141414;
+  --foreground: #ececec;
+  --card: #1c1c1c;
+  --card-foreground: #ececec;
+  --popover: #1c1c1c;
+  --popover-foreground: #ececec;
+  --primary: #c9474a;
+  --primary-foreground: #ffffff;
+  --secondary: #262626;
+  --secondary-foreground: #ececec;
+  --muted: #262626;
+  --muted-foreground: #a3a3a3;
+  --accent: #3a1d1e;
+  --accent-foreground: #f2b8b9;
+  --destructive: #ef5350;
+  --border: #2e2e2e;
+  --input: #2e2e2e;
+  --ring: #c9474a;
+  --sidebar: #1c1c1c;
+  --sidebar-foreground: #ececec;
+  --sidebar-primary: #c9474a;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #3a1d1e;
+  --sidebar-accent-foreground: #f2b8b9;
+  --sidebar-border: #2e2e2e;
+  --sidebar-ring: #c9474a;
+
+  --highlight-yellow: #5c5214;
+  --highlight-green: #234a22;
+  --highlight-blue: #1d3a5c;
+  --highlight-orange: #5c3a12;
+}
+
+@theme inline {
+  /* Arayüz: dar font; okuma alanı: normal genişlikte font; logo: tırnaklı. */
+  --font-sans: var(--font-ui);
+  --font-heading: var(--font-ui);
+  --font-reading: var(--font-body);
+  --font-serif: var(--font-logo);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-highlight-yellow: var(--highlight-yellow);
+  --color-highlight-green: var(--highlight-green);
+  --color-highlight-blue: var(--highlight-blue);
+  --color-highlight-orange: var(--highlight-orange);
+
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    @apply font-sans;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+}
+
+@layer components {
+  /* Uzun hukuki metin: geniş font, rahat satır aralığı, ~75 karakter satır. */
+  .reading {
+    @apply max-w-[75ch] font-reading text-[17px] leading-[1.7];
+  }
+}
+
+/* Yazdırırken kaydırma alanları kesilmesin; madde metni tam basılsın. */
+@media print {
+  [data-slot="scroll-area"],
+  [data-slot="scroll-area-viewport"] {
+    height: auto !important;
+    overflow: visible !important;
+  }
+}
+
+@keyframes ticker {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-ticker {
+  animation: ticker 40s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-ticker {
+    animation: none;
+  }
+}

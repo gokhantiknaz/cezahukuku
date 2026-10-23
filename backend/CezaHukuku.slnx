@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/CezaHukuku.Api/CezaHukuku.Api.csproj" />
+    <Project Path="src/CezaHukuku.Domain/CezaHukuku.Domain.csproj" />
+    <Project Path="src/CezaHukuku.Infrastructure/CezaHukuku.Infrastructure.csproj" />
+    <Project Path="src/CezaHukuku.Parsing/CezaHukuku.Parsing.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/CezaHukuku.IntegrationTests/CezaHukuku.IntegrationTests.csproj" />
+    <Project Path="tests/CezaHukuku.UnitTests/CezaHukuku.UnitTests.csproj" />
+  </Folder>
+</Solution>
