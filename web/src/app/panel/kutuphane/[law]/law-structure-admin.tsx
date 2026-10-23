@@ -67,7 +67,7 @@ function StructureEditor({ tree }: { tree: LawTreeResponse }) {
         <div className="flex gap-1">
           <Button variant="outline" size="sm" asChild>
             <Link href={`/panel/kutuphane/${law.slug}/ice-aktar`}>
-              <FileInput /> Metinden içe aktar
+              <FileInput /> {rows.length > 0 ? "Güncel metinle güncelle" : "Metinden içe aktar"}
             </Link>
           </Button>
           <Button variant="ghost" size="sm" asChild>

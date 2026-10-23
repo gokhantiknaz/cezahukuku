@@ -6,6 +6,7 @@
  */
 
 export interface LawImportResult {
+  isUpdate: boolean;
   nodeCount: number;
   articleCount: number;
   warnings: string[];

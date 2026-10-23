@@ -7,6 +7,10 @@
 
 export * from './anonymousTypeOfstring';
 export * from './anonymousTypeOfstringStatus';
+export * from './articleChange';
+export * from './articleChangeAmendedBy';
+export * from './articleChangeOldTitle';
+export * from './articleChangeValidFrom';
 export * from './articleDetailResponse';
 export * from './articleDetailResponseNext';
 export * from './articleDetailResponsePrevious';
@@ -49,6 +53,7 @@ export * from './lawImportMetadataGazetteDate';
 export * from './lawImportMetadataGazetteNumber';
 export * from './lawImportMetadataNumber';
 export * from './lawImportPreview';
+export * from './lawImportPreviewUpdate';
 export * from './lawImportResult';
 export * from './lawNodeKind';
 export * from './lawNodeRef';
@@ -62,6 +67,7 @@ export * from './lawSummaryGazetteDate';
 export * from './lawSummaryGazetteNumber';
 export * from './lawSummaryShortName';
 export * from './lawTreeResponse';
+export * from './lawUpdatePreview';
 export * from './libraryResponse';
 export * from './loginRequest';
 export * from './paragraphDto';

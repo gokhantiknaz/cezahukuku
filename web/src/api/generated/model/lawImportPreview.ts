@@ -7,6 +7,7 @@
 import type { LawImportMetadata } from './lawImportMetadata';
 import type { ImportNodePreview } from './importNodePreview';
 import type { ImportArticlePreview } from './importArticlePreview';
+import type { LawImportPreviewUpdate } from './lawImportPreviewUpdate';
 
 export interface LawImportPreview {
   metadata: LawImportMetadata;
@@ -18,4 +19,5 @@ export interface LawImportPreview {
   footnoteCount: number;
   warnings: string[];
   blockers: string[];
+  update: LawImportPreviewUpdate;
 }

@@ -34,6 +34,18 @@ public static class ParagraphIdentity
         return result;
     }
 
+    /// <summary>Kimlikler dışında aynı metin mi (fıkra numaraları, metinler, bent seviye ve etiketleri)?</summary>
+    public static bool HaveSameText(IReadOnlyList<Paragraph> a, IReadOnlyList<Paragraph> b) =>
+        a.Count == b.Count
+        && a.Zip(b).All(pair =>
+            pair.First.Number == pair.Second.Number
+            && pair.First.Text == pair.Second.Text
+            && pair.First.Items.Count == pair.Second.Items.Count
+            && pair.First.Items.Zip(pair.Second.Items).All(items =>
+                items.First.Level == items.Second.Level
+                && items.First.Label == items.Second.Label
+                && items.First.Text == items.Second.Text));
+
     private static IReadOnlyList<ParagraphItem> CarryOverItems(IReadOnlyList<ParagraphItem> previous, IReadOnlyList<ParagraphItem> next)
     {
         var byLabel = previous.Where(i => i.Label is not null)

@@ -1,4 +1,5 @@
 import type { ParagraphDto } from "@/api/generated/model";
+import { cn } from "@/lib/utils";
 
 /**
  * Fıkraları mevzuat biçiminde düz metne çevirir ("(1) ...", "a) ..."). Panelde düzenlenecek metin ve "Kopyala"
@@ -14,12 +15,19 @@ export function paragraphsToText(paragraphs: ParagraphDto[]) {
     .join("\n");
 }
 
-/** Madde metni: numaralı fıkralar, bentler ve alt bentler. */
-export function ParagraphList({ paragraphs }: { paragraphs: ParagraphDto[] }) {
+/** Kimlikler dışında fıkranın metni (iki metni karşılaştırmak için). */
+export const paragraphKey = (p: ParagraphDto) =>
+  JSON.stringify([p.number, p.text, p.items.map((i) => [i.level, i.label, i.text])]);
+
+/** Madde metni: numaralı fıkralar, bentler ve alt bentler. `marked` içindeki fıkralar vurgulanır (değişenler). */
+export function ParagraphList({ paragraphs, marked }: { paragraphs: ParagraphDto[]; marked?: Set<string> }) {
   return (
     <ol className="reading space-y-2">
       {paragraphs.map((p) => (
-        <li key={p.id} className="grid grid-cols-[2.25rem_1fr]">
+        <li
+          key={p.id}
+          className={cn("grid grid-cols-[2.25rem_1fr]", marked?.has(p.id) && "-mx-1 rounded bg-accent px-1")}
+        >
           <span className="text-muted-foreground">{p.number != null ? `(${p.number})` : ""}</span>
           <div>
             {p.text && <p>{p.text}</p>}

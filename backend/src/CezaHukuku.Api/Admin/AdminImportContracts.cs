@@ -34,8 +34,9 @@ public sealed record ImportArticlePreview(
     string? AmendedBy,
     List<ParagraphDto> Paragraphs);
 
-/// <param name="Blockers">Varsa içe aktarma yapılamaz (ör. kanun boş değil, metinde madde yok).</param>
+/// <param name="Blockers">Varsa içe aktarma yapılamaz (ör. metinde madde yok).</param>
 /// <param name="Warnings">İçe aktarmayı engellemeyen ama kontrol edilmesi gereken durumlar.</param>
+/// <param name="Update">Kanunda zaten içerik varsa güncelleme özeti (hangi maddeler değişecek); boş kanunda null.</param>
 public sealed record LawImportPreview(
     LawImportMetadata Metadata,
     List<ImportNodePreview> Nodes,
@@ -45,6 +46,35 @@ public sealed record LawImportPreview(
     int RepealedCount,
     int FootnoteCount,
     List<string> Warnings,
-    List<string> Blockers);
+    List<string> Blockers,
+    LawUpdatePreview? Update);
 
-public sealed record LawImportResult(int NodeCount, int ArticleCount, List<string> Warnings);
+/// <param name="Changes">Eklenecek ya da değişecek maddeler; değişmeyenler yalnız sayılır.</param>
+/// <param name="NotInText">Kanunda olup yapıştırılan metinde bulunmayan maddeler (silinmez, kontrol için listelenir).</param>
+public sealed record LawUpdatePreview(
+    List<ArticleChange> Changes,
+    int UnchangedCount,
+    int NewNodeCount,
+    int RenamedNodeCount,
+    List<string> NotInText);
+
+/// <param name="AsNewVersion">Metin değişikliği yeni sürüm olarak eklenir (eski metin önceki tarihler için kalır);
+/// false ise yürürlükteki sürüm yerinde düzeltilir (değişiklik notu ya da daha yeni bir tarih yok).</param>
+/// <param name="ValidFrom">Yeni sürümün başlangıcı; düzeltmede mevcut sürümün başlangıcı.</param>
+public sealed record ArticleChange(
+    string Number,
+    string Slug,
+    string Title,
+    string? OldTitle,
+    bool IsNew,
+    bool TextChanged,
+    bool AsNewVersion,
+    bool Moved,
+    DateOnly? ValidFrom,
+    string? AmendedBy,
+    List<ParagraphDto> OldParagraphs,
+    List<ParagraphDto> NewParagraphs);
+
+/// <param name="NodeCount">Eklenen düğüm sayısı.</param>
+/// <param name="ArticleCount">Eklenen (boş kanunda) ya da eklenen ve değişen (güncellemede) madde sayısı.</param>
+public sealed record LawImportResult(bool IsUpdate, int NodeCount, int ArticleCount, List<string> Warnings);

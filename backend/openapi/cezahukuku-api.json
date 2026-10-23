@@ -1232,6 +1232,77 @@
           }
         }
       },
+      "ArticleChange": {
+        "required": [
+          "number",
+          "slug",
+          "title",
+          "oldTitle",
+          "isNew",
+          "textChanged",
+          "asNewVersion",
+          "moved",
+          "validFrom",
+          "amendedBy",
+          "oldParagraphs",
+          "newParagraphs"
+        ],
+        "type": "object",
+        "properties": {
+          "number": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "oldTitle": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "isNew": {
+            "type": "boolean"
+          },
+          "textChanged": {
+            "type": "boolean"
+          },
+          "asNewVersion": {
+            "type": "boolean"
+          },
+          "moved": {
+            "type": "boolean"
+          },
+          "validFrom": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "amendedBy": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "oldParagraphs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ParagraphDto"
+            }
+          },
+          "newParagraphs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ParagraphDto"
+            }
+          }
+        }
+      },
       "ArticleDetailResponse": {
         "required": [
           "article",
@@ -1775,7 +1846,8 @@
           "repealedCount",
           "footnoteCount",
           "warnings",
-          "blockers"
+          "blockers",
+          "update"
         ],
         "type": "object",
         "properties": {
@@ -1821,17 +1893,31 @@
             "items": {
               "type": "string"
             }
+          },
+          "update": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/LawUpdatePreview"
+              }
+            ]
           }
         }
       },
       "LawImportResult": {
         "required": [
+          "isUpdate",
           "nodeCount",
           "articleCount",
           "warnings"
         ],
         "type": "object",
         "properties": {
+          "isUpdate": {
+            "type": "boolean"
+          },
           "nodeCount": {
             "type": "integer",
             "format": "int32"
@@ -2074,6 +2160,42 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/ArticleSummary"
+            }
+          }
+        }
+      },
+      "LawUpdatePreview": {
+        "required": [
+          "changes",
+          "unchangedCount",
+          "newNodeCount",
+          "renamedNodeCount",
+          "notInText"
+        ],
+        "type": "object",
+        "properties": {
+          "changes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ArticleChange"
+            }
+          },
+          "unchangedCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "newNodeCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "renamedNodeCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "notInText": {
+            "type": "array",
+            "items": {
+              "type": "string"
             }
           }
         }

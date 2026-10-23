@@ -1,4 +1,3 @@
-using CezaHukuku.Api.Common;
 using CezaHukuku.Api.Library;
 using CezaHukuku.Domain.Laws;
 using CezaHukuku.Infrastructure.Persistence;
@@ -10,10 +9,15 @@ using Microsoft.EntityFrameworkCore;
 namespace CezaHukuku.Api.Admin;
 
 /// <summary>
-/// Kanunun tam metnini yapıştırarak içe aktarma: önce önizleme (ağaç, madde sayıları, uyarılar), onaylanınca
-/// düğümler, maddeler ve ilk sürümler tek işlemde kaydedilir. Önizleme ve kayıt aynı planı kullanır; önizlemede
-/// görülen yapı aynen kaydedilir. Şimdilik yalnız boş kanuna aktarılır (değişen maddeleri eşleştirip yeni sürüm
-/// açmak ayrı bir adım).
+/// Kanunun tam metnini yapıştırarak içe aktarma ya da güncelleme. Önce önizleme, onaylanınca tek işlemde kayıt.
+/// Önizleme ve kayıt aynı planı kullanır: plan yapılacak her değişikliği bir listeye ekler; önizleme listeyi
+/// çalıştırmaz, içe aktarma çalıştırıp kaydeder. Böylece kaydedilen her zaman önizlemede görülendir.
+/// <list type="bullet">
+/// <item>Boş kanun: ağaç, maddeler ve ilk sürümler oluşturulur.</item>
+/// <item>Dolu kanun (güncelleme): maddeler numarasıyla, düğümler ağaçtaki yeri (tür + sıra adı) ile eşleşir.
+/// Değişmeyene dokunulmaz; değişen metin daha yeni bir tarih varsa yeni sürüm olur (eski metin önceki tarihler için
+/// kalır), yoksa yürürlükteki sürümde düzeltilir. Metinde olmayan maddeler silinmez, listelenir.</item>
+/// </list>
 /// </summary>
 internal static class AdminImportEndpoints
 {
@@ -26,8 +30,8 @@ internal static class AdminImportEndpoints
     private static async Task<Results<Ok<LawImportPreview>, NotFound>> PreviewAsync(
         Guid lawId, ImportLawTextRequest request, AppDbContext db)
     {
-        var law = await db.Laws.AsNoTracking().FirstOrDefaultAsync(l => l.Id == lawId);
-        return law is null ? TypedResults.NotFound() : TypedResults.Ok(await PlanAsync(law, request, db));
+        var law = await db.Laws.FirstOrDefaultAsync(l => l.Id == lawId);
+        return law is null ? TypedResults.NotFound() : TypedResults.Ok((await PlanAsync(law, request, db)).Preview);
     }
 
     private static async Task<Results<Ok<LawImportResult>, NotFound, ValidationProblem>> ImportAsync(
@@ -37,71 +41,76 @@ internal static class AdminImportEndpoints
         if (law is null)
             return TypedResults.NotFound();
 
-        var plan = await PlanAsync(law, request, db);
-        if (plan.Blockers.Count > 0)
-            return TypedResults.ValidationProblem(new Dictionary<string, string[]> { ["text"] = [.. plan.Blockers] });
+        var (preview, apply) = await PlanAsync(law, request, db);
+        if (preview.Blockers.Count > 0)
+            return TypedResults.ValidationProblem(new Dictionary<string, string[]> { ["text"] = [.. preview.Blockers] });
 
-        void AddArticle(ImportArticlePreview item, Guid? nodeId)
-        {
-            var article = new Article
-            {
-                LawId = law.Id,
-                NodeId = nodeId,
-                Number = item.Number,
-                Slug = item.Slug,
-                Title = item.Title,
-                SortOrder = item.SortOrder,
-            };
-            db.Articles.Add(article);
-            db.ArticleVersions.Add(new ArticleVersion
-            {
-                ArticleId = article.Id,
-                ValidFrom = item.ValidFrom,
-                AmendedBy = item.AmendedBy,
-                IsRepealed = item.IsRepealed,
-                Paragraphs =
-                [
-                    .. item.Paragraphs.Select(p => new Paragraph(p.Id, p.Number, p.Text,
-                        [.. p.Items.Select(i => new ParagraphItem(i.Id, i.Level, i.Label, i.Text))])),
-                ],
-            });
-        }
-
-        void AddNode(ImportNodePreview item, Guid? parentId)
-        {
-            var node = new LawNode
-            {
-                LawId = law.Id,
-                ParentId = parentId,
-                Kind = item.Kind,
-                Number = item.Number,
-                Title = item.Title,
-                SortOrder = item.SortOrder,
-            };
-            db.LawNodes.Add(node);
-            item.Children.ForEach(child => AddNode(child, node.Id));
-            item.Articles.ForEach(article => AddArticle(article, node.Id));
-        }
-
-        plan.Nodes.ForEach(node => AddNode(node, null));
-        plan.Articles.ForEach(article => AddArticle(article, null));
-
+        apply.ForEach(change => change());
         if (request.ApplyMetadata)
         {
-            law.AcceptedOn ??= plan.Metadata.AcceptedOn;
-            law.GazetteDate ??= plan.Metadata.GazetteDate;
-            law.GazetteNumber ??= plan.Metadata.GazetteNumber;
+            law.AcceptedOn ??= preview.Metadata.AcceptedOn;
+            law.GazetteDate ??= preview.Metadata.GazetteDate;
+            law.GazetteNumber ??= preview.Metadata.GazetteNumber;
         }
-
         await db.SaveChangesAsync();
-        return TypedResults.Ok(new LawImportResult(plan.NodeCount, plan.ArticleCount, plan.Warnings));
+
+        return TypedResults.Ok(preview.Update is { } update
+            ? new LawImportResult(true, update.NewNodeCount, update.Changes.Count, preview.Warnings)
+            : new LawImportResult(false, preview.NodeCount, preview.ArticleCount, preview.Warnings));
     }
 
-    private static async Task<LawImportPreview> PlanAsync(Law law, ImportLawTextRequest request, AppDbContext db)
+    private sealed record Plan(LawImportPreview Preview, List<Action> Apply);
+
+    private static async Task<Plan> PlanAsync(Law law, ImportLawTextRequest request, AppDbContext db)
     {
         var parsed = LawTextParser.Parse(request.Text, new LawTextParserOptions { JoinWrappedLines = request.JoinWrappedLines });
         var warnings = parsed.Warnings.ToList();
         var blockers = new List<string>();
+        var (nodes, articles, counts) = BuildTree(parsed, request, warnings, blockers);
+
+        if (string.IsNullOrWhiteSpace(request.Text))
+            blockers.Add("Kanun metnini yapıştırın.");
+        else if (counts.Articles == 0)
+            blockers.Add("Metinde madde bulunamadı. Maddeler “Madde 1-” biçiminde başlamalı.");
+
+        if (parsed.Metadata.Number is { } metadataNumber && metadataNumber != law.Number)
+        {
+            warnings.Add($"Metindeki kanun numarası ({metadataNumber}) bu kanunun numarasıyla ({law.Number}) uyuşmuyor; "
+                + "doğru kanuna yapıştırdığınızı kontrol edin.");
+        }
+
+        var isUpdate = await db.LawNodes.AnyAsync(n => n.LawId == law.Id) || await db.Articles.AnyAsync(a => a.LawId == law.Id);
+        var apply = new List<Action>();
+        LawUpdatePreview? update = null;
+        if (isUpdate)
+        {
+            update = await PlanUpdateAsync(law, nodes, articles, apply, db);
+        }
+        else
+        {
+            PlanCreate(law, nodes, articles, apply, db);
+            if (counts.Amended > 0)
+            {
+                warnings.Add($"{counts.Amended} maddede değişiklik notu var. Yapıştırılan metin kanunun güncel hâli olduğundan bu "
+                    + "maddelerin metni nottaki en yeni tarihten itibaren geçerli sayılacak; daha önceki bir tarih sorulduğunda "
+                    + "metin gösterilmez. Nottaki tarih değiştiren kanunun kabul tarihidir, yürürlük tarihi farklıysa maddeden "
+                    + "düzeltin; eski metinleri maddeye ayrı sürüm olarak ekleyebilirsiniz.");
+            }
+        }
+
+        var metadata = new LawImportMetadata(parsed.Metadata.Number, parsed.Metadata.AcceptedOn,
+            parsed.Metadata.GazetteDate, parsed.Metadata.GazetteNumber);
+        var preview = new LawImportPreview(metadata, nodes, articles, counts.Nodes, counts.Articles, counts.Repealed,
+            parsed.FootnoteCount, warnings, blockers, update);
+        return new Plan(preview, apply);
+    }
+
+    private sealed record TreeCounts(int Nodes, int Articles, int Repealed, int Amended);
+
+    /// <summary>Ayrıştırılan metni kaydedilecek biçime çevirir: madde adresleri, sıralar, ilk sürüm tarihleri.</summary>
+    private static (List<ImportNodePreview> Nodes, List<ImportArticlePreview> Articles, TreeCounts Counts) BuildTree(
+        ParsedLaw parsed, ImportLawTextRequest request, List<string> warnings, List<string> blockers)
+    {
         var slugs = new HashSet<string>();
         int nodeCount = 0, articleCount = 0, repealedCount = 0, amendedCount = 0;
 
@@ -124,6 +133,7 @@ internal static class AdminImportEndpoints
             if (article.Title.Length > 500)
                 blockers.Add($"Madde {article.Number}: başlık çok uzun; metin doğru ayrılamamış olabilir.");
 
+            // Yapıştırılan metin güncel hâldir: değişmiş madde değişiklik notunun tarihinden önce bu metinle geçerli değildi.
             var validFrom = request.ValidFrom;
             if (article.LastAmendedOn is { } amendedOn && (validFrom is null || amendedOn > validFrom))
             {
@@ -157,37 +167,225 @@ internal static class AdminImportEndpoints
 
         var nodes = parsed.Nodes.Select(Node).ToList();
         var articles = parsed.Articles.Select(Article).ToList();
+        return (nodes, articles, new TreeCounts(nodeCount, articleCount, repealedCount, amendedCount));
+    }
 
-        if (string.IsNullOrWhiteSpace(request.Text))
-            blockers.Add("Kanun metnini yapıştırın.");
-        else if (articleCount == 0)
-            blockers.Add("Metinde madde bulunamadı. Maddeler “Madde 1-” biçiminde başlamalı.");
+    private static List<Paragraph> ToParagraphs(List<ParagraphDto> paragraphs) =>
+        [.. paragraphs.Select(p => new Paragraph(p.Id, p.Number, p.Text,
+            [.. p.Items.Select(i => new ParagraphItem(i.Id, i.Level, i.Label, i.Text))]))];
 
-        var existingNodes = await db.LawNodes.CountAsync(n => n.LawId == law.Id);
-        var existingArticles = await db.Articles.CountAsync(a => a.LawId == law.Id);
-        if (existingNodes + existingArticles > 0)
+    private static (Article Article, ArticleVersion Version) NewArticle(Law law, ImportArticlePreview item, Guid? nodeId)
+    {
+        var article = new Article
         {
-            blockers.Add($"Bu kanunda zaten {existingArticles} madde ve {existingNodes} düğüm var. "
-                + "İçe aktarma şimdilik yalnız boş kanuna yapılabilir.");
+            LawId = law.Id,
+            NodeId = nodeId,
+            Number = item.Number,
+            Slug = item.Slug,
+            Title = item.Title,
+            SortOrder = item.SortOrder,
+        };
+        var version = new ArticleVersion
+        {
+            ArticleId = article.Id,
+            ValidFrom = item.ValidFrom,
+            AmendedBy = item.AmendedBy,
+            IsRepealed = item.IsRepealed,
+            Paragraphs = ToParagraphs(item.Paragraphs),
+        };
+        return (article, version);
+    }
+
+    private static LawNode NewNode(Law law, ImportNodePreview item, Guid? parentId) => new()
+    {
+        LawId = law.Id,
+        ParentId = parentId,
+        Kind = item.Kind,
+        Number = item.Number,
+        Title = item.Title,
+        SortOrder = item.SortOrder,
+    };
+
+    private static void PlanCreate(
+        Law law, List<ImportNodePreview> nodes, List<ImportArticlePreview> articles, List<Action> apply, AppDbContext db)
+    {
+        void AddArticles(List<ImportArticlePreview> items, Guid? nodeId)
+        {
+            foreach (var item in items)
+            {
+                var (article, version) = NewArticle(law, item, nodeId);
+                apply.Add(() =>
+                {
+                    db.Articles.Add(article);
+                    db.ArticleVersions.Add(version);
+                });
+            }
         }
 
-        if (amendedCount > 0)
+        void AddNodes(List<ImportNodePreview> items, Guid? parentId)
         {
-            warnings.Add($"{amendedCount} maddede değişiklik notu var. Yapıştırılan metin kanunun güncel hâli olduğundan bu "
-                + "maddelerin metni nottaki en yeni tarihten itibaren geçerli sayılacak; daha önceki bir tarih sorulduğunda "
-                + "metin gösterilmez. Nottaki tarih değiştiren kanunun kabul tarihidir, yürürlük tarihi farklıysa maddeden "
-                + "düzeltin; eski metinleri maddeye ayrı sürüm olarak ekleyebilirsiniz.");
+            foreach (var item in items)
+            {
+                var node = NewNode(law, item, parentId);
+                apply.Add(() => db.LawNodes.Add(node));
+                AddNodes(item.Children, node.Id);
+                AddArticles(item.Articles, node.Id);
+            }
         }
 
-        if (parsed.Metadata.Number is { } metadataNumber && metadataNumber != law.Number)
+        AddNodes(nodes, null);
+        AddArticles(articles, null);
+    }
+
+    private static async Task<LawUpdatePreview> PlanUpdateAsync(
+        Law law, List<ImportNodePreview> nodes, List<ImportArticlePreview> articles, List<Action> apply, AppDbContext db)
+    {
+        var existingNodes = await db.LawNodes.Where(n => n.LawId == law.Id).ToListAsync();
+        var existingArticles = await db.Articles.Where(a => a.LawId == law.Id).ToListAsync();
+        var articleIds = existingArticles.Select(a => a.Id).ToList();
+        var versionsByArticle = (await db.ArticleVersions.Where(v => articleIds.Contains(v.ArticleId)).ToListAsync())
+            .ToLookup(v => v.ArticleId);
+
+        // Düğüm, üst düğümü altında türü ve sıra adıyla tanınır ("Bölüm" + "birinci bölüm").
+        static string NodeKey(LawNodeKind kind, string number) => $"{kind}:{TurkishText.Normalize(number)}";
+        var nodesByParent = existingNodes.ToLookup(n => n.ParentId);
+        var articlesBySlug = existingArticles.ToDictionary(a => a.Slug);
+        var seenArticles = new HashSet<Guid>();
+        var changes = new List<ArticleChange>();
+        int unchanged = 0, newNodes = 0, renamedNodes = 0;
+
+        void VisitArticles(List<ImportArticlePreview> items, Guid? nodeId)
         {
-            warnings.Add($"Metindeki kanun numarası ({metadataNumber}) bu kanunun numarasıyla ({law.Number}) uyuşmuyor; "
-                + "doğru kanuna yapıştırdığınızı kontrol edin.");
+            foreach (var item in items)
+            {
+                if (!articlesBySlug.TryGetValue(item.Slug, out var article))
+                {
+                    var (created, version) = NewArticle(law, item, nodeId);
+                    apply.Add(() =>
+                    {
+                        db.Articles.Add(created);
+                        db.ArticleVersions.Add(version);
+                    });
+                    changes.Add(new ArticleChange(item.Number, item.Slug, item.Title, null, true, true, true, false,
+                        item.ValidFrom, item.AmendedBy, [], item.Paragraphs));
+                    continue;
+                }
+
+                seenArticles.Add(article.Id);
+                var versions = versionsByArticle[article.Id].ToList();
+                var current = ArticleVersion.Select(versions, null);
+                var paragraphs = ToParagraphs(item.Paragraphs);
+                var textChanged = current is null
+                    || current.IsRepealed != item.IsRepealed
+                    || !ParagraphIdentity.HaveSameText(current.Paragraphs, paragraphs);
+                var titleChanged = article.Title != item.Title;
+                var moved = article.NodeId != nodeId;
+
+                var sortOrder = item.SortOrder;
+                if (article.SortOrder != sortOrder)
+                    apply.Add(() => article.SortOrder = sortOrder);
+                if (!textChanged && !titleChanged && !moved)
+                {
+                    unchanged++;
+                    continue;
+                }
+
+                if (titleChanged)
+                    apply.Add(() => article.Title = item.Title);
+                if (moved)
+                    apply.Add(() => article.NodeId = nodeId);
+
+                var asNewVersion = false;
+                var validFrom = current?.ValidFrom;
+                if (textChanged && current is null)
+                {
+                    asNewVersion = true;
+                    validFrom = item.ValidFrom;
+                    var version = new ArticleVersion
+                    {
+                        ArticleId = article.Id,
+                        ValidFrom = item.ValidFrom,
+                        AmendedBy = item.AmendedBy,
+                        IsRepealed = item.IsRepealed,
+                        Paragraphs = paragraphs,
+                    };
+                    apply.Add(() => db.ArticleVersions.Add(version));
+                }
+                else if (textChanged && current is not null)
+                {
+                    // Fıkra ve bent kimlikleri yürürlükteki metinden taşınır (vurgu ve notlar kopmasın).
+                    var carried = ParagraphIdentity.CarryOver(current.Paragraphs, paragraphs);
+                    if (item.ValidFrom is { } from && (current.ValidFrom is null || from > current.ValidFrom))
+                    {
+                        asNewVersion = true;
+                        validFrom = from;
+                        var version = new ArticleVersion
+                        {
+                            ArticleId = article.Id,
+                            ValidFrom = from,
+                            AmendedBy = item.AmendedBy,
+                            IsRepealed = item.IsRepealed,
+                            Paragraphs = carried,
+                        };
+                        apply.Add(() =>
+                        {
+                            if (current.ValidTo is null)
+                                current.ValidTo = from.AddDays(-1);
+                            db.ArticleVersions.Add(version);
+                        });
+                    }
+                    else
+                    {
+                        apply.Add(() =>
+                        {
+                            current.Paragraphs = carried;
+                            current.IsRepealed = item.IsRepealed;
+                        });
+                    }
+                }
+
+                changes.Add(new ArticleChange(item.Number, item.Slug, item.Title, titleChanged ? article.Title : null,
+                    false, textChanged, asNewVersion, moved, validFrom, asNewVersion ? item.AmendedBy : current?.AmendedBy,
+                    current is null ? [] : [.. current.Paragraphs.Select(p => p.ToDto())], item.Paragraphs));
+            }
         }
 
-        var metadata = new LawImportMetadata(parsed.Metadata.Number, parsed.Metadata.AcceptedOn,
-            parsed.Metadata.GazetteDate, parsed.Metadata.GazetteNumber);
-        return new LawImportPreview(metadata, nodes, articles, nodeCount, articleCount, repealedCount,
-            parsed.FootnoteCount, warnings, blockers);
+        void VisitNodes(List<ImportNodePreview> items, Guid? parentId)
+        {
+            foreach (var item in items)
+            {
+                var existing = nodesByParent[parentId].FirstOrDefault(n => NodeKey(n.Kind, n.Number) == NodeKey(item.Kind, item.Number));
+                Guid nodeId;
+                if (existing is null)
+                {
+                    var node = NewNode(law, item, parentId);
+                    nodeId = node.Id;
+                    newNodes++;
+                    apply.Add(() => db.LawNodes.Add(node));
+                }
+                else
+                {
+                    nodeId = existing.Id;
+                    if (existing.Title != item.Title && item.Title.Length > 0)
+                    {
+                        renamedNodes++;
+                        apply.Add(() => existing.Title = item.Title);
+                    }
+                    if (existing.SortOrder != item.SortOrder)
+                        apply.Add(() => existing.SortOrder = item.SortOrder);
+                }
+                VisitNodes(item.Children, nodeId);
+                VisitArticles(item.Articles, nodeId);
+            }
+        }
+
+        VisitNodes(nodes, null);
+        VisitArticles(articles, null);
+
+        var notInText = existingArticles.Where(a => !seenArticles.Contains(a.Id))
+            .OrderBy(a => a.SortOrder)
+            .Select(a => a.Number)
+            .ToList();
+        return new LawUpdatePreview(changes, unchanged, newNodes, renamedNodes, notInText);
     }
 }
