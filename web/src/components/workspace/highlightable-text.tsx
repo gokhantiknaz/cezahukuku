@@ -1,28 +1,59 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ComponentProps,
+  type KeyboardEvent,
+  type PointerEvent,
+  type Ref,
+} from "react";
 import { createPortal } from "react-dom";
 import { useQueryClient } from "@tanstack/react-query";
-import { Check, Trash2 } from "lucide-react";
+import { Check, NotebookPen, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import {
   getListHighlightsQueryKey,
+  getListPersonalNotesQueryKey,
   useCreateHighlight,
+  useCreatePersonalNote,
   useDeleteHighlight,
+  useDeletePersonalNote,
   useListHighlights,
+  useListPersonalNotes,
   useUpdateHighlight,
+  useUpdatePersonalNote,
 } from "@/api/generated/personal/personal";
-import type { CitationSpan, HighlightColor, ParagraphDto, TextPosition } from "@/api/generated/model";
+import type {
+  CitationSpan,
+  HighlightColor,
+  HighlightDto,
+  ParagraphDto,
+  PersonalNoteDto,
+  TextPosition,
+} from "@/api/generated/model";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { useHydrated } from "@/hooks/use-hydrated";
 import { useCurrentUser } from "@/lib/auth";
 import { canAnnotate, highlightClassName, highlightColors } from "@/lib/highlights";
 import { cn } from "@/lib/utils";
 import { groupMarks, ParagraphList } from "./article-text";
 
-/** Araç çubuğu: yeni seçim için renkler ya da tıklanan vurgu için renk değiştir / sil. */
-type Toolbar =
-  | { kind: "selection"; top: number; left: number; segments: TextPosition[] }
-  | { kind: "highlight"; top: number; left: number; highlightId: string; color: HighlightColor };
+/** Seçimin ya da vurgunun ekrandaki yeri (araç çubuğu üstüne, not düzenleyici altına yerleşir). */
+type Anchor = { top: number; bottom: number; centerX: number };
+
+/**
+ * Metin üstündeki katman: yeni seçim için renkler, tıklanan vurgu için renk / not / sil, ya da not düzenleyici.
+ */
+type Overlay =
+  | { kind: "selection"; anchor: Anchor; segments: TextPosition[] }
+  | { kind: "highlight"; anchor: Anchor; highlightId: string; confirmDelete?: boolean }
+  | { kind: "note"; anchor: Anchor; highlightId: string };
+
+const toAnchor = (rect: DOMRect): Anchor => ({ top: rect.top, bottom: rect.bottom, centerX: rect.left + rect.width / 2 });
 
 /** Fıkra/bent öğesinin başından (node, offset) noktasına kadar olan metnin uzunluğu. */
 function offsetIn(block: Element, node: Node, offset: number) {
@@ -56,16 +87,11 @@ function selectionSegments(range: Range, container: Element): TextPosition[] {
   return segments;
 }
 
-/** Araç çubuğu seçimin/vurgunun üst ortasında; sayfanın üstüne taşarsa altında. */
-function toolbarPosition(rect: DOMRect) {
-  const above = rect.top - 52;
-  return { top: above > 8 ? above : rect.bottom + 8, left: rect.left + rect.width / 2 };
-}
-
 /**
- * Madde metni + kişisel vurgular. Vurgulama yetkisi olan kullanıcı metinde bir yer seçince renk araç çubuğu
- * açılır; var olan vurguya tıklayınca rengi değiştirilir ya da silinir. Vurgular gösterilen sürümün metnine göre
- * yerleştirilir; madde değiştiği için bulunamayanlar metinde görünmez (sayısı altta belirtilir).
+ * Madde metni + kişisel vurgular ve notlar. Vurgulama yetkisi olan kullanıcı metinde bir yer seçince renk araç
+ * çubuğu açılır ("Not ekle" seçimi sarıyla vurgulayıp not düzenleyiciyi açar); var olan vurguya tıklayınca rengi
+ * değiştirilir, notu yazılır ya da vurgu silinir. Notlu vurgunun sonunda not simgesi durur. Vurgular gösterilen
+ * sürümün metnine göre yerleştirilir; madde değiştiği için bulunamayanlar metinde görünmez (sayısı altta belirtilir).
  */
 export function HighlightableText({
   articleId,
@@ -81,40 +107,59 @@ export function HighlightableText({
   const { data: user } = useCurrentUser();
   const enabled = useHydrated() && canAnnotate(user);
   const containerRef = useRef<HTMLDivElement>(null);
-  const toolbarRef = useRef<HTMLDivElement>(null);
-  const [toolbar, setToolbar] = useState<Toolbar | null>(null);
+  const overlayRef = useRef<HTMLDivElement>(null);
+  const [overlay, setOverlay] = useState<Overlay | null>(null);
 
   const queryClient = useQueryClient();
-  const { data } = useListHighlights(articleId, { versionId }, { query: { enabled } });
-  const highlights = useMemo(() => (data?.status === 200 ? data.data : []), [data]);
-  const refresh = () => queryClient.invalidateQueries({ queryKey: getListHighlightsQueryKey(articleId).slice(0, 1) });
-  const create = useCreateHighlight();
-  const update = useUpdateHighlight();
-  const remove = useDeleteHighlight();
+  const highlightsQuery = useListHighlights(articleId, { versionId }, { query: { enabled } });
+  const notesQuery = useListPersonalNotes(articleId, { query: { enabled } });
+  const highlights = useMemo(() => (highlightsQuery.data?.status === 200 ? highlightsQuery.data.data : []), [highlightsQuery.data]);
+  const notes = useMemo(() => (notesQuery.data?.status === 200 ? notesQuery.data.data : []), [notesQuery.data]);
+  const noteOf = useMemo(() => new Map(notes.filter((n) => n.highlightId).map((n) => [n.highlightId!, n])), [notes]);
+  const refresh = () =>
+    Promise.all([
+      queryClient.invalidateQueries({ queryKey: getListHighlightsQueryKey(articleId).slice(0, 1) }),
+      queryClient.invalidateQueries({ queryKey: getListPersonalNotesQueryKey(articleId) }),
+    ]);
+
+  const createHighlight = useCreateHighlight();
+  const updateHighlight = useUpdateHighlight();
+  const deleteHighlight = useDeleteHighlight();
+  const createNote = useCreatePersonalNote();
+  const updateNote = useUpdatePersonalNote();
+  const deleteNote = useDeletePersonalNote();
+  const busy = [createHighlight, updateHighlight, deleteHighlight, createNote, updateNote, deleteNote].some((m) => m.isPending);
 
   const marks = useMemo(
     () =>
       groupMarks(
         highlights.flatMap((h) =>
-          h.segments.map((s) => ({
+          h.segments.map((s, i) => ({
             paragraphId: s.paragraphId,
             itemId: s.itemId,
-            mark: { highlightId: h.id, start: s.start, length: s.length, className: highlightClassName(h.color) },
+            mark: {
+              highlightId: h.id,
+              start: s.start,
+              length: s.length,
+              className: highlightClassName(h.color),
+              note: i === h.segments.length - 1 ? noteOf.get(h.id)?.text : undefined,
+            },
           })),
         ),
       ),
-    [highlights],
+    [highlights, noteOf],
   );
   const staleCount = highlights.filter((h) => h.isStale).length;
 
-  // Kaydırınca, Esc'ye basınca ya da metin ve araç çubuğu dışına tıklayınca kapanır.
+  // Araç çubuğu kaydırınca, Esc'ye basınca ya da metin ve çubuk dışına tıklayınca kapanır. Not düzenleyici yalnız
+  // kendi düğmeleri ve Esc ile kapanır (yazılan not kaybolmasın).
   useEffect(() => {
-    if (!toolbar) return;
-    const close = () => setToolbar(null);
+    if (!overlay || overlay.kind === "note") return;
+    const close = () => setOverlay(null);
     const onKey = (event: globalThis.KeyboardEvent) => event.key === "Escape" && close();
     const onPointerDown = (event: globalThis.PointerEvent) => {
       const target = event.target as Node;
-      if (!toolbarRef.current?.contains(target) && !containerRef.current?.contains(target)) close();
+      if (!overlayRef.current?.contains(target) && !containerRef.current?.contains(target)) close();
     };
     window.addEventListener("scroll", close, true);
     window.addEventListener("keydown", onKey);
@@ -124,61 +169,90 @@ export function HighlightableText({
       window.removeEventListener("keydown", onKey);
       document.removeEventListener("pointerdown", onPointerDown);
     };
-  }, [toolbar]);
+  }, [overlay]);
 
   function handlePointerUp(event: PointerEvent | KeyboardEvent) {
     const container = containerRef.current;
     const selection = window.getSelection();
-    if (!container || !selection) return;
+    if (!container || !selection || overlay?.kind === "note") return;
 
     if (!selection.isCollapsed && selection.rangeCount > 0) {
       const range = selection.getRangeAt(0);
       const segments = selectionSegments(range, container);
-      setToolbar(segments.length > 0 ? { kind: "selection", ...toolbarPosition(range.getBoundingClientRect()), segments } : null);
+      setOverlay(segments.length > 0 ? { kind: "selection", anchor: toAnchor(range.getBoundingClientRect()), segments } : null);
       return;
     }
 
-    const mark = event.target instanceof Element ? event.target.closest("mark[data-highlight-id]") : null;
-    const highlight = mark && highlights.find((h) => h.id === mark.getAttribute("data-highlight-id"));
-    setToolbar(
-      highlight
-        ? {
-            kind: "highlight",
-            ...toolbarPosition(mark.getBoundingClientRect()),
-            highlightId: highlight.id,
-            color: highlight.color,
-          }
-        : null,
+    const target = event.target instanceof Element ? event.target : null;
+    const marker = target?.closest("[data-note-for]");
+    if (marker) {
+      setOverlay({ kind: "note", anchor: toAnchor(marker.getBoundingClientRect()), highlightId: marker.getAttribute("data-note-for")! });
+      return;
+    }
+    const mark = target?.closest("mark[data-highlight-id]");
+    const highlightId = mark?.getAttribute("data-highlight-id");
+    setOverlay(mark && highlightId ? { kind: "highlight", anchor: toAnchor(mark.getBoundingClientRect()), highlightId } : null);
+  }
+
+  /** Not simgesi klavyeyle de açılır; bağlantı içindeyse tıklama sayfayı değiştirmesin. */
+  function handleMarkerKey(event: KeyboardEvent) {
+    const marker = event.target instanceof Element ? event.target.closest("[data-note-for]") : null;
+    if (!marker || (event.key !== "Enter" && event.key !== " ")) return;
+    event.preventDefault();
+    setOverlay({ kind: "note", anchor: toAnchor(marker.getBoundingClientRect()), highlightId: marker.getAttribute("data-note-for")! });
+  }
+
+  async function run(action: () => Promise<unknown>, failure: string) {
+    try {
+      await action();
+      await refresh();
+      return true;
+    } catch {
+      toast.error(failure);
+      return false;
+    }
+  }
+
+  async function createFromSelection(color: HighlightColor, withNote: boolean) {
+    if (overlay?.kind !== "selection") return;
+    const { anchor, segments } = overlay;
+    let created: HighlightDto | undefined;
+    const done = await run(async () => {
+      const response = await createHighlight.mutateAsync({ data: { articleVersionId: versionId, color, segments } });
+      if (response.status === 201) created = response.data;
+    }, "Vurgu kaydedilemedi.");
+    if (!done) return;
+    window.getSelection()?.removeAllRanges();
+    setOverlay(withNote && created ? { kind: "note", anchor, highlightId: created.id } : null);
+  }
+
+  async function recolor(highlightId: string, color: HighlightColor) {
+    if (await run(() => updateHighlight.mutateAsync({ id: highlightId, data: { color } }), "Vurgu kaydedilemedi.")) setOverlay(null);
+  }
+
+  async function removeHighlight(highlightId: string) {
+    if (await run(() => deleteHighlight.mutateAsync({ id: highlightId }), "Vurgu silinemedi.")) setOverlay(null);
+  }
+
+  async function saveNote(highlightId: string, existing: PersonalNoteDto | undefined, text: string) {
+    const saved = await run(
+      () =>
+        existing
+          ? updateNote.mutateAsync({ id: existing.id, data: { text } })
+          : createNote.mutateAsync({ data: { articleId, highlightId, text } }),
+      "Not kaydedilemedi.",
     );
-  }
-
-  async function apply(color: HighlightColor) {
-    if (!toolbar) return;
-    try {
-      if (toolbar.kind === "selection") {
-        await create.mutateAsync({ data: { articleVersionId: versionId, color, segments: toolbar.segments } });
-        window.getSelection()?.removeAllRanges();
-      } else {
-        await update.mutateAsync({ id: toolbar.highlightId, data: { color } });
-      }
-      await refresh();
-      setToolbar(null);
-    } catch {
-      toast.error("Vurgu kaydedilemedi.");
+    if (saved) {
+      setOverlay(null);
+      toast.success("Not kaydedildi.");
     }
   }
 
-  async function removeHighlight(id: string) {
-    try {
-      await remove.mutateAsync({ id });
-      await refresh();
-      setToolbar(null);
-    } catch {
-      toast.error("Vurgu silinemedi.");
-    }
+  async function removeNote(note: PersonalNoteDto) {
+    if (await run(() => deleteNote.mutateAsync({ id: note.id }), "Not silinemedi.")) setOverlay(null);
   }
 
-  const busy = create.isPending || update.isPending || remove.isPending;
+  const current = overlay && overlay.kind !== "selection" ? highlights.find((h) => h.id === overlay.highlightId) : undefined;
 
   return (
     <>
@@ -186,6 +260,9 @@ export function HighlightableText({
         ref={containerRef}
         onPointerUp={enabled ? handlePointerUp : undefined}
         onKeyUp={enabled ? (e) => e.shiftKey && handlePointerUp(e) : undefined}
+        onKeyDown={enabled ? handleMarkerKey : undefined}
+        // Not simgesi atıf bağlantısının içinde kalırsa tıklamak sayfayı değiştirmesin.
+        onClickCapture={(e) => e.target instanceof Element && e.target.closest("[data-note-for]") && e.preventDefault()}
         className={cn(enabled && "[&_mark[data-highlight-id]]:cursor-pointer")}
       >
         <ParagraphList paragraphs={paragraphs} citations={citations} marks={marks} />
@@ -196,56 +273,192 @@ export function HighlightableText({
         </p>
       )}
 
-      {toolbar &&
+      {overlay &&
         createPortal(
-          <div
-            ref={toolbarRef}
-            role="toolbar"
-            aria-label={toolbar.kind === "selection" ? "Vurgula" : "Vurguyu düzenle"}
-            style={{ top: toolbar.top, left: toolbar.left }}
-            // Düğmeye basmak metindeki seçimi kaldırmasın.
-            onMouseDown={(e) => e.preventDefault()}
-            className="fixed z-50 flex -translate-x-1/2 animate-in items-center gap-1 rounded-full border bg-popover p-1.5 shadow-lg duration-100 fade-in zoom-in-95"
-          >
-            {highlightColors.map((color) => {
-              const current = toolbar.kind === "highlight" && toolbar.color === color.key;
-              return (
-                <button
-                  key={color.key}
-                  type="button"
-                  disabled={busy}
-                  onClick={() => apply(color.key)}
-                  title={current ? `${color.label} (şu anki renk)` : `${color.label} ile vurgula`}
-                  aria-label={`${color.label} ile vurgula`}
-                  aria-pressed={toolbar.kind === "highlight" ? current : undefined}
-                  className={cn(
-                    "flex size-7 items-center justify-center rounded-full border border-black/10 transition-transform hover:scale-110",
-                    color.className,
-                    current && "ring-2 ring-primary ring-offset-1 ring-offset-popover",
+          overlay.kind === "note" ? (
+            current && (
+              <NoteEditor
+                // Başka bir vurgunun notu açılınca düzenleyici yeniden kurulsun (metin alanı sıfırlansın).
+                key={current.id}
+                ref={overlayRef}
+                anchor={overlay.anchor}
+                quote={current.quote}
+                note={noteOf.get(current.id)}
+                busy={busy}
+                onSave={(text) => saveNote(current.id, noteOf.get(current.id), text)}
+                onDelete={(note) => removeNote(note)}
+                onClose={() => setOverlay(null)}
+              />
+            )
+          ) : (
+            <div
+              ref={overlayRef}
+              role="toolbar"
+              aria-label={overlay.kind === "selection" ? "Vurgula" : "Vurguyu düzenle"}
+              style={{ top: overlay.anchor.top - 52 > 8 ? overlay.anchor.top - 52 : overlay.anchor.bottom + 8, left: overlay.anchor.centerX }}
+              // Düğmeye basmak metindeki seçimi kaldırmasın.
+              onMouseDown={(e) => e.preventDefault()}
+              className="fixed z-50 flex -translate-x-1/2 animate-in items-center gap-1 rounded-full border bg-popover p-1.5 shadow-lg duration-100 fade-in zoom-in-95"
+            >
+              {overlay.kind === "highlight" && overlay.confirmDelete ? (
+                <>
+                  <span className="px-2 text-sm">Vurgu notuyla birlikte silinsin mi?</span>
+                  <Button size="sm" variant="destructive" disabled={busy} onClick={() => removeHighlight(overlay.highlightId)}>
+                    Sil
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={() => setOverlay({ ...overlay, confirmDelete: false })}>
+                    Vazgeç
+                  </Button>
+                </>
+              ) : (
+                <>
+                  {highlightColors.map((color) => {
+                    const selected = overlay.kind === "highlight" && current?.color === color.key;
+                    return (
+                      <button
+                        key={color.key}
+                        type="button"
+                        disabled={busy}
+                        onClick={() =>
+                          overlay.kind === "selection"
+                            ? createFromSelection(color.key, false)
+                            : recolor(overlay.highlightId, color.key)
+                        }
+                        title={selected ? `${color.label} (şu anki renk)` : `${color.label} ile vurgula`}
+                        aria-label={`${color.label} ile vurgula`}
+                        aria-pressed={overlay.kind === "highlight" ? selected : undefined}
+                        className={cn(
+                          "flex size-7 items-center justify-center rounded-full border border-black/10 transition-transform hover:scale-110",
+                          color.className,
+                          selected && "ring-2 ring-primary ring-offset-1 ring-offset-popover",
+                        )}
+                      >
+                        {selected && <Check className="size-4 text-foreground" aria-hidden />}
+                      </button>
+                    );
+                  })}
+                  <span className="mx-0.5 h-5 w-px bg-border" aria-hidden />
+                  <ToolbarButton
+                    label={overlay.kind === "highlight" && noteOf.has(overlay.highlightId) ? "Notu aç" : "Not ekle"}
+                    disabled={busy}
+                    onClick={() =>
+                      overlay.kind === "selection"
+                        ? createFromSelection("yellow", true)
+                        : setOverlay({ kind: "note", anchor: overlay.anchor, highlightId: overlay.highlightId })
+                    }
+                  >
+                    <NotebookPen className="size-4" />
+                  </ToolbarButton>
+                  {overlay.kind === "highlight" && (
+                    <ToolbarButton
+                      label="Vurguyu kaldır"
+                      disabled={busy}
+                      destructive
+                      onClick={() =>
+                        noteOf.has(overlay.highlightId)
+                          ? setOverlay({ ...overlay, confirmDelete: true })
+                          : removeHighlight(overlay.highlightId)
+                      }
+                    >
+                      <Trash2 className="size-4" />
+                    </ToolbarButton>
                   )}
-                >
-                  {current && <Check className="size-4 text-foreground" aria-hidden />}
-                </button>
-              );
-            })}
-            {toolbar.kind === "highlight" && (
-              <>
-                <span className="mx-0.5 h-5 w-px bg-border" aria-hidden />
-                <button
-                  type="button"
-                  disabled={busy}
-                  onClick={() => removeHighlight(toolbar.highlightId)}
-                  title="Vurguyu kaldır"
-                  aria-label="Vurguyu kaldır"
-                  className="flex size-7 items-center justify-center rounded-full text-muted-foreground hover:bg-accent hover:text-destructive"
-                >
-                  <Trash2 className="size-4" />
-                </button>
-              </>
-            )}
-          </div>,
+                </>
+              )}
+            </div>
+          ),
           document.body,
         )}
     </>
+  );
+}
+
+function ToolbarButton({
+  label,
+  destructive,
+  ...props
+}: { label: string; destructive?: boolean } & ComponentProps<"button">) {
+  return (
+    <button
+      type="button"
+      title={label}
+      aria-label={label}
+      className={cn(
+        "flex size-7 items-center justify-center rounded-full text-muted-foreground hover:bg-accent",
+        destructive ? "hover:text-destructive" : "hover:text-primary",
+      )}
+      {...props}
+    />
+  );
+}
+
+/** Vurguya bağlı notun düzenleyicisi: vurgunun altında (yer yoksa üstünde) açılan kart. Ctrl+Enter kaydeder. */
+function NoteEditor({
+  ref,
+  anchor,
+  quote,
+  note,
+  busy,
+  onSave,
+  onDelete,
+  onClose,
+}: {
+  ref: Ref<HTMLDivElement>;
+  anchor: Anchor;
+  quote: string;
+  note: PersonalNoteDto | undefined;
+  busy: boolean;
+  onSave: (text: string) => void;
+  onDelete: (note: PersonalNoteDto) => void;
+  onClose: () => void;
+}) {
+  const [text, setText] = useState(note?.text ?? "");
+  const width = Math.min(360, window.innerWidth - 16);
+  const left = Math.min(Math.max(anchor.centerX - width / 2, 8), window.innerWidth - width - 8);
+  const below = anchor.bottom + 8;
+  const style = below + 260 < window.innerHeight ? { top: below } : { bottom: window.innerHeight - anchor.top + 8 };
+  const save = () => text.trim() && onSave(text);
+
+  return (
+    <div
+      ref={ref}
+      role="dialog"
+      aria-label="Not"
+      style={{ ...style, left, width }}
+      className="fixed z-50 animate-in space-y-3 rounded-lg border bg-popover p-3 text-popover-foreground shadow-xl duration-100 fade-in zoom-in-95"
+      onKeyDown={(e) => {
+        if (e.key === "Escape") onClose();
+        if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) save();
+      }}
+    >
+      <p className="line-clamp-2 border-l-4 border-highlight-yellow pl-2 text-sm text-muted-foreground italic">“{quote}”</p>
+      <Textarea
+        autoFocus
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        placeholder="Notunuzu yazın… (yalnız siz görürsünüz)"
+        rows={5}
+        maxLength={10_000}
+        aria-label="Not metni"
+        className="font-reading text-base"
+      />
+      <div className="flex items-center justify-between gap-2">
+        {note ? (
+          <Button size="sm" variant="ghost" className="text-destructive" disabled={busy} onClick={() => onDelete(note)}>
+            <Trash2 /> Notu sil
+          </Button>
+        ) : (
+          <span className="text-xs text-muted-foreground">Ctrl+Enter ile kaydedin</span>
+        )}
+        <div className="flex gap-2">
+          <Button size="sm" variant="ghost" onClick={onClose}>
+            Vazgeç
+          </Button>
+          <Button size="sm" disabled={busy || !text.trim()} onClick={save}>
+            Kaydet
+          </Button>
+        </div>
+      </div>
+    </div>
   );
 }

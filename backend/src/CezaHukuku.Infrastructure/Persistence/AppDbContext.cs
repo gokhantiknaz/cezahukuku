@@ -22,6 +22,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<CourtDecision> CourtDecisions => Set<CourtDecision>();
     public DbSet<ArticleDecision> ArticleDecisions => Set<ArticleDecision>();
     public DbSet<Highlight> Highlights => Set<Highlight>();
+    public DbSet<PersonalNote> PersonalNotes => Set<PersonalNote>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

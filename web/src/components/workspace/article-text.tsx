@@ -1,5 +1,6 @@
 import { Fragment, type ReactNode } from "react";
 import Link from "next/link";
+import { StickyNote } from "lucide-react";
 import type { CitationSpan, ParagraphDto } from "@/api/generated/model";
 import { cn } from "@/lib/utils";
 
@@ -23,8 +24,27 @@ export const paragraphKey = (p: ParagraphDto) =>
 
 const blockKey = (paragraphId: string, itemId: string | null) => `${paragraphId}:${itemId ?? ""}`;
 
-/** Metindeki kişisel vurgu parçası (fıkra ya da bent metninde). */
-export type TextMark = { highlightId: string; start: number; length: number; className: string };
+/**
+ * Metindeki kişisel vurgu parçası (fıkra ya da bent metninde). `note` verilirse parçanın sonunda not simgesi
+ * gösterilir (vurgunun son parçasında; üstüne gelince not metni görünür).
+ */
+export type TextMark = { highlightId: string; start: number; length: number; className: string; note?: string };
+
+/** Vurgunun bağlı notu: metinde yer kaplamayan (metin içeriği boş) simge; tıklanınca not açılır. */
+function NoteMarker({ mark }: { mark: TextMark }) {
+  return (
+    <span
+      role="button"
+      tabIndex={0}
+      data-note-for={mark.highlightId}
+      title={mark.note}
+      aria-label="Notu aç"
+      className="mx-0.5 inline-flex -translate-y-1.5 cursor-pointer align-baseline text-primary hover:text-primary/70 print:hidden"
+    >
+      <StickyNote className="size-3.5" aria-hidden />
+    </span>
+  );
+}
 
 /** Metnin [from, to) aralığını vurgularla böler; üst üste binen vurgularda sonra eklenen görünür. */
 function withMarks(text: string, from: number, to: number, marks: TextMark[]): ReactNode[] {
@@ -40,12 +60,20 @@ function withMarks(text: string, from: number, to: number, marks: TextMark[]): R
     const end = sorted[i + 1];
     const mark = inside.findLast((m) => m.start <= start && m.start + m.length >= end);
     const piece = text.slice(start, end);
-    return mark ? (
-      <mark key={start} data-highlight-id={mark.highlightId} className={cn("rounded-[2px] text-inherit", mark.className)}>
-        {piece}
-      </mark>
-    ) : (
-      <Fragment key={start}>{piece}</Fragment>
+    const notes = inside.filter((m) => m.note && m.start + m.length === end);
+    return (
+      <Fragment key={start}>
+        {mark ? (
+          <mark data-highlight-id={mark.highlightId} className={cn("rounded-[2px] text-inherit", mark.className)}>
+            {piece}
+          </mark>
+        ) : (
+          piece
+        )}
+        {notes.map((m) => (
+          <NoteMarker key={m.highlightId} mark={m} />
+        ))}
+      </Fragment>
     );
   });
 }

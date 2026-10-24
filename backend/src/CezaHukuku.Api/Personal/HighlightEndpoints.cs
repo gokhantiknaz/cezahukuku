@@ -22,7 +22,7 @@ public sealed record CreateHighlightRequest(Guid ArticleVersionId, HighlightColo
 public sealed record UpdateHighlightRequest(HighlightColor Color);
 
 /// <summary>
-/// Kişisel vurgular: yalnız sahibi görür ve değiştirir (başkasının vurgusu 404). reader rolü kişisel alan
+/// Kişisel katman uç noktaları (/api/me). Kişisel vurgular: yalnız sahibi görür ve değiştirir (başkasının vurgusu 404). reader rolü kişisel alan
 /// oluşturamaz (403).
 /// </summary>
 public static class HighlightEndpoints
@@ -37,6 +37,7 @@ public static class HighlightEndpoints
         group.MapPost("/highlights", CreateAsync).WithName("CreateHighlight");
         group.MapPut("/highlights/{id:guid}", UpdateAsync).WithName("UpdateHighlight");
         group.MapDelete("/highlights/{id:guid}", DeleteAsync).WithName("DeleteHighlight");
+        group.MapPersonalNoteEndpoints();
 
         return group;
     }
@@ -116,7 +117,11 @@ public static class HighlightEndpoints
         if (highlight is null)
             return TypedResults.NotFound();
 
-        highlight.DeletedAt = clock.GetUtcNow();
+        // Vurguya bağlı not vurguyla birlikte silinir.
+        var now = clock.GetUtcNow();
+        highlight.DeletedAt = now;
+        if (await db.PersonalNotes.FirstOrDefaultAsync(n => n.HighlightId == id) is { } note)
+            note.DeletedAt = now;
         await db.SaveChangesAsync();
         return TypedResults.NoContent();
     }

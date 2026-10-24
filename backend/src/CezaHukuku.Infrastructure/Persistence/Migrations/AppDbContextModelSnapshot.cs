@@ -722,6 +722,60 @@ namespace CezaHukuku.Infrastructure.Persistence.Migrations
                     b.ToTable("highlights", (string)null);
                 });
 
+            modelBuilder.Entity("CezaHukuku.Domain.Personal.PersonalNote", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("ArticleId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("article_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<Guid?>("HighlightId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("highlight_id");
+
+                    b.Property<Guid>("OwnerId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("owner_id");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasMaxLength(10000)
+                        .HasColumnType("character varying(10000)")
+                        .HasColumnName("text");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_personal_notes");
+
+                    b.HasIndex("ArticleId")
+                        .HasDatabaseName("ix_personal_notes_article_id");
+
+                    b.HasIndex("HighlightId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_personal_notes_highlight_id")
+                        .HasFilter("deleted_at IS NULL");
+
+                    b.HasIndex("OwnerId", "ArticleId")
+                        .HasDatabaseName("ix_personal_notes_owner_id_article_id");
+
+                    b.ToTable("personal_notes", (string)null);
+                });
+
             modelBuilder.Entity("CezaHukuku.Infrastructure.Identity.ApplicationUser", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1119,6 +1173,29 @@ namespace CezaHukuku.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_highlights_users_owner_id");
+                });
+
+            modelBuilder.Entity("CezaHukuku.Domain.Personal.PersonalNote", b =>
+                {
+                    b.HasOne("CezaHukuku.Domain.Laws.Article", null)
+                        .WithMany()
+                        .HasForeignKey("ArticleId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_personal_notes_articles_article_id");
+
+                    b.HasOne("CezaHukuku.Domain.Personal.Highlight", null)
+                        .WithMany()
+                        .HasForeignKey("HighlightId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_personal_notes_highlights_highlight_id");
+
+                    b.HasOne("CezaHukuku.Infrastructure.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("OwnerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_personal_notes_users_owner_id");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<System.Guid>", b =>

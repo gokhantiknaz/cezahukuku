@@ -32,6 +32,20 @@ internal sealed class HighlightConfiguration : IEntityTypeConfiguration<Highligh
     }
 }
 
+internal sealed class PersonalNoteConfiguration : IEntityTypeConfiguration<PersonalNote>
+{
+    public void Configure(EntityTypeBuilder<PersonalNote> b)
+    {
+        b.HasQueryFilter(e => e.DeletedAt == null);
+        b.Property(e => e.Text).HasMaxLength(PersonalNote.MaxTextLength);
+        b.HasOne<ApplicationUser>().WithMany().HasForeignKey(e => e.OwnerId).OnDelete(DeleteBehavior.Cascade);
+        b.HasOne<Article>().WithMany().HasForeignKey(e => e.ArticleId).OnDelete(DeleteBehavior.Restrict);
+        b.HasOne<Highlight>().WithMany().HasForeignKey(e => e.HighlightId).OnDelete(DeleteBehavior.Restrict);
+        b.HasIndex(e => new { e.OwnerId, e.ArticleId });
+        b.HasIndex(e => e.HighlightId).IsUnique().HasFilter(SoftDelete.ActiveFilter);
+    }
+}
+
 internal static class AnchorJson
 {
     private static readonly JsonSerializerOptions Options = new(JsonSerializerDefaults.Web);

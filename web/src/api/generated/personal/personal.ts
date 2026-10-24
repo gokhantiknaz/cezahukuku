@@ -25,10 +25,13 @@ import type {
 
 import type {
   CreateHighlightRequest,
+  CreatePersonalNoteRequest,
   HighlightDto,
   HttpValidationProblemDetails,
   ListHighlightsParams,
-  UpdateHighlightRequest
+  PersonalNoteDto,
+  UpdateHighlightRequest,
+  UpdatePersonalNoteRequest
 } from '.././model';
 
 import { apiFetch } from '../../fetcher';
@@ -424,6 +427,373 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       > => {
 
       const mutationOptions = getDeleteHighlightMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    export type listPersonalNotesResponse200 = {
+  data: PersonalNoteDto[]
+  status: 200
+}
+    
+export type listPersonalNotesResponseSuccess = (listPersonalNotesResponse200) & {
+  headers: Headers;
+};
+;
+
+export type listPersonalNotesResponse = (listPersonalNotesResponseSuccess)
+
+export const getListPersonalNotesUrl = (articleId: string,) => {
+
+
+  
+
+  return `/api/me/articles/${articleId}/notes`
+}
+
+export const listPersonalNotes = async (articleId: string, options?: RequestInit): Promise<listPersonalNotesResponse> => {
+  
+  return apiFetch<listPersonalNotesResponse>(getListPersonalNotesUrl(articleId),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getListPersonalNotesQueryKey = (articleId?: string,) => {
+    return [
+    `/api/me/articles/${articleId}/notes`
+    ] as const;
+    }
+
+    
+export const getListPersonalNotesQueryOptions = <TData = Awaited<ReturnType<typeof listPersonalNotes>>, TError = unknown>(articleId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listPersonalNotes>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListPersonalNotesQueryKey(articleId);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listPersonalNotes>>> = ({ signal }) => listPersonalNotes(articleId, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(articleId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listPersonalNotes>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ListPersonalNotesQueryResult = NonNullable<Awaited<ReturnType<typeof listPersonalNotes>>>
+export type ListPersonalNotesQueryError = unknown
+
+
+export function useListPersonalNotes<TData = Awaited<ReturnType<typeof listPersonalNotes>>, TError = unknown>(
+ articleId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listPersonalNotes>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listPersonalNotes>>,
+          TError,
+          Awaited<ReturnType<typeof listPersonalNotes>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListPersonalNotes<TData = Awaited<ReturnType<typeof listPersonalNotes>>, TError = unknown>(
+ articleId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listPersonalNotes>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listPersonalNotes>>,
+          TError,
+          Awaited<ReturnType<typeof listPersonalNotes>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListPersonalNotes<TData = Awaited<ReturnType<typeof listPersonalNotes>>, TError = unknown>(
+ articleId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listPersonalNotes>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useListPersonalNotes<TData = Awaited<ReturnType<typeof listPersonalNotes>>, TError = unknown>(
+ articleId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listPersonalNotes>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getListPersonalNotesQueryOptions(articleId,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export type createPersonalNoteResponse201 = {
+  data: PersonalNoteDto
+  status: 201
+}
+
+export type createPersonalNoteResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type createPersonalNoteResponse404 = {
+  data: void
+  status: 404
+}
+    
+export type createPersonalNoteResponseSuccess = (createPersonalNoteResponse201) & {
+  headers: Headers;
+};
+export type createPersonalNoteResponseError = (createPersonalNoteResponse400 | createPersonalNoteResponse404) & {
+  headers: Headers;
+};
+
+export type createPersonalNoteResponse = (createPersonalNoteResponseSuccess | createPersonalNoteResponseError)
+
+export const getCreatePersonalNoteUrl = () => {
+
+
+  
+
+  return `/api/me/notes`
+}
+
+export const createPersonalNote = async (createPersonalNoteRequest: CreatePersonalNoteRequest, options?: RequestInit): Promise<createPersonalNoteResponse> => {
+  
+  return apiFetch<createPersonalNoteResponse>(getCreatePersonalNoteUrl(),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      createPersonalNoteRequest,)
+  }
+);}
+
+
+
+
+export const getCreatePersonalNoteMutationOptions = <TError = HttpValidationProblemDetails | void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createPersonalNote>>, TError,{data: CreatePersonalNoteRequest}, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createPersonalNote>>, TError,{data: CreatePersonalNoteRequest}, TContext> => {
+
+const mutationKey = ['createPersonalNote'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createPersonalNote>>, {data: CreatePersonalNoteRequest}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createPersonalNote(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreatePersonalNoteMutationResult = NonNullable<Awaited<ReturnType<typeof createPersonalNote>>>
+    export type CreatePersonalNoteMutationBody = CreatePersonalNoteRequest
+    export type CreatePersonalNoteMutationError = HttpValidationProblemDetails | void
+
+    export const useCreatePersonalNote = <TError = HttpValidationProblemDetails | void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createPersonalNote>>, TError,{data: CreatePersonalNoteRequest}, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof createPersonalNote>>,
+        TError,
+        {data: CreatePersonalNoteRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getCreatePersonalNoteMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    export type updatePersonalNoteResponse200 = {
+  data: PersonalNoteDto
+  status: 200
+}
+
+export type updatePersonalNoteResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type updatePersonalNoteResponse404 = {
+  data: void
+  status: 404
+}
+    
+export type updatePersonalNoteResponseSuccess = (updatePersonalNoteResponse200) & {
+  headers: Headers;
+};
+export type updatePersonalNoteResponseError = (updatePersonalNoteResponse400 | updatePersonalNoteResponse404) & {
+  headers: Headers;
+};
+
+export type updatePersonalNoteResponse = (updatePersonalNoteResponseSuccess | updatePersonalNoteResponseError)
+
+export const getUpdatePersonalNoteUrl = (id: string,) => {
+
+
+  
+
+  return `/api/me/notes/${id}`
+}
+
+export const updatePersonalNote = async (id: string,
+    updatePersonalNoteRequest: UpdatePersonalNoteRequest, options?: RequestInit): Promise<updatePersonalNoteResponse> => {
+  
+  return apiFetch<updatePersonalNoteResponse>(getUpdatePersonalNoteUrl(id),
+  {      
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      updatePersonalNoteRequest,)
+  }
+);}
+
+
+
+
+export const getUpdatePersonalNoteMutationOptions = <TError = HttpValidationProblemDetails | void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updatePersonalNote>>, TError,{id: string;data: UpdatePersonalNoteRequest}, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updatePersonalNote>>, TError,{id: string;data: UpdatePersonalNoteRequest}, TContext> => {
+
+const mutationKey = ['updatePersonalNote'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updatePersonalNote>>, {id: string;data: UpdatePersonalNoteRequest}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updatePersonalNote(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdatePersonalNoteMutationResult = NonNullable<Awaited<ReturnType<typeof updatePersonalNote>>>
+    export type UpdatePersonalNoteMutationBody = UpdatePersonalNoteRequest
+    export type UpdatePersonalNoteMutationError = HttpValidationProblemDetails | void
+
+    export const useUpdatePersonalNote = <TError = HttpValidationProblemDetails | void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updatePersonalNote>>, TError,{id: string;data: UpdatePersonalNoteRequest}, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof updatePersonalNote>>,
+        TError,
+        {id: string;data: UpdatePersonalNoteRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getUpdatePersonalNoteMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    export type deletePersonalNoteResponse204 = {
+  data: void
+  status: 204
+}
+
+export type deletePersonalNoteResponse404 = {
+  data: void
+  status: 404
+}
+    
+export type deletePersonalNoteResponseSuccess = (deletePersonalNoteResponse204) & {
+  headers: Headers;
+};
+export type deletePersonalNoteResponseError = (deletePersonalNoteResponse404) & {
+  headers: Headers;
+};
+
+export type deletePersonalNoteResponse = (deletePersonalNoteResponseSuccess | deletePersonalNoteResponseError)
+
+export const getDeletePersonalNoteUrl = (id: string,) => {
+
+
+  
+
+  return `/api/me/notes/${id}`
+}
+
+export const deletePersonalNote = async (id: string, options?: RequestInit): Promise<deletePersonalNoteResponse> => {
+  
+  return apiFetch<deletePersonalNoteResponse>(getDeletePersonalNoteUrl(id),
+  {      
+    ...options,
+    method: 'DELETE'
+    
+    
+  }
+);}
+
+
+
+
+export const getDeletePersonalNoteMutationOptions = <TError = void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deletePersonalNote>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deletePersonalNote>>, TError,{id: string}, TContext> => {
+
+const mutationKey = ['deletePersonalNote'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deletePersonalNote>>, {id: string}> = (props) => {
+          const {id} = props ?? {};
+
+          return  deletePersonalNote(id,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeletePersonalNoteMutationResult = NonNullable<Awaited<ReturnType<typeof deletePersonalNote>>>
+    
+    export type DeletePersonalNoteMutationError = void
+
+    export const useDeletePersonalNote = <TError = void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deletePersonalNote>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof deletePersonalNote>>,
+        TError,
+        {id: string},
+        TContext
+      > => {
+
+      const mutationOptions = getDeletePersonalNoteMutationOptions(options);
 
       return useMutation(mutationOptions, queryClient);
     }
