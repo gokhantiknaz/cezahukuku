@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { LogIn, LogOut, Settings } from "lucide-react";
+import { FolderOpen, LogIn, LogOut, Settings } from "lucide-react";
 import { useLogout } from "@/api/generated/auth/auth";
 import { Button } from "@/components/ui/button";
 import { isAdmin, useCurrentUser, useRefreshCurrentUser } from "@/lib/auth";
+import { canAnnotate } from "@/lib/highlights";
 
 export function UserMenu() {
   const router = useRouter();
@@ -36,6 +37,13 @@ export function UserMenu() {
   return (
     <div className="flex items-center gap-1 text-sm">
       <span className="mr-1 hidden text-muted-foreground 2xl:inline">{user.displayName}</span>
+      {canAnnotate(user) && (
+        <Button variant="ghost" size="lg" asChild>
+          <Link href="/belgelerim" title="PDF belgelerim ve sesli notlarım" aria-label="Belgelerim">
+            <FolderOpen /> <span className="hidden 2xl:inline">Belgelerim</span>
+          </Link>
+        </Button>
+      )}
       {isAdmin(user) && (
         <Button variant="ghost" size="lg" asChild>
           <Link href="/panel/kutuphane" title="Yönetim paneli">

@@ -17,9 +17,11 @@ public sealed class SearchIndexChanges
     public HashSet<Guid> Decisions { get; } = [];
     public HashSet<Guid> PersonalNotes { get; } = [];
     public HashSet<Guid> Highlights { get; } = [];
+    public HashSet<Guid> Attachments { get; } = [];
 
     public bool IsEmpty =>
-        Laws.Count == 0 && Articles.Count == 0 && Decisions.Count == 0 && PersonalNotes.Count == 0 && Highlights.Count == 0;
+        Laws.Count == 0 && Articles.Count == 0 && Decisions.Count == 0 && PersonalNotes.Count == 0 && Highlights.Count == 0
+        && Attachments.Count == 0;
 
     /// <summary>Kaydedilmek üzere olan (eklenen, değişen, silinen) varlıklardan etkilenen kaynakları çıkarır.</summary>
     public static SearchIndexChanges Collect(ChangeTracker tracker)
@@ -42,6 +44,8 @@ public sealed class SearchIndexChanges
                 case ArticleDecision link: changes.Decisions.Add(link.DecisionId); break;
                 case PersonalNote note: changes.PersonalNotes.Add(note.Id); break;
                 case Highlight highlight: changes.Highlights.Add(highlight.Id); break;
+                case Attachment attachment: changes.Attachments.Add(attachment.Id); break;
+                case AttachmentSegment segment: changes.Attachments.Add(segment.AttachmentId); break;
             }
         }
         return changes;
@@ -71,6 +75,7 @@ public static class SearchIndexer
         var decisionIds = new HashSet<Guid>(changes.Decisions);
         var noteIds = new HashSet<Guid>(changes.PersonalNotes);
         var highlightIds = new HashSet<Guid>(changes.Highlights);
+        var attachmentIds = new HashSet<Guid>(changes.Attachments);
 
         var docs = new List<SearchDoc>();
         foreach (var lawId in lawIds)
@@ -83,6 +88,8 @@ public static class SearchIndexer
             decisionIds.UnionWith(await db.ArticleDecisions.Where(l => articleIds.Contains(l.ArticleId)).Select(l => l.DecisionId).ToListAsync(ct));
             noteIds.UnionWith(await db.PersonalNotes.Where(n => articleIds.Contains(n.ArticleId)).Select(n => n.Id).ToListAsync(ct));
             highlightIds.UnionWith(await db.Highlights.Where(h => articleIds.Contains(h.ArticleId)).Select(h => h.Id).ToListAsync(ct));
+            attachmentIds.UnionWith(await db.Attachments
+                .Where(a => a.ArticleId != null && articleIds.Contains(a.ArticleId.Value)).Select(a => a.Id).ToListAsync(ct));
         }
 
         if (decisionIds.Count > 0)
@@ -97,6 +104,11 @@ public static class SearchIndexer
                     || (d.Kind == SearchKind.Highlight && highlightIds.Contains(d.SourceId)))
                 .ExecuteDeleteAsync(ct);
             docs.AddRange(await BuildPersonalAsync(db, noteIds, highlightIds, ct));
+        }
+        if (attachmentIds.Count > 0)
+        {
+            await db.SearchDocs.Where(d => d.ParentId != null && attachmentIds.Contains(d.ParentId.Value)).ExecuteDeleteAsync(ct);
+            docs.AddRange(await BuildAttachmentsAsync(db, attachmentIds, ct));
         }
 
         if (docs.Count == 0)
@@ -116,6 +128,7 @@ public static class SearchIndexer
         changes.Decisions.UnionWith(await db.CourtDecisions.Select(d => d.Id).ToListAsync(ct));
         changes.PersonalNotes.UnionWith(await db.PersonalNotes.Select(n => n.Id).ToListAsync(ct));
         changes.Highlights.UnionWith(await db.Highlights.Select(h => h.Id).ToListAsync(ct));
+        changes.Attachments.UnionWith(await db.Attachments.Select(a => a.Id).ToListAsync(ct));
         await ApplyAsync(db, changes, ct);
         return await db.SearchDocs.CountAsync(ct);
     }
@@ -279,6 +292,51 @@ public static class SearchIndexer
             .. notes.Select(n => Doc(SearchKind.Note, n.Id, n.OwnerId, n.ArticleId, n.Text)).OfType<SearchDoc>(),
             .. highlights.Select(h => Doc(SearchKind.Highlight, h.Id, h.OwnerId, h.ArticleId,
                 string.Join(" … ", h.Segments.Select(s => s.Quote)))).OfType<SearchDoc>(),
+        ];
+    }
+
+    /// <summary>PDF'in sayfaları ve sesli notun bölümleri; yalnız işlenmiş (Ready) ekler.</summary>
+    private static async Task<List<SearchDoc>> BuildAttachmentsAsync(AppDbContext db, HashSet<Guid> ids, CancellationToken ct)
+    {
+        var attachments = await db.Attachments.AsNoTracking()
+            .Where(a => ids.Contains(a.Id) && a.Status == AttachmentStatus.Ready)
+            .ToDictionaryAsync(a => a.Id, ct);
+        if (attachments.Count == 0)
+            return [];
+        var readyIds = attachments.Keys.ToList();
+        var segments = await db.AttachmentSegments.AsNoTracking().Where(s => readyIds.Contains(s.AttachmentId)).ToListAsync(ct);
+        var articleIds = attachments.Values.Where(a => a.ArticleId != null).Select(a => a.ArticleId!.Value).Distinct().ToList();
+        var articles = await db.Articles.AsNoTracking().Where(a => articleIds.Contains(a.Id)).ToDictionaryAsync(a => a.Id, ct);
+        var lawIds = articles.Values.Select(a => a.LawId).Distinct().ToList();
+        var laws = await db.Laws.AsNoTracking().Where(l => lawIds.Contains(l.Id)).ToDictionaryAsync(l => l.Id, ct);
+
+        return
+        [
+            .. segments.Select(segment =>
+            {
+                var attachment = attachments[segment.AttachmentId];
+                var article = attachment.ArticleId is { } articleId ? articles.GetValueOrDefault(articleId) : null;
+                var law = article is null ? null : laws.GetValueOrDefault(article.LawId);
+                var pdf = attachment.Kind == AttachmentKind.Pdf;
+                return new SearchDoc
+                {
+                    Kind = pdf ? SearchKind.Document : SearchKind.VoiceNote,
+                    SourceId = segment.Id,
+                    ParentId = attachment.Id,
+                    OwnerId = attachment.OwnerId,
+                    Visibility = Visibility.Private,
+                    LawIds = law is null ? [] : [law.Id],
+                    Title = attachment.Title,
+                    Context = pdf
+                        ? $"Sayfa {segment.Page}"
+                        : law is not null && article is not null ? $"{LawLabel(law)} Madde {article.Number}" : "Sesli not",
+                    Body = segment.Text,
+                    Url = pdf
+                        ? $"/belgelerim/{attachment.Id}?sayfa={segment.Page}"
+                        : law is not null && article is not null ? ArticleUrl(law, article) : $"/belgelerim/{attachment.Id}",
+                    Date = DateOnly.FromDateTime(attachment.CreatedAt.UtcDateTime),
+                };
+            }),
         ];
     }
 

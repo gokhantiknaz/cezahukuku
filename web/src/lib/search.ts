@@ -10,6 +10,8 @@ export const searchKindLabels: Record<SearchKind, string> = {
   normDenetimi: "Norm denetimi",
   note: "Notum",
   highlight: "Vurgum",
+  document: "Belgem",
+  voiceNote: "Sesli notum",
 };
 
 /** Filtre düğmelerinin sırası. */
@@ -23,6 +25,8 @@ export const searchKindOrder: SearchKind[] = [
   "normDenetimi",
   "note",
   "highlight",
+  "document",
+  "voiceNote",
 ];
 
 export const isSearchKind = (value: string | undefined): value is SearchKind =>

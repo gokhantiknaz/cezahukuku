@@ -20,6 +20,12 @@ public enum SearchKind
 
     /// <summary>Kullanıcının kendi vurgusu (yalnız sahibinin aramasında).</summary>
     Highlight,
+
+    /// <summary>Kullanıcının yüklediği PDF'in bir sayfası (yalnız sahibinin aramasında).</summary>
+    Document,
+
+    /// <summary>Kullanıcının sesli notunun yazıya dökülmüş bir bölümü (yalnız sahibinin aramasında).</summary>
+    VoiceNote,
 }
 
 /// <summary>
@@ -36,6 +42,9 @@ public sealed class SearchDoc
 
     /// <summary>Kaynak kaydın kimliği (madde, not, karar, vurgu).</summary>
     public Guid SourceId { get; set; }
+
+    /// <summary>Kaynağın üst kaydı: PDF sayfası ve ses bölümünde ekin kimliği (ek silinince satırları birlikte silinir).</summary>
+    public Guid? ParentId { get; set; }
 
     public Guid? OwnerId { get; set; }
     public Visibility Visibility { get; set; }

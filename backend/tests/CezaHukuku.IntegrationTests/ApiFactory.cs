@@ -32,6 +32,8 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
 
     private readonly string connectionString = ResolveConnectionString();
 
+    public static readonly string StorageRoot = Path.Combine(Path.GetTempPath(), "cezahukuku-tests", Guid.NewGuid().ToString("N"));
+
     public ApiFactory()
     {
         // Program yapılandırmayı WebApplicationFactory geçersiz kılmalarından önce okuduğundan ayarlar ortam
@@ -40,6 +42,9 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         Environment.SetEnvironmentVariable("Seed__AdminEmail", AdminEmail);
         Environment.SetEnvironmentVariable("Seed__AdminPassword", AdminPassword);
         Environment.SetEnvironmentVariable("Seed__DemoLibrary", "false");
+        // Yüklenen dosyalar her test oturumunda geçici klasöre.
+        Environment.SetEnvironmentVariable("Storage__Root", StorageRoot);
+        Environment.SetEnvironmentVariable("Transcription__BaseUrl", "");
     }
 
     // Geliştirme ortamında Program migration'ları uygular ve ilk yöneticiyi açar.

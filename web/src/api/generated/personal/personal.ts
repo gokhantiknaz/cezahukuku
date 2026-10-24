@@ -24,14 +24,20 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  AttachmentDetail,
+  AttachmentDto,
   CreateHighlightRequest,
   CreatePersonalNoteRequest,
+  GetAttachmentFileParams,
   HighlightDto,
   HttpValidationProblemDetails,
+  ListAttachmentsParams,
   ListHighlightsParams,
   PersonalNoteDto,
+  UpdateAttachmentRequest,
   UpdateHighlightRequest,
-  UpdatePersonalNoteRequest
+  UpdatePersonalNoteRequest,
+  UploadAttachmentBody
 } from '.././model';
 
 import { apiFetch } from '../../fetcher';
@@ -794,6 +800,707 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       > => {
 
       const mutationOptions = getDeletePersonalNoteMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    export type uploadAttachmentResponse201 = {
+  data: AttachmentDto
+  status: 201
+}
+
+export type uploadAttachmentResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type uploadAttachmentResponse404 = {
+  data: void
+  status: 404
+}
+    
+export type uploadAttachmentResponseSuccess = (uploadAttachmentResponse201) & {
+  headers: Headers;
+};
+export type uploadAttachmentResponseError = (uploadAttachmentResponse400 | uploadAttachmentResponse404) & {
+  headers: Headers;
+};
+
+export type uploadAttachmentResponse = (uploadAttachmentResponseSuccess | uploadAttachmentResponseError)
+
+export const getUploadAttachmentUrl = () => {
+
+
+  
+
+  return `/api/me/attachments`
+}
+
+export const uploadAttachment = async (uploadAttachmentBody: UploadAttachmentBody, options?: RequestInit): Promise<uploadAttachmentResponse> => {
+    const formData = new FormData();
+if(uploadAttachmentBody.file !== undefined) {
+ formData.append(`file`, uploadAttachmentBody.file)
+ }
+
+if(uploadAttachmentBody.title !== undefined) {
+ formData.append(`title`, uploadAttachmentBody.title)
+ }
+
+if(uploadAttachmentBody.articleId !== undefined) {
+ formData.append(`articleId`, uploadAttachmentBody.articleId)
+ }
+
+  return apiFetch<uploadAttachmentResponse>(getUploadAttachmentUrl(),
+  {      
+    ...options,
+    method: 'POST'
+    ,
+    body: 
+      formData,
+  }
+);}
+
+
+
+
+export const getUploadAttachmentMutationOptions = <TError = HttpValidationProblemDetails | void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof uploadAttachment>>, TError,{data: UploadAttachmentBody}, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof uploadAttachment>>, TError,{data: UploadAttachmentBody}, TContext> => {
+
+const mutationKey = ['uploadAttachment'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof uploadAttachment>>, {data: UploadAttachmentBody}> = (props) => {
+          const {data} = props ?? {};
+
+          return  uploadAttachment(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UploadAttachmentMutationResult = NonNullable<Awaited<ReturnType<typeof uploadAttachment>>>
+    export type UploadAttachmentMutationBody = UploadAttachmentBody
+    export type UploadAttachmentMutationError = HttpValidationProblemDetails | void
+
+    export const useUploadAttachment = <TError = HttpValidationProblemDetails | void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof uploadAttachment>>, TError,{data: UploadAttachmentBody}, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof uploadAttachment>>,
+        TError,
+        {data: UploadAttachmentBody},
+        TContext
+      > => {
+
+      const mutationOptions = getUploadAttachmentMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    export type listAttachmentsResponse200 = {
+  data: AttachmentDto[]
+  status: 200
+}
+    
+export type listAttachmentsResponseSuccess = (listAttachmentsResponse200) & {
+  headers: Headers;
+};
+;
+
+export type listAttachmentsResponse = (listAttachmentsResponseSuccess)
+
+export const getListAttachmentsUrl = (params?: ListAttachmentsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/me/attachments?${stringifiedParams}` : `/api/me/attachments`
+}
+
+export const listAttachments = async (params?: ListAttachmentsParams, options?: RequestInit): Promise<listAttachmentsResponse> => {
+  
+  return apiFetch<listAttachmentsResponse>(getListAttachmentsUrl(params),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getListAttachmentsQueryKey = (params?: ListAttachmentsParams,) => {
+    return [
+    `/api/me/attachments`, ...(params ? [params]: [])
+    ] as const;
+    }
+
+    
+export const getListAttachmentsQueryOptions = <TData = Awaited<ReturnType<typeof listAttachments>>, TError = unknown>(params?: ListAttachmentsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listAttachments>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListAttachmentsQueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listAttachments>>> = ({ signal }) => listAttachments(params, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listAttachments>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ListAttachmentsQueryResult = NonNullable<Awaited<ReturnType<typeof listAttachments>>>
+export type ListAttachmentsQueryError = unknown
+
+
+export function useListAttachments<TData = Awaited<ReturnType<typeof listAttachments>>, TError = unknown>(
+ params: undefined |  ListAttachmentsParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listAttachments>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listAttachments>>,
+          TError,
+          Awaited<ReturnType<typeof listAttachments>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListAttachments<TData = Awaited<ReturnType<typeof listAttachments>>, TError = unknown>(
+ params?: ListAttachmentsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listAttachments>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listAttachments>>,
+          TError,
+          Awaited<ReturnType<typeof listAttachments>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListAttachments<TData = Awaited<ReturnType<typeof listAttachments>>, TError = unknown>(
+ params?: ListAttachmentsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listAttachments>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useListAttachments<TData = Awaited<ReturnType<typeof listAttachments>>, TError = unknown>(
+ params?: ListAttachmentsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listAttachments>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getListAttachmentsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export type getAttachmentResponse200 = {
+  data: AttachmentDetail
+  status: 200
+}
+
+export type getAttachmentResponse404 = {
+  data: void
+  status: 404
+}
+    
+export type getAttachmentResponseSuccess = (getAttachmentResponse200) & {
+  headers: Headers;
+};
+export type getAttachmentResponseError = (getAttachmentResponse404) & {
+  headers: Headers;
+};
+
+export type getAttachmentResponse = (getAttachmentResponseSuccess | getAttachmentResponseError)
+
+export const getGetAttachmentUrl = (id: string,) => {
+
+
+  
+
+  return `/api/me/attachments/${id}`
+}
+
+export const getAttachment = async (id: string, options?: RequestInit): Promise<getAttachmentResponse> => {
+  
+  return apiFetch<getAttachmentResponse>(getGetAttachmentUrl(id),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getGetAttachmentQueryKey = (id?: string,) => {
+    return [
+    `/api/me/attachments/${id}`
+    ] as const;
+    }
+
+    
+export const getGetAttachmentQueryOptions = <TData = Awaited<ReturnType<typeof getAttachment>>, TError = void>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAttachment>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAttachmentQueryKey(id);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAttachment>>> = ({ signal }) => getAttachment(id, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAttachment>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetAttachmentQueryResult = NonNullable<Awaited<ReturnType<typeof getAttachment>>>
+export type GetAttachmentQueryError = void
+
+
+export function useGetAttachment<TData = Awaited<ReturnType<typeof getAttachment>>, TError = void>(
+ id: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAttachment>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getAttachment>>,
+          TError,
+          Awaited<ReturnType<typeof getAttachment>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetAttachment<TData = Awaited<ReturnType<typeof getAttachment>>, TError = void>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAttachment>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getAttachment>>,
+          TError,
+          Awaited<ReturnType<typeof getAttachment>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetAttachment<TData = Awaited<ReturnType<typeof getAttachment>>, TError = void>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAttachment>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useGetAttachment<TData = Awaited<ReturnType<typeof getAttachment>>, TError = void>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAttachment>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetAttachmentQueryOptions(id,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export type updateAttachmentResponse200 = {
+  data: AttachmentDto
+  status: 200
+}
+
+export type updateAttachmentResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type updateAttachmentResponse404 = {
+  data: void
+  status: 404
+}
+    
+export type updateAttachmentResponseSuccess = (updateAttachmentResponse200) & {
+  headers: Headers;
+};
+export type updateAttachmentResponseError = (updateAttachmentResponse400 | updateAttachmentResponse404) & {
+  headers: Headers;
+};
+
+export type updateAttachmentResponse = (updateAttachmentResponseSuccess | updateAttachmentResponseError)
+
+export const getUpdateAttachmentUrl = (id: string,) => {
+
+
+  
+
+  return `/api/me/attachments/${id}`
+}
+
+export const updateAttachment = async (id: string,
+    updateAttachmentRequest: UpdateAttachmentRequest, options?: RequestInit): Promise<updateAttachmentResponse> => {
+  
+  return apiFetch<updateAttachmentResponse>(getUpdateAttachmentUrl(id),
+  {      
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      updateAttachmentRequest,)
+  }
+);}
+
+
+
+
+export const getUpdateAttachmentMutationOptions = <TError = HttpValidationProblemDetails | void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAttachment>>, TError,{id: string;data: UpdateAttachmentRequest}, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateAttachment>>, TError,{id: string;data: UpdateAttachmentRequest}, TContext> => {
+
+const mutationKey = ['updateAttachment'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateAttachment>>, {id: string;data: UpdateAttachmentRequest}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateAttachment(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateAttachmentMutationResult = NonNullable<Awaited<ReturnType<typeof updateAttachment>>>
+    export type UpdateAttachmentMutationBody = UpdateAttachmentRequest
+    export type UpdateAttachmentMutationError = HttpValidationProblemDetails | void
+
+    export const useUpdateAttachment = <TError = HttpValidationProblemDetails | void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAttachment>>, TError,{id: string;data: UpdateAttachmentRequest}, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof updateAttachment>>,
+        TError,
+        {id: string;data: UpdateAttachmentRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getUpdateAttachmentMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    export type deleteAttachmentResponse204 = {
+  data: void
+  status: 204
+}
+
+export type deleteAttachmentResponse404 = {
+  data: void
+  status: 404
+}
+    
+export type deleteAttachmentResponseSuccess = (deleteAttachmentResponse204) & {
+  headers: Headers;
+};
+export type deleteAttachmentResponseError = (deleteAttachmentResponse404) & {
+  headers: Headers;
+};
+
+export type deleteAttachmentResponse = (deleteAttachmentResponseSuccess | deleteAttachmentResponseError)
+
+export const getDeleteAttachmentUrl = (id: string,) => {
+
+
+  
+
+  return `/api/me/attachments/${id}`
+}
+
+export const deleteAttachment = async (id: string, options?: RequestInit): Promise<deleteAttachmentResponse> => {
+  
+  return apiFetch<deleteAttachmentResponse>(getDeleteAttachmentUrl(id),
+  {      
+    ...options,
+    method: 'DELETE'
+    
+    
+  }
+);}
+
+
+
+
+export const getDeleteAttachmentMutationOptions = <TError = void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteAttachment>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteAttachment>>, TError,{id: string}, TContext> => {
+
+const mutationKey = ['deleteAttachment'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteAttachment>>, {id: string}> = (props) => {
+          const {id} = props ?? {};
+
+          return  deleteAttachment(id,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteAttachmentMutationResult = NonNullable<Awaited<ReturnType<typeof deleteAttachment>>>
+    
+    export type DeleteAttachmentMutationError = void
+
+    export const useDeleteAttachment = <TError = void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteAttachment>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof deleteAttachment>>,
+        TError,
+        {id: string},
+        TContext
+      > => {
+
+      const mutationOptions = getDeleteAttachmentMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    export type getAttachmentFileResponse404 = {
+  data: void
+  status: 404
+}
+    
+;
+export type getAttachmentFileResponseError = (getAttachmentFileResponse404) & {
+  headers: Headers;
+};
+
+export type getAttachmentFileResponse = (getAttachmentFileResponseError)
+
+export const getGetAttachmentFileUrl = (id: string,
+    params?: GetAttachmentFileParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/me/attachments/${id}/file?${stringifiedParams}` : `/api/me/attachments/${id}/file`
+}
+
+export const getAttachmentFile = async (id: string,
+    params?: GetAttachmentFileParams, options?: RequestInit): Promise<getAttachmentFileResponse> => {
+  
+  return apiFetch<getAttachmentFileResponse>(getGetAttachmentFileUrl(id,params),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getGetAttachmentFileQueryKey = (id?: string,
+    params?: GetAttachmentFileParams,) => {
+    return [
+    `/api/me/attachments/${id}/file`, ...(params ? [params]: [])
+    ] as const;
+    }
+
+    
+export const getGetAttachmentFileQueryOptions = <TData = Awaited<ReturnType<typeof getAttachmentFile>>, TError = void>(id: string,
+    params?: GetAttachmentFileParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAttachmentFile>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAttachmentFileQueryKey(id,params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAttachmentFile>>> = ({ signal }) => getAttachmentFile(id,params, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAttachmentFile>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetAttachmentFileQueryResult = NonNullable<Awaited<ReturnType<typeof getAttachmentFile>>>
+export type GetAttachmentFileQueryError = void
+
+
+export function useGetAttachmentFile<TData = Awaited<ReturnType<typeof getAttachmentFile>>, TError = void>(
+ id: string,
+    params: undefined |  GetAttachmentFileParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAttachmentFile>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getAttachmentFile>>,
+          TError,
+          Awaited<ReturnType<typeof getAttachmentFile>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetAttachmentFile<TData = Awaited<ReturnType<typeof getAttachmentFile>>, TError = void>(
+ id: string,
+    params?: GetAttachmentFileParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAttachmentFile>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getAttachmentFile>>,
+          TError,
+          Awaited<ReturnType<typeof getAttachmentFile>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetAttachmentFile<TData = Awaited<ReturnType<typeof getAttachmentFile>>, TError = void>(
+ id: string,
+    params?: GetAttachmentFileParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAttachmentFile>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useGetAttachmentFile<TData = Awaited<ReturnType<typeof getAttachmentFile>>, TError = void>(
+ id: string,
+    params?: GetAttachmentFileParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAttachmentFile>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetAttachmentFileQueryOptions(id,params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export type reprocessAttachmentResponse200 = {
+  data: AttachmentDto
+  status: 200
+}
+
+export type reprocessAttachmentResponse404 = {
+  data: void
+  status: 404
+}
+    
+export type reprocessAttachmentResponseSuccess = (reprocessAttachmentResponse200) & {
+  headers: Headers;
+};
+export type reprocessAttachmentResponseError = (reprocessAttachmentResponse404) & {
+  headers: Headers;
+};
+
+export type reprocessAttachmentResponse = (reprocessAttachmentResponseSuccess | reprocessAttachmentResponseError)
+
+export const getReprocessAttachmentUrl = (id: string,) => {
+
+
+  
+
+  return `/api/me/attachments/${id}/reprocess`
+}
+
+export const reprocessAttachment = async (id: string, options?: RequestInit): Promise<reprocessAttachmentResponse> => {
+  
+  return apiFetch<reprocessAttachmentResponse>(getReprocessAttachmentUrl(id),
+  {      
+    ...options,
+    method: 'POST'
+    
+    
+  }
+);}
+
+
+
+
+export const getReprocessAttachmentMutationOptions = <TError = void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reprocessAttachment>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof reprocessAttachment>>, TError,{id: string}, TContext> => {
+
+const mutationKey = ['reprocessAttachment'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof reprocessAttachment>>, {id: string}> = (props) => {
+          const {id} = props ?? {};
+
+          return  reprocessAttachment(id,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ReprocessAttachmentMutationResult = NonNullable<Awaited<ReturnType<typeof reprocessAttachment>>>
+    
+    export type ReprocessAttachmentMutationError = void
+
+    export const useReprocessAttachment = <TError = void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reprocessAttachment>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof reprocessAttachment>>,
+        TError,
+        {id: string},
+        TContext
+      > => {
+
+      const mutationOptions = getReprocessAttachmentMutationOptions(options);
 
       return useMutation(mutationOptions, queryClient);
     }

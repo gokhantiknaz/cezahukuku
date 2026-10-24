@@ -27,6 +27,7 @@ internal sealed class SearchDocConfiguration : IEntityTypeConfiguration<SearchDo
 
         b.HasIndex(e => new { e.Kind, e.SourceId }).IsUnique();
         b.HasIndex(e => e.OwnerId);
+        b.HasIndex(e => e.ParentId);
         b.HasIndex(e => e.Search).HasMethod("gin");
         b.HasIndex(e => e.LawIds).HasMethod("gin");
         b.HasIndex(e => e.NodeIds).HasMethod("gin");

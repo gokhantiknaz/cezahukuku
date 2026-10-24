@@ -485,3 +485,6 @@ $RECYCLE.BIN/
 
 # Vim temporary swap files
 *.swp
+
+# Yüklenen dosyalar (yerel depo)
+App_Data/

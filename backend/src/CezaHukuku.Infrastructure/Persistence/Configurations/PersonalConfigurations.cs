@@ -46,6 +46,34 @@ internal sealed class PersonalNoteConfiguration : IEntityTypeConfiguration<Perso
     }
 }
 
+internal sealed class AttachmentConfiguration : IEntityTypeConfiguration<Attachment>
+{
+    public void Configure(EntityTypeBuilder<Attachment> b)
+    {
+        b.HasQueryFilter(e => e.DeletedAt == null);
+        b.Property(e => e.Kind).HasConversion<string>().HasMaxLength(16);
+        b.Property(e => e.Status).HasConversion<string>().HasMaxLength(16);
+        b.Property(e => e.Title).HasMaxLength(Attachment.MaxTitleLength);
+        b.Property(e => e.FileName).HasMaxLength(300);
+        b.Property(e => e.ContentType).HasMaxLength(100);
+        b.Property(e => e.StorageKey).HasMaxLength(300);
+        b.Property(e => e.Error).HasMaxLength(500);
+        b.HasOne<ApplicationUser>().WithMany().HasForeignKey(e => e.OwnerId).OnDelete(DeleteBehavior.Cascade);
+        b.HasOne<Article>().WithMany().HasForeignKey(e => e.ArticleId).OnDelete(DeleteBehavior.Restrict);
+        b.HasIndex(e => new { e.OwnerId, e.ArticleId });
+        b.HasIndex(e => e.Status);
+    }
+}
+
+internal sealed class AttachmentSegmentConfiguration : IEntityTypeConfiguration<AttachmentSegment>
+{
+    public void Configure(EntityTypeBuilder<AttachmentSegment> b)
+    {
+        b.HasOne<Attachment>().WithMany().HasForeignKey(e => e.AttachmentId).OnDelete(DeleteBehavior.Cascade);
+        b.HasIndex(e => new { e.AttachmentId, e.Index });
+    }
+}
+
 internal static class AnchorJson
 {
     private static readonly JsonSerializerOptions Options = new(JsonSerializerDefaults.Web);

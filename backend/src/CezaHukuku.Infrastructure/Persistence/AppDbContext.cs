@@ -24,6 +24,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<ArticleDecision> ArticleDecisions => Set<ArticleDecision>();
     public DbSet<Highlight> Highlights => Set<Highlight>();
     public DbSet<PersonalNote> PersonalNotes => Set<PersonalNote>();
+    public DbSet<Attachment> Attachments => Set<Attachment>();
+    public DbSet<AttachmentSegment> AttachmentSegments => Set<AttachmentSegment>();
     public DbSet<SearchDoc> SearchDocs => Set<SearchDoc>();
 
     /// <summary>

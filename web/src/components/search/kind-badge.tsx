@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 
 /** Sonuç türü etiketi; kişisel kayıtlar (notum, vurgum) ayrı görünür. */
 export function KindBadge({ kind, className }: { kind: SearchKind; className?: string }) {
-  const personal = kind === "note" || kind === "highlight";
+  const personal = kind === "note" || kind === "highlight" || kind === "document" || kind === "voiceNote";
   return (
     <Badge
       variant={personal ? "outline" : "secondary"}

@@ -19,4 +19,6 @@ export const SearchKind = {
   normDenetimi: 'normDenetimi',
   note: 'note',
   highlight: 'highlight',
+  document: 'document',
+  voiceNote: 'voiceNote',
 } as const;

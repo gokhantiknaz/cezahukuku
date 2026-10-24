@@ -2,8 +2,9 @@
 
 import { useState, type ReactNode } from "react";
 import Link from "next/link";
-import { CircleAlert, Highlighter, LogIn, Mic, NotebookPen, Pencil, Plus, Trash2 } from "lucide-react";
+import { CircleAlert, Highlighter, LogIn, NotebookPen, Pencil, Plus, Trash2 } from "lucide-react";
 import type { HighlightDto, PersonalNoteDto } from "@/api/generated/model";
+import { VoiceNotes } from "@/components/attachments/voice-notes";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -57,9 +58,6 @@ export function NotesPanel() {
       <ScrollArea className="min-h-0 flex-1">
         <div className="space-y-5 p-4">
           {body}
-          <Button variant="outline" className="w-full" disabled title="Yakında">
-            <Mic /> Sesli not al
-          </Button>
         </div>
       </ScrollArea>
     </div>
@@ -83,8 +81,8 @@ function Intro({ children }: { children?: ReactNode }) {
         </ul>
       </section>
       <p className="text-sm text-muted-foreground">
-        Madde metninde bir yeri seçip vurgulayabilir, seçili yere not bağlayabilirsiniz. Vurgu ve notlarınızı
-        yalnızca siz görürsünüz.
+        Madde metninde bir yeri seçip vurgulayabilir, seçili yere not bağlayabilir, maddeye sesli not
+        alabilirsiniz. Vurgu ve notlarınızı yalnızca siz görürsünüz.
       </p>
       {children}
     </>
@@ -184,6 +182,8 @@ function ArticleNotes({ article }: { article: CurrentArticle }) {
           ))}
         </ul>
       </section>
+
+      <VoiceNotes articleId={article.articleId} />
     </>
   );
 }

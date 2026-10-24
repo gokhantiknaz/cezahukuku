@@ -14,7 +14,7 @@ public static class AdminLawEndpoints
 {
     // Kanun adresleri kökte (/tck/madde-81) olduğundan web uygulamasının kendi sayfalarıyla çakışan adlar alınamaz.
     private static readonly HashSet<string> ReservedLawSlugs =
-        ["api", "ara", "giris", "cikis", "panel", "hesap", "kanunlar", "hakkinda", "favoriler", "notlarim"];
+        ["api", "ara", "giris", "cikis", "panel", "hesap", "kanunlar", "hakkinda", "favoriler", "notlarim", "belgelerim"];
 
     public static RouteGroupBuilder MapAdminLawEndpoints(this IEndpointRouteBuilder app)
     {

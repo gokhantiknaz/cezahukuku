@@ -666,6 +666,146 @@ namespace CezaHukuku.Infrastructure.Persistence.Migrations
                     b.ToTable("law_nodes", (string)null);
                 });
 
+            modelBuilder.Entity("CezaHukuku.Domain.Personal.Attachment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid?>("ArticleId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("article_id");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("content_type");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<double?>("DurationSeconds")
+                        .HasColumnType("double precision")
+                        .HasColumnName("duration_seconds");
+
+                    b.Property<string>("Error")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("error");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)")
+                        .HasColumnName("file_name");
+
+                    b.Property<bool>("HasTranscript")
+                        .HasColumnType("boolean")
+                        .HasColumnName("has_transcript");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("kind");
+
+                    b.Property<Guid>("OwnerId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("owner_id");
+
+                    b.Property<int?>("PageCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("page_count");
+
+                    b.Property<int?>("ScannedPageCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("scanned_page_count");
+
+                    b.Property<long>("SizeBytes")
+                        .HasColumnType("bigint")
+                        .HasColumnName("size_bytes");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("status");
+
+                    b.Property<string>("StorageKey")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)")
+                        .HasColumnName("storage_key");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)")
+                        .HasColumnName("title");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_attachments");
+
+                    b.HasIndex("ArticleId")
+                        .HasDatabaseName("ix_attachments_article_id");
+
+                    b.HasIndex("Status")
+                        .HasDatabaseName("ix_attachments_status");
+
+                    b.HasIndex("OwnerId", "ArticleId")
+                        .HasDatabaseName("ix_attachments_owner_id_article_id");
+
+                    b.ToTable("attachments", (string)null);
+                });
+
+            modelBuilder.Entity("CezaHukuku.Domain.Personal.AttachmentSegment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("AttachmentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("attachment_id");
+
+                    b.Property<int>("Index")
+                        .HasColumnType("integer")
+                        .HasColumnName("index");
+
+                    b.Property<int?>("Page")
+                        .HasColumnType("integer")
+                        .HasColumnName("page");
+
+                    b.Property<double?>("StartSeconds")
+                        .HasColumnType("double precision")
+                        .HasColumnName("start_seconds");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("text");
+
+                    b.HasKey("Id")
+                        .HasName("pk_attachment_segments");
+
+                    b.HasIndex("AttachmentId", "Index")
+                        .HasDatabaseName("ix_attachment_segments_attachment_id_index");
+
+                    b.ToTable("attachment_segments", (string)null);
+                });
+
             modelBuilder.Entity("CezaHukuku.Domain.Personal.Highlight", b =>
                 {
                     b.Property<Guid>("Id")
@@ -923,11 +1063,15 @@ namespace CezaHukuku.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("owner_id");
 
+                    b.Property<Guid?>("ParentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("parent_id");
+
                     b.Property<NpgsqlTsVector>("Search")
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("tsvector")
                         .HasColumnName("search")
-                        .HasComputedColumnSql("setweight(to_tsvector('turkish'::regconfig, title_norm), 'A')\n|| setweight(to_tsvector('turkish'::regconfig, body_norm), 'B')\n|| setweight(to_tsvector('simple'::regconfig, title_fold), 'A')\n|| setweight(to_tsvector('simple'::regconfig, body_fold), 'B')", true);
+                        .HasComputedColumnSql("setweight(to_tsvector('turkish'::regconfig, title_norm), 'A')\r\n|| setweight(to_tsvector('turkish'::regconfig, body_norm), 'B')\r\n|| setweight(to_tsvector('simple'::regconfig, title_fold), 'A')\r\n|| setweight(to_tsvector('simple'::regconfig, body_fold), 'B')", true);
 
                     b.Property<Guid>("SourceId")
                         .HasColumnType("uuid")
@@ -976,6 +1120,9 @@ namespace CezaHukuku.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("OwnerId")
                         .HasDatabaseName("ix_search_docs_owner_id");
+
+                    b.HasIndex("ParentId")
+                        .HasDatabaseName("ix_search_docs_parent_id");
 
                     b.HasIndex("Search")
                         .HasDatabaseName("ix_search_docs_search");
@@ -1267,6 +1414,32 @@ namespace CezaHukuku.Infrastructure.Persistence.Migrations
                         .HasForeignKey("ParentId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .HasConstraintName("fk_law_nodes_law_nodes_parent_id");
+                });
+
+            modelBuilder.Entity("CezaHukuku.Domain.Personal.Attachment", b =>
+                {
+                    b.HasOne("CezaHukuku.Domain.Laws.Article", null)
+                        .WithMany()
+                        .HasForeignKey("ArticleId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_attachments_articles_article_id");
+
+                    b.HasOne("CezaHukuku.Infrastructure.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("OwnerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_attachments_users_owner_id");
+                });
+
+            modelBuilder.Entity("CezaHukuku.Domain.Personal.AttachmentSegment", b =>
+                {
+                    b.HasOne("CezaHukuku.Domain.Personal.Attachment", null)
+                        .WithMany()
+                        .HasForeignKey("AttachmentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_attachment_segments_attachments_attachment_id");
                 });
 
             modelBuilder.Entity("CezaHukuku.Domain.Personal.Highlight", b =>

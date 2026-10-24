@@ -29,6 +29,8 @@ public static class SearchEndpoints
     private const int MaxQueryLength = 200;
     private const int MaxLimit = 50;
 
+    private static readonly SearchKind[] PersonalKinds = [SearchKind.Note, SearchKind.Highlight, SearchKind.Document, SearchKind.VoiceNote];
+
     public static void MapSearchEndpoints(this IEndpointRouteBuilder app)
     {
         app.MapGet("/api/search", SearchAsync).WithTags("Search").WithName("Search").AllowAnonymous();
@@ -41,10 +43,11 @@ public static class SearchEndpoints
     /// vurgularını da bulur.
     /// </summary>
     /// <param name="q">Sorgu: sözcükler, "tam ifade", VE / VEYA / -hariç, parantez; "tck 81" doğrudan maddeye gider.</param>
-    /// <param name="kinds">Yalnız bu türler: article, gerekce, aciklama, dersNotu, genelGerekce, ictihat, normDenetimi, note, highlight.</param>
+    /// <param name="kinds">Yalnız bu türler: article, gerekce, aciklama, dersNotu, genelGerekce, ictihat, normDenetimi, note,
+    /// highlight, document, voiceNote.</param>
     /// <param name="laws">Yalnız bu kanunlar (adres adı: "tck").</param>
     /// <param name="node">Yalnız bu kitap/kısım/bölümün altı.</param>
-    /// <param name="mine">Yalnız kendi not ve vurgularım.</param>
+    /// <param name="mine">Yalnız kendi not, vurgu, belge ve sesli notlarım.</param>
     private static async Task<Ok<SearchResponse>> SearchAsync(
         string? q, string[]? kinds, string[]? laws, Guid? node, bool? mine, int? offset, int? limit,
         ClaimsPrincipal principal, AppDbContext db, CancellationToken ct)
@@ -65,7 +68,7 @@ public static class SearchEndpoints
             .ToHashSet();
         if (mine == true)
         {
-            kindFilter = kindFilter.Count == 0 ? [SearchKind.Note, SearchKind.Highlight] : [.. kindFilter.Where(k => k is SearchKind.Note or SearchKind.Highlight)];
+            kindFilter = kindFilter.Count == 0 ? [.. PersonalKinds] : [.. kindFilter.Where(PersonalKinds.Contains)];
             if (kindFilter.Count == 0)
                 return TypedResults.Ok(new SearchResponse(text, jump, 0, [], []));
         }
