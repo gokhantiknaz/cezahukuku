@@ -12,4 +12,5 @@ export interface ImportLawTextRequest {
   joinWrappedLines: boolean;
   validFrom: ImportLawTextRequestValidFrom;
   applyMetadata: boolean;
+  importFootnotes?: boolean;
 }

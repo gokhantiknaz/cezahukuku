@@ -1,5 +1,10 @@
+using System.Net;
+using System.Text;
+using CezaHukuku.Api.Common;
 using CezaHukuku.Api.Library;
 using CezaHukuku.Domain.Laws;
+using CezaHukuku.Infrastructure.Attachments;
+using CezaHukuku.Infrastructure.Content;
 using CezaHukuku.Infrastructure.Persistence;
 using CezaHukuku.Parsing.Legislation;
 using CezaHukuku.Parsing.Text;
@@ -25,6 +30,41 @@ internal static class AdminImportEndpoints
     {
         group.MapPost("/laws/{lawId:guid}/import/preview", PreviewAsync).WithName("PreviewLawImport");
         group.MapPost("/laws/{lawId:guid}/import", ImportAsync).WithName("ImportLaw");
+        group.MapPost("/import/extract-text", ExtractTextAsync).WithName("ExtractImportText")
+            .DisableAntiforgery()
+            .WithMetadata(new Microsoft.AspNetCore.Mvc.RequestSizeLimitAttribute(MaxImportFileBytes + 1024 * 1024));
+    }
+
+    private const long MaxImportFileBytes = 30 * 1024 * 1024;
+
+    /// <summary>
+    /// Kanun metnini dosyadan alır (Word .docx, PDF, düz metin); metin içe aktarma kutusuna konup aynı önizlemeyle
+    /// içe aktarılır. PDF'te satırlar sayfa genişliğinde kırıldığından kırık satırları birleştirme önerilir.
+    /// </summary>
+    private static async Task<Results<Ok<ExtractedImportText>, ValidationProblem>> ExtractTextAsync(IFormFile file, CancellationToken ct)
+    {
+        if (file.Length == 0 || file.Length > MaxImportFileBytes)
+            return ValidationErrors.Single("file", "Dosya boş ya da çok büyük (en fazla 30 MB).");
+
+        var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
+        await using var buffer = new MemoryStream();
+        await file.CopyToAsync(buffer, ct);
+        buffer.Position = 0;
+        try
+        {
+            return extension switch
+            {
+                ".docx" => TypedResults.Ok(new ExtractedImportText(DocxTextExtractor.Extract(buffer), false)),
+                ".pdf" => TypedResults.Ok(new ExtractedImportText(string.Join('\n', PdfTextExtractor.ExtractPages(buffer)), true)),
+                ".txt" => TypedResults.Ok(new ExtractedImportText(Encoding.UTF8.GetString(buffer.ToArray()), false)),
+                ".doc" => ValidationErrors.Single("file", "Eski Word (.doc) biçimi okunamıyor; belgeyi Word'de .docx olarak kaydedip yükleyin."),
+                _ => ValidationErrors.Single("file", "Yalnız .docx, .pdf ve .txt dosyası yüklenebilir."),
+            };
+        }
+        catch (Exception ex) when (ex is InvalidDataException or System.Xml.XmlException or UglyToad.PdfPig.Core.PdfDocumentFormatException)
+        {
+            return ValidationErrors.Single("file", "Dosya okunamadı; bozuk ya da parola korumalı olabilir.");
+        }
     }
 
     private static async Task<Results<Ok<LawImportPreview>, NotFound>> PreviewAsync(
@@ -99,6 +139,9 @@ internal static class AdminImportEndpoints
             }
         }
 
+        if (request.ImportFootnotes)
+            await PlanFootnoteNotesAsync(law, nodes, articles, apply, db);
+
         var metadata = new LawImportMetadata(parsed.Metadata.Number, parsed.Metadata.AcceptedOn,
             parsed.Metadata.GazetteDate, parsed.Metadata.GazetteNumber);
         var preview = new LawImportPreview(metadata, nodes, articles, counts.Nodes, counts.Articles, counts.Repealed,
@@ -146,7 +189,8 @@ internal static class AdminImportEndpoints
             return new ImportArticlePreview(number, slug, article.Title, article.IsRepealed, article.Order + 1,
                 validFrom, amendedBy,
                 [.. article.Paragraphs.Select(p => new ParagraphDto(Guid.CreateVersion7(), p.Number, p.Text,
-                    [.. p.Items.Select(i => new ParagraphItemDto(Guid.CreateVersion7(), i.Level, i.Label, i.Text))]))]);
+                    [.. p.Items.Select(i => new ParagraphItemDto(Guid.CreateVersion7(), i.Level, i.Label, i.Text))]))],
+                [.. (article.Footnotes ?? []).Select(f => $"[{f.Number}] {f.Text}")]);
         }
 
         ImportNodePreview Node(ParsedNode node)
@@ -236,6 +280,61 @@ internal static class AdminImportEndpoints
 
         AddNodes(nodes, null);
         AddArticles(articles, null);
+    }
+
+    /// <summary>İçe aktarmanın oluşturduğu dipnot notunun başlığı; güncellemede bu başlıklı not yenilenir.</summary>
+    public const string FootnoteNoteTitle = "Mevzuat dipnotları";
+
+    /// <summary>
+    /// Dipnotu olan her maddeye "Mevzuat dipnotları" açıklaması: yoksa eklenir, varsa ve dipnotlar değiştiyse güncellenir.
+    /// Diğer planlanan değişikliklerden sonra çalışır (yeni maddeler o anda izleniyor olur).
+    /// </summary>
+    private static async Task PlanFootnoteNotesAsync(
+        Law law, List<ImportNodePreview> nodes, List<ImportArticlePreview> articles, List<Action> apply, AppDbContext db)
+    {
+        IEnumerable<ImportArticlePreview> All(List<ImportNodePreview> items) =>
+            items.SelectMany(n => n.Articles.Concat(All(n.Children)));
+        var withFootnotes = All(nodes).Concat(articles).Where(a => a.Footnotes.Count > 0).ToList();
+        if (withFootnotes.Count == 0)
+            return;
+
+        var existing = (await db.EditorialNotes
+                .Where(n => n.LawId == law.Id && n.ArticleId != null && n.Kind == EditorialNoteKind.Aciklama && n.Title == FootnoteNoteTitle)
+                .ToListAsync())
+            .GroupBy(n => n.ArticleId!.Value)
+            .ToDictionary(g => g.Key, g => g.First());
+
+        apply.Add(() =>
+        {
+            var bySlug = db.Articles.Local.Where(a => a.LawId == law.Id && a.DeletedAt == null).ToDictionary(a => a.Slug);
+            foreach (var item in withFootnotes)
+            {
+                if (!bySlug.TryGetValue(item.Slug, out var article))
+                    continue;
+                var html = string.Concat(item.Footnotes.Select(f => $"<p>{WebUtility.HtmlEncode(f)}</p>"));
+                if (existing.TryGetValue(article.Id, out var note))
+                {
+                    if (note.Html != html)
+                    {
+                        note.Html = html;
+                        note.PlainText = RichText.ToPlainText(html);
+                    }
+                    continue;
+                }
+                db.EditorialNotes.Add(new EditorialNote
+                {
+                    LawId = law.Id,
+                    ArticleId = article.Id,
+                    Kind = EditorialNoteKind.Aciklama,
+                    Title = FootnoteNoteTitle,
+                    Html = html,
+                    PlainText = RichText.ToPlainText(html),
+                    Visibility = Visibility.Public,
+                    // Elle yazılan açıklamaların ardından gelsin.
+                    SortOrder = 1000,
+                });
+            }
+        });
     }
 
     private static async Task<LawUpdatePreview> PlanUpdateAsync(

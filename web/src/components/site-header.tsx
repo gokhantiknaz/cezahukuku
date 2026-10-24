@@ -74,7 +74,8 @@ function NavButton({ item }: { item: NavItem }) {
 
   if (!item.href) {
     return (
-      <span aria-disabled title="Yakında" className={cn(className, "opacity-50")}>
+      // Henüz açılmamış bölümler başlık satırına sığmayan genişlikte gizlenir (başlık iki satıra taşmasın).
+      <span aria-disabled title="Yakında" className={cn(className, "hidden opacity-50 2xl:flex")}>
         {content}
       </span>
     );

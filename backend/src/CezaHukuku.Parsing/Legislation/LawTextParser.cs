@@ -24,10 +24,14 @@ public sealed record ParsedNode(
     IReadOnlyList<ParsedNode> Children,
     IReadOnlyList<ParsedArticle> Articles);
 
+/// <summary>Kanun metninin sonundaki dipnot: "[2] 2/7/2018 tarihli ve 700 sayılı KHK'nin 156 ncı maddesiyle …".</summary>
+public sealed record ParsedFootnote(int Number, string Text);
+
 /// <param name="Number">"81", "103/A", "Ek 1", "Geçici 2".</param>
 /// <param name="LastAmendedOn">Metindeki değişiklik notlarının ("(Değişik: 12/5/2022-7406/2 md.)") en yeni tarihi;
 /// not yoksa null. Bu tarih değiştiren kanunun kabul tarihidir, yürürlük tarihi birkaç gün sonra olabilir.</param>
 /// <param name="LastAmendment">O notun kendisi: "Değişik: 12/5/2022-7406/2 md.".</param>
+/// <param name="Footnotes">Madde başlığında ya da metninde işareti ("[2]") geçen dipnotlar, metindeki sırasıyla.</param>
 public sealed record ParsedArticle(
     string Number,
     string Title,
@@ -35,10 +39,12 @@ public sealed record ParsedArticle(
     int Order,
     IReadOnlyList<ParsedParagraph> Paragraphs,
     DateOnly? LastAmendedOn = null,
-    string? LastAmendment = null);
+    string? LastAmendment = null,
+    IReadOnlyList<ParsedFootnote>? Footnotes = null);
 
 /// <param name="Articles">Hiçbir düğüme bağlı olmayan maddeler (bölümlemesiz kanunlar).</param>
-/// <param name="FootnoteCount">Metnin sonundaki dipnot sayısı (dipnotlar şimdilik içe aktarılmaz).</param>
+/// <param name="FootnoteCount">Metnin sonundaki dipnot sayısı; işareti bir maddede geçenler o maddeye bağlanır
+/// (<see cref="ParsedArticle.Footnotes"/>).</param>
 public sealed record ParsedLaw(
     LawMetadata Metadata,
     IReadOnlyList<ParsedNode> Nodes,
@@ -64,8 +70,9 @@ public sealed record LawTextParserOptions
 /// <item>"Madde 1-", "Madde 61. -", "MADDE 9 –", "Geçici Madde 1 –", "Ek Madde 2-" maddeyi başlatır.</item>
 /// <item>Madde satırından hemen önceki, nokta/virgülle bitmeyen kısa satır maddenin başlığıdır.</item>
 /// <item>Gövdesi yalnız "(Mülga: …)" olan madde mülgadır.</item>
-/// <item>"[12]" dipnot işaretleri atılır; "[1] …" ile başlayan dipnotlar ve "… SAYILI KANUNA …" ile başlayan ek
-/// listeler (başka kanunların geçici maddeleri dahil) kanun metninin sonu sayılır.</item>
+/// <item>"[12]" dipnot işaretleri metinden atılır ama maddeye not edilir; "[1] …" ile başlayan dipnotlar ve
+/// "… SAYILI KANUNA …" ile başlayan ek listeler (başka kanunların geçici maddeleri dahil) kanun metninin sonu sayılır.
+/// Dipnotların metni okunup işaretinin geçtiği maddeye bağlanır.</item>
 /// <item>İlk düğüm ya da maddeden önceki satırlar künyedir (Kanun Numarası, Kabul Tarihi, Resmî Gazete).</item>
 /// </list>
 /// Fıkra ve bentler <see cref="ArticleTextParser"/> ile ayrılır.
@@ -78,7 +85,8 @@ public static partial class LawTextParser
     {
         options ??= new LawTextParserOptions();
         var warnings = new List<string>();
-        var lines = PrepareLines(text, options, out var footnoteCount);
+        var footnotes = new Dictionary<int, string>();
+        var lines = PrepareLines(text, options, footnotes);
 
         var rootNodes = new List<NodeDraft>();
         var rootArticles = new List<ArticleDraft>();
@@ -87,7 +95,8 @@ public static partial class LawTextParser
         NodeDraft? awaitingTitle = null;
         ArticleDraft? article = null;
         string? pendingTitle = null;
-        var preamble = new List<string>();
+        IReadOnlyList<int> pendingTitleFootnotes = [];
+        var preamble = new List<SourceLine>();
         var started = false;
 
         void FinishArticle()
@@ -98,8 +107,9 @@ public static partial class LawTextParser
 
         int NextOrder() => stack.Count > 0 ? stack[^1].NextOrder() : rootOrder++;
 
-        foreach (var line in lines)
+        foreach (var source in lines)
         {
+            var line = source.Text;
             if (HeadingMatch(line) is { } heading)
             {
                 started = true;
@@ -132,36 +142,39 @@ public static partial class LawTextParser
             if (articleHeader is { } header)
             {
                 // Bölümsüz kanunda ilk maddenin başlığı künyenin hemen ardından gelir ("Amaç").
-                if (!started && preamble.Count > 0 && IsTitleCandidate(preamble[^1]) && !preamble[^1].Contains(':'))
+                if (!started && preamble.Count > 0 && IsTitleCandidate(preamble[^1].Text) && !preamble[^1].Text.Contains(':'))
                 {
-                    pendingTitle = preamble[^1];
+                    (pendingTitle, pendingTitleFootnotes) = (preamble[^1].Text, preamble[^1].Footnotes);
                     preamble.RemoveAt(preamble.Count - 1);
                 }
                 started = true;
-                var title = pendingTitle ?? article?.TakeTitleCandidate() ?? "";
+                var title = pendingTitle is not null ? new SourceLine(pendingTitle, pendingTitleFootnotes) : article?.TakeTitleCandidate();
                 pendingTitle = null;
+                pendingTitleFootnotes = [];
                 FinishArticle();
-                article = new ArticleDraft(header.Number, title, NextOrder());
+                article = new ArticleDraft(header.Number, title?.Text ?? "", NextOrder(), footnotes);
+                article.Footnotes.AddRange(title?.Footnotes ?? []);
+                article.Footnotes.AddRange(source.Footnotes);
                 if (header.Rest.Length > 0)
-                    article.Body.Add(header.Rest);
+                    article.Add(new SourceLine(header.Rest, []));
                 (stack.Count > 0 ? stack[^1].Articles : rootArticles).Add(article);
                 continue;
             }
 
             if (!started)
             {
-                preamble.Add(line);
+                preamble.Add(source);
             }
             else if (article is not null)
             {
-                article.Body.Add(line);
+                article.Add(source);
             }
             else
             {
                 // Düğüm başlığından sonra, ilk maddeden önce gelen satır: ilk maddenin başlığı.
                 if (pendingTitle is not null)
                     warnings.Add($"Başlık olarak kullanılamayan satır atlandı: “{Shorten(pendingTitle)}”");
-                pendingTitle = line;
+                (pendingTitle, pendingTitleFootnotes) = (line, source.Footnotes);
             }
         }
 
@@ -174,28 +187,46 @@ public static partial class LawTextParser
         if (nodes.Count == 0 && articles.Count == 0)
             warnings.Add("Metinde madde bulunamadı. Maddeler “Madde 1-” biçiminde başlamalı.");
 
-        return new ParsedLaw(ParseMetadata(preamble), nodes, articles, warnings, footnoteCount);
+        return new ParsedLaw(ParseMetadata([.. preamble.Select(l => l.Text)]), nodes, articles, warnings, footnotes.Count);
     }
 
-    private static List<string> PrepareLines(string? text, LawTextParserOptions options, out int footnoteCount)
+    /// <summary>Hazırlanmış satır: dipnot işaretleri atılmış metin ve atılan işaretlerin numaraları.</summary>
+    private sealed record SourceLine(string Text, IReadOnlyList<int> Footnotes);
+
+    /// <summary>
+    /// Satırları ayırır, dipnot işaretlerini metinden alıp satıra not eder, metnin sonundaki dipnotları
+    /// <paramref name="footnotes"/>'a okur (birden çok satıra yayılan dipnot birleştirilir).
+    /// </summary>
+    private static List<SourceLine> PrepareLines(string? text, LawTextParserOptions options, Dictionary<int, string> footnotes)
     {
-        var lines = new List<string>();
-        footnoteCount = 0;
+        var lines = new List<SourceLine>();
         var ended = false;
+        int? openFootnote = null;
 
         foreach (var raw in (text ?? "").Normalize(NormalizationForm.FormC).Split('\n'))
         {
             // Dipnot satırı ("[1] …") işaretler silinmeden önce tanınmalı.
-            if (FootnoteLine().IsMatch(raw.TrimStart()))
+            if (FootnoteLine().Match(raw.TrimStart()) is { Success: true } footnote)
             {
-                footnoteCount++;
+                var number = int.Parse(footnote.Groups[1].Value, CultureInfo.InvariantCulture);
+                footnotes[number] = Whitespace().Replace(raw.TrimStart()[footnote.Length..], " ").Trim();
+                openFootnote = number;
                 ended = true;
                 continue;
             }
 
+            var markers = FootnoteMarker().Matches(raw).Select(m => int.Parse(m.Groups[1].Value, CultureInfo.InvariantCulture)).ToList();
             var line = Whitespace().Replace(FootnoteMarker().Replace(raw, ""), " ").Trim();
             if (line.Length == 0)
                 continue;
+            if (openFootnote is { } open)
+            {
+                if (IsAppendixStart(line))
+                    openFootnote = null;
+                else
+                    footnotes[open] += " " + line;
+                continue;
+            }
             if (ended || IsAppendixStart(line))
             {
                 ended = true;
@@ -203,9 +234,9 @@ public static partial class LawTextParser
             }
 
             if (options.JoinWrappedLines && lines.Count > 0 && IsWrappedContinuation(line))
-                lines[^1] += " " + line;
+                lines[^1] = new SourceLine(lines[^1].Text + " " + line, [.. lines[^1].Footnotes, .. markers]);
             else
-                lines.Add(line);
+                lines.Add(new SourceLine(line, markers));
         }
         return lines;
     }
@@ -304,19 +335,31 @@ public static partial class LawTextParser
             new(Kind, Number, Title, order, [.. Children.Select(c => c.Build())], [.. Articles.Select(a => a.Build())]);
     }
 
-    private sealed class ArticleDraft(string number, string title, int order)
+    private sealed class ArticleDraft(string number, string title, int order, IReadOnlyDictionary<int, string> footnoteTexts)
     {
         private IReadOnlyList<ParsedParagraph> paragraphs = [];
         private bool isRepealed;
         private (DateOnly Date, string Note)? lastAmendment;
 
+        // Gövde satırlarıyla aynı hizada: her satırdan atılan dipnot işaretleri.
+        private readonly List<IReadOnlyList<int>> bodyFootnotes = [];
+
         public List<string> Body { get; } = [];
+
+        /// <summary>Başlıkta ve madde satırında geçen dipnot işaretleri (gövdedekiler satırlarıyla tutulur).</summary>
+        public List<int> Footnotes { get; } = [];
+
+        public void Add(SourceLine line)
+        {
+            Body.Add(line.Text);
+            bodyFootnotes.Add(line.Footnotes);
+        }
 
         /// <summary>
         /// Gövdenin son satırı bir sonraki maddenin başlığıysa onu gövdeden çıkarıp döndürür: kısa, nokta/virgülle
         /// bitmeyen ve fıkra/bent olmayan satır. Gövdede başka satır yoksa dokunulmaz.
         /// </summary>
-        public string? TakeTitleCandidate()
+        public SourceLine? TakeTitleCandidate()
         {
             if (Body.Count < 2)
                 return null;
@@ -324,7 +367,9 @@ public static partial class LawTextParser
             if (!IsTitleCandidate(last))
                 return null;
             Body.RemoveAt(Body.Count - 1);
-            return last;
+            var footnotes = bodyFootnotes[^1];
+            bodyFootnotes.RemoveAt(bodyFootnotes.Count - 1);
+            return new SourceLine(last, footnotes);
         }
 
         public void Finish(List<string> warnings)
@@ -337,7 +382,13 @@ public static partial class LawTextParser
         }
 
         public ParsedArticle Build() =>
-            new(number, title, isRepealed, order, paragraphs, lastAmendment?.Date, lastAmendment?.Note);
+            new(number, title, isRepealed, order, paragraphs, lastAmendment?.Date, lastAmendment?.Note,
+                [
+                    .. Footnotes.Concat(bodyFootnotes.SelectMany(f => f))
+                        .Distinct()
+                        .Where(footnoteTexts.ContainsKey)
+                        .Select(n => new ParsedFootnote(n, footnoteTexts[n])),
+                ]);
     }
 
     /// <summary>
@@ -363,10 +414,10 @@ public static partial class LawTextParser
     [GeneratedRegex(@"\s+")]
     private static partial Regex Whitespace();
 
-    [GeneratedRegex(@"\[\d{1,4}\]")]
+    [GeneratedRegex(@"\[(\d{1,4})\]")]
     private static partial Regex FootnoteMarker();
 
-    [GeneratedRegex(@"^\[\d{1,4}\]\s")]
+    [GeneratedRegex(@"^\[(\d{1,4})\]\s")]
     private static partial Regex FootnoteLine();
 
     // Sıra sayısı -(I)NCI ekiyle biter: BİRİNCİ, ÜÇÜNCÜ, ALTINCI, DOKUZUNCU, ON BİRİNCİ…

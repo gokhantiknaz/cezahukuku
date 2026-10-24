@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { AlertTriangle, ArrowLeft, Eye, FileInput, Lock } from "lucide-react";
+import { AlertTriangle, ArrowLeft, Eye, FileInput, FileUp, Lock, Table2 } from "lucide-react";
 import { toast } from "sonner";
-import { useImportLaw, usePreviewLawImport } from "@/api/generated/admin-laws/admin-laws";
+import { useExtractImportText, useImportLaw, usePreviewLawImport } from "@/api/generated/admin-laws/admin-laws";
 import { useGetLaw } from "@/api/generated/library/library";
 import type {
   ArticleChange,
@@ -26,6 +26,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { formatDate } from "@/lib/dates";
 import { cn } from "@/lib/utils";
+import { ArticlesTablePaste, OldLawLinksImport } from "./table-import";
 
 /**
  * Kanunun tam metnini yapıştırıp içe aktarma ya da (kanun doluysa) güncel metinle güncelleme:
@@ -41,7 +42,16 @@ export function LawImport() {
   const law = tree?.law;
   const hasContent = tree !== undefined && (tree.nodes.length > 0 || tree.articles.length > 0);
 
-  const [form, setForm] = useState({ text: "", joinWrappedLines: false, validFrom: "", applyMetadata: true });
+  const [form, setForm] = useState({
+    text: "",
+    joinWrappedLines: false,
+    validFrom: "",
+    applyMetadata: true,
+    importFootnotes: true,
+  });
+  const [showTable, setShowTable] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const extract = useExtractImportText();
   const [previewed, setPreviewed] = useState<{ request: ImportLawTextRequest; result: LawImportPreview } | null>(
     null,
   );
@@ -54,7 +64,23 @@ export function LawImport() {
     joinWrappedLines: form.joinWrappedLines,
     validFrom: emptyToNull(form.validFrom),
     applyMetadata: form.applyMetadata,
+    importFootnotes: form.importFootnotes,
   };
+
+  /** Word (.docx), PDF ya da metin dosyasının metni kutuya alınır; PDF'te kırık satır birleştirme açılır. */
+  async function loadFile(file: File) {
+    try {
+      const response = await extract.mutateAsync({ data: { file } });
+      if (response.status !== 200) return;
+      setForm((f) => ({ ...f, text: response.data.text, joinWrappedLines: response.data.joinWrappedLines }));
+      toast.success(`“${file.name}” metni alındı; önizleyip kontrol edin.`);
+    } catch (error) {
+      const messages = otherMessages(error, []);
+      toast.error(messages[0] ?? "Dosya okunamadı.");
+    } finally {
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  }
   const upToDate = previewed !== null && JSON.stringify(previewed.request) === JSON.stringify(request);
   const preview = previewed?.result;
 
@@ -108,9 +134,33 @@ export function LawImport() {
       <section className="space-y-4 rounded-lg border bg-card p-4">
         <p className="reading text-muted-foreground">
           mevzuat.gov.tr&apos;de kanunu açın, metnin içine tıklayıp tamamını seçin (Ctrl+A), kopyalayın (Ctrl+C) ve
-          aşağıya yapıştırın. Kitap, kısım ve bölüm başlıkları, madde başlıkları, fıkra ve bentler otomatik ayrılır;
-          metnin sonundaki değişiklik listesi ve dipnotlar alınmaz.
+          aşağıya yapıştırın ya da Word/PDF dosyasından alın. Kitap, kısım ve bölüm başlıkları, madde başlıkları, fıkra ve
+          bentler otomatik ayrılır; metnin sonundaki değişiklik listesi alınmaz, dipnotlar işaretinin geçtiği maddeye
+          açıklama olarak eklenir.
         </p>
+        <div className="flex flex-wrap gap-2">
+          <input
+            ref={fileRef}
+            type="file"
+            accept=".docx,.pdf,.txt"
+            className="hidden"
+            onChange={(e) => e.target.files?.[0] && loadFile(e.target.files[0])}
+          />
+          <Button type="button" variant="outline" disabled={extract.isPending} onClick={() => fileRef.current?.click()}>
+            <FileUp /> {extract.isPending ? "Dosya okunuyor…" : "Dosyadan al (.docx, .pdf, .txt)"}
+          </Button>
+          <Button type="button" variant={showTable ? "secondary" : "outline"} onClick={() => setShowTable((v) => !v)}>
+            <Table2 /> Excel tablosundan
+          </Button>
+        </div>
+        {showTable && (
+          <ArticlesTablePaste
+            onConvert={(text) => {
+              setForm((f) => ({ ...f, text, joinWrappedLines: false }));
+              setShowTable(false);
+            }}
+          />
+        )}
         {hasContent && (
           <p className="rounded-md bg-accent px-3 py-2 text-sm text-accent-foreground">
             Bu kanunda içerik var: yapıştırdığınız metin mevcut maddelerle karşılaştırılır. Değişmeyen maddelere
@@ -165,6 +215,17 @@ export function LawImport() {
                 <span className="text-muted-foreground">(yalnız boş alanlar)</span>
               </span>
             </label>
+            <label className="flex items-start gap-2">
+              <Checkbox
+                checked={form.importFootnotes}
+                onCheckedChange={(checked) => setForm((f) => ({ ...f, importFootnotes: checked === true }))}
+                className="mt-0.5"
+              />
+              <span>
+                Dipnotları maddelere ekle{" "}
+                <span className="text-muted-foreground">(Açıklama sekmesinde “Mevzuat dipnotları”)</span>
+              </span>
+            </label>
           </div>
         </div>
         <FormMessages messages={otherMessages(previewMutation.error ?? importMutation.error, [])} />
@@ -196,6 +257,8 @@ export function LawImport() {
       ) : (
         preview && <PreviewResult preview={preview} selected={selectedArticle} onSelect={setSelectedArticle} />
       )}
+
+      {hasContent && <OldLawLinksImport law={law} />}
     </div>
   );
 }
@@ -377,7 +440,7 @@ function PreviewResult({
     { label: "Düğüm", value: preview.nodeCount },
     { label: "Madde", value: preview.articleCount },
     { label: "Mülga madde", value: preview.repealedCount },
-    { label: "Alınmayan dipnot", value: preview.footnoteCount },
+    { label: "Dipnot", value: preview.footnoteCount },
   ];
   const metadataText = [
     metadata.number && `Kanun no ${metadata.number}`,
@@ -419,6 +482,16 @@ function PreviewResult({
               <div className="mt-3">
                 <ParagraphList paragraphs={selected.paragraphs} />
               </div>
+              {selected.footnotes.length > 0 && (
+                <div className="mt-4 border-t pt-3">
+                  <h4 className="text-sm font-medium text-muted-foreground">Dipnotlar</h4>
+                  <ul className="mt-1 space-y-1 text-sm">
+                    {selected.footnotes.map((footnote) => (
+                      <li key={footnote}>{footnote}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </>
           ) : (
             <p className="text-muted-foreground">Soldan bir madde seçin.</p>

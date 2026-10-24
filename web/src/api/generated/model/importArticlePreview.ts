@@ -17,4 +17,5 @@ export interface ImportArticlePreview {
   validFrom: ImportArticlePreviewValidFrom;
   amendedBy: ImportArticlePreviewAmendedBy;
   paragraphs: ParagraphDto[];
+  footnotes: string[];
 }

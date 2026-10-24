@@ -121,6 +121,37 @@ public class LawTextParserTests
     }
 
     [Fact]
+    public void LinksFootnotesToArticlesWhereTheirMarkersAppear()
+    {
+        var m82 = Tck.Nodes.SelectMany(Flatten).Single(a => a.Number == "82");
+
+        Assert.Equal([33, 34, 35], m82.Footnotes!.Select(f => f.Number));
+        Assert.StartsWith("29/6/2005 tarihli ve 5377 sayılı Kanunun 9 uncu maddesiyle", m82.Footnotes![0].Text);
+        Assert.Empty(Tck.Nodes.SelectMany(Flatten).Single(a => a.Number == "81").Footnotes!);
+    }
+
+    [Fact]
+    public void FootnoteOnTitleLine_GoesToTheArticleItTitles_AndMultilineFootnotesAreJoined()
+    {
+        var law = LawTextParser.Parse("""
+            Amaç[1]
+            Madde 1- (1) Birinci madde.[2]
+            Tanımlar[3]
+            Madde 2- (1) İkinci madde.
+            [1] Birinci dipnot.
+            [2] İkinci dipnot
+            iki satırlık.
+            [3] Üçüncü dipnot.
+            """);
+
+        Assert.Equal([1, 2], law.Articles[0].Footnotes!.Select(f => f.Number));
+        Assert.Equal("İkinci dipnot iki satırlık.", law.Articles[0].Footnotes![1].Text);
+        Assert.Equal("Tanımlar", law.Articles[1].Title);
+        Assert.Equal([3], law.Articles[1].Footnotes!.Select(f => f.Number));
+        Assert.Equal(3, law.FootnoteCount);
+    }
+
+    [Fact]
     public void ArticleHeaderVariants()
     {
         const string text = """

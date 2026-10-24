@@ -1476,6 +1476,54 @@
         }
       }
     },
+    "/api/admin/import/extract-text": {
+      "post": {
+        "tags": [
+          "AdminLaws"
+        ],
+        "operationId": "ExtractImportText",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "required": [
+                  "file"
+                ],
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "$ref": "#/components/schemas/IFormFile"
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExtractedImportText"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/admin/articles/{articleId}/notes": {
       "post": {
         "tags": [
@@ -2104,6 +2152,60 @@
                 "schema": {
                   "type": "integer",
                   "format": "int32"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/laws/{lawId}/old-law-links/bulk": {
+      "post": {
+        "tags": [
+          "AdminLaws"
+        ],
+        "operationId": "BulkOldLawLinks",
+        "parameters": [
+          {
+            "name": "lawId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BulkOldLawLinksRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BulkOldLawLinksResult"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
                 }
               }
             }
@@ -3713,6 +3815,106 @@
           "failed"
         ]
       },
+      "BulkOldLawLinkResultRow": {
+        "required": [
+          "row",
+          "source",
+          "target",
+          "status",
+          "message"
+        ],
+        "type": "object",
+        "properties": {
+          "row": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "source": {
+            "type": "string"
+          },
+          "target": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/BulkRowStatus"
+          },
+          "message": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "BulkOldLawLinksRequest": {
+        "required": [
+          "targetLawId",
+          "targetLabel",
+          "rows",
+          "dryRun"
+        ],
+        "type": "object",
+        "properties": {
+          "targetLawId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "targetLabel": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "rows": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OldLawLinkRow"
+            }
+          },
+          "dryRun": {
+            "type": "boolean"
+          }
+        }
+      },
+      "BulkOldLawLinksResult": {
+        "required": [
+          "created",
+          "exists",
+          "errors",
+          "rows"
+        ],
+        "type": "object",
+        "properties": {
+          "created": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "exists": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "errors": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "rows": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BulkOldLawLinkResultRow"
+            }
+          }
+        }
+      },
+      "BulkRowStatus": {
+        "enum": [
+          "created",
+          "exists",
+          "error"
+        ]
+      },
       "CitationSpan": {
         "required": [
           "paragraphId",
@@ -4036,6 +4238,21 @@
           "genelGerekce"
         ]
       },
+      "ExtractedImportText": {
+        "required": [
+          "text",
+          "joinWrappedLines"
+        ],
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string"
+          },
+          "joinWrappedLines": {
+            "type": "boolean"
+          }
+        }
+      },
       "FavoriteDto": {
         "required": [
           "article",
@@ -4154,7 +4371,8 @@
           "sortOrder",
           "validFrom",
           "amendedBy",
-          "paragraphs"
+          "paragraphs",
+          "footnotes"
         ],
         "type": "object",
         "properties": {
@@ -4192,6 +4410,12 @@
             "items": {
               "$ref": "#/components/schemas/ParagraphDto"
             }
+          },
+          "footnotes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         }
       },
@@ -4222,6 +4446,10 @@
           },
           "applyMetadata": {
             "type": "boolean"
+          },
+          "importFootnotes": {
+            "type": "boolean",
+            "default": true
           }
         }
       },
@@ -4876,6 +5104,28 @@
           "diger",
           null
         ]
+      },
+      "OldLawLinkRow": {
+        "required": [
+          "source",
+          "target",
+          "note"
+        ],
+        "type": "object",
+        "properties": {
+          "source": {
+            "type": "string"
+          },
+          "target": {
+            "type": "string"
+          },
+          "note": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
       },
       "ParagraphDto": {
         "required": [

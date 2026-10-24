@@ -7,7 +7,13 @@ namespace CezaHukuku.Api.Admin;
 /// <param name="JoinWrappedLines">Metin PDF'ten kopyalandıysa cümle ortasında kırılan satırları birleştir.</param>
 /// <param name="ValidFrom">İçe aktarılan metnin yürürlük başlangıcı (maddelerin ilk sürümleri bu tarihle açılır).</param>
 /// <param name="ApplyMetadata">Künyeden okunan kabul ve Resmî Gazete bilgileri kanunda boşsa doldurulsun.</param>
-public sealed record ImportLawTextRequest(string? Text, bool JoinWrappedLines, DateOnly? ValidFrom, bool ApplyMetadata);
+/// <param name="ImportFootnotes">Metnin sonundaki dipnotlar işaretinin geçtiği maddeye "Mevzuat dipnotları" açıklaması
+/// olarak eklensin (güncellemede aynı not yenilenir).</param>
+public sealed record ImportLawTextRequest(
+    string? Text, bool JoinWrappedLines, DateOnly? ValidFrom, bool ApplyMetadata, bool ImportFootnotes = true);
+
+/// <param name="JoinWrappedLines">Metin PDF'ten geldi: önizlemede kırık satırları birleştirme açılsın.</param>
+public sealed record ExtractedImportText(string Text, bool JoinWrappedLines);
 
 public sealed record LawImportMetadata(string? Number, DateOnly? AcceptedOn, DateOnly? GazetteDate, string? GazetteNumber);
 
@@ -24,6 +30,7 @@ public sealed record ImportNodePreview(
 /// değişiklik notu varsa o notun tarihi (yapıştırılan metin kanunun güncel hâlidir; değişmiş maddenin bu metni
 /// değişiklikten önce geçerli değildi).</param>
 /// <param name="AmendedBy">Maddedeki en yeni değişiklik notu: "Değişik: 12/5/2022-7406/2 md.".</param>
+/// <param name="Footnotes">Maddede işareti geçen dipnotlar: "[2] 2/7/2018 tarihli ve 700 sayılı KHK…".</param>
 public sealed record ImportArticlePreview(
     string Number,
     string Slug,
@@ -32,7 +39,8 @@ public sealed record ImportArticlePreview(
     int SortOrder,
     DateOnly? ValidFrom,
     string? AmendedBy,
-    List<ParagraphDto> Paragraphs);
+    List<ParagraphDto> Paragraphs,
+    List<string> Footnotes);
 
 /// <param name="Blockers">Varsa içe aktarma yapılamaz (ör. metinde madde yok).</param>
 /// <param name="Warnings">İçe aktarmayı engellemeyen ama kontrol edilmesi gereken durumlar.</param>

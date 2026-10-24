@@ -29,7 +29,11 @@ import type {
   ArticleSearchHit,
   ArticleSummary,
   ArticleVersionDetail,
+  BulkOldLawLinksRequest,
+  BulkOldLawLinksResult,
   EditorialNoteDto,
+  ExtractImportTextBody,
+  ExtractedImportText,
   HttpValidationProblemDetails,
   ImportLawTextRequest,
   LawGroupSummary,
@@ -1735,6 +1739,92 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
       return useMutation(mutationOptions, queryClient);
     }
+    export type extractImportTextResponse200 = {
+  data: ExtractedImportText
+  status: 200
+}
+
+export type extractImportTextResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+    
+export type extractImportTextResponseSuccess = (extractImportTextResponse200) & {
+  headers: Headers;
+};
+export type extractImportTextResponseError = (extractImportTextResponse400) & {
+  headers: Headers;
+};
+
+export type extractImportTextResponse = (extractImportTextResponseSuccess | extractImportTextResponseError)
+
+export const getExtractImportTextUrl = () => {
+
+
+  
+
+  return `/api/admin/import/extract-text`
+}
+
+export const extractImportText = async (extractImportTextBody: ExtractImportTextBody, options?: RequestInit): Promise<extractImportTextResponse> => {
+    const formData = new FormData();
+formData.append(`file`, extractImportTextBody.file)
+
+  return apiFetch<extractImportTextResponse>(getExtractImportTextUrl(),
+  {      
+    ...options,
+    method: 'POST'
+    ,
+    body: 
+      formData,
+  }
+);}
+
+
+
+
+export const getExtractImportTextMutationOptions = <TError = HttpValidationProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof extractImportText>>, TError,{data: ExtractImportTextBody}, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof extractImportText>>, TError,{data: ExtractImportTextBody}, TContext> => {
+
+const mutationKey = ['extractImportText'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof extractImportText>>, {data: ExtractImportTextBody}> = (props) => {
+          const {data} = props ?? {};
+
+          return  extractImportText(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ExtractImportTextMutationResult = NonNullable<Awaited<ReturnType<typeof extractImportText>>>
+    export type ExtractImportTextMutationBody = ExtractImportTextBody
+    export type ExtractImportTextMutationError = HttpValidationProblemDetails
+
+    export const useExtractImportText = <TError = HttpValidationProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof extractImportText>>, TError,{data: ExtractImportTextBody}, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof extractImportText>>,
+        TError,
+        {data: ExtractImportTextBody},
+        TContext
+      > => {
+
+      const mutationOptions = getExtractImportTextMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
     export type createArticleNoteResponse201 = {
   data: EditorialNoteDto
   status: 201
@@ -3180,6 +3270,96 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       > => {
 
       const mutationOptions = getRebuildCitationsMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    export type bulkOldLawLinksResponse200 = {
+  data: BulkOldLawLinksResult
+  status: 200
+}
+
+export type bulkOldLawLinksResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type bulkOldLawLinksResponse404 = {
+  data: void
+  status: 404
+}
+    
+export type bulkOldLawLinksResponseSuccess = (bulkOldLawLinksResponse200) & {
+  headers: Headers;
+};
+export type bulkOldLawLinksResponseError = (bulkOldLawLinksResponse400 | bulkOldLawLinksResponse404) & {
+  headers: Headers;
+};
+
+export type bulkOldLawLinksResponse = (bulkOldLawLinksResponseSuccess | bulkOldLawLinksResponseError)
+
+export const getBulkOldLawLinksUrl = (lawId: string,) => {
+
+
+  
+
+  return `/api/admin/laws/${lawId}/old-law-links/bulk`
+}
+
+export const bulkOldLawLinks = async (lawId: string,
+    bulkOldLawLinksRequest: BulkOldLawLinksRequest, options?: RequestInit): Promise<bulkOldLawLinksResponse> => {
+  
+  return apiFetch<bulkOldLawLinksResponse>(getBulkOldLawLinksUrl(lawId),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      bulkOldLawLinksRequest,)
+  }
+);}
+
+
+
+
+export const getBulkOldLawLinksMutationOptions = <TError = HttpValidationProblemDetails | void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof bulkOldLawLinks>>, TError,{lawId: string;data: BulkOldLawLinksRequest}, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof bulkOldLawLinks>>, TError,{lawId: string;data: BulkOldLawLinksRequest}, TContext> => {
+
+const mutationKey = ['bulkOldLawLinks'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof bulkOldLawLinks>>, {lawId: string;data: BulkOldLawLinksRequest}> = (props) => {
+          const {lawId,data} = props ?? {};
+
+          return  bulkOldLawLinks(lawId,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type BulkOldLawLinksMutationResult = NonNullable<Awaited<ReturnType<typeof bulkOldLawLinks>>>
+    export type BulkOldLawLinksMutationBody = BulkOldLawLinksRequest
+    export type BulkOldLawLinksMutationError = HttpValidationProblemDetails | void
+
+    export const useBulkOldLawLinks = <TError = HttpValidationProblemDetails | void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof bulkOldLawLinks>>, TError,{lawId: string;data: BulkOldLawLinksRequest}, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof bulkOldLawLinks>>,
+        TError,
+        {lawId: string;data: BulkOldLawLinksRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getBulkOldLawLinksMutationOptions(options);
 
       return useMutation(mutationOptions, queryClient);
     }
