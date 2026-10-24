@@ -1,3 +1,4 @@
+using CezaHukuku.Domain.Content;
 using CezaHukuku.Domain.Decisions;
 using CezaHukuku.Domain.Laws;
 using CezaHukuku.Domain.Personal;
@@ -24,6 +25,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<ArticleDecision> ArticleDecisions => Set<ArticleDecision>();
     public DbSet<Highlight> Highlights => Set<Highlight>();
     public DbSet<PersonalNote> PersonalNotes => Set<PersonalNote>();
+    public DbSet<Favorite> Favorites => Set<Favorite>();
+    public DbSet<NewsItem> NewsItems => Set<NewsItem>();
+    public DbSet<QuizQuestion> QuizQuestions => Set<QuizQuestion>();
     public DbSet<Attachment> Attachments => Set<Attachment>();
     public DbSet<AttachmentSegment> AttachmentSegments => Set<AttachmentSegment>();
     public DbSet<SearchDoc> SearchDocs => Set<SearchDoc>();

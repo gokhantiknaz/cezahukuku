@@ -19,7 +19,7 @@ const navItems: NavItem[] = [
   { label: "Ana Sayfa", icon: House, href: "/" },
   { label: "Kütüphane", icon: BookOpen },
   { label: "Pratik Anlatımlar", icon: BookMarked, highlighted: true },
-  { label: "Ceza Gündemi", icon: Newspaper, highlighted: true },
+  { label: "Ceza Gündemi", icon: Newspaper, href: "/gundem", highlighted: true },
 ];
 
 export function SiteHeader() {
@@ -42,14 +42,13 @@ export function SiteHeader() {
           {navItems.map((item) => (
             <NavButton key={item.label} item={item} />
           ))}
-          <span
-            aria-disabled
-            title="Yakında"
-            className="ml-1 inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 font-medium text-primary-foreground opacity-60"
+          <Link
+            href="/test"
+            className="ml-1 inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 font-medium text-primary-foreground hover:bg-primary/90"
           >
             <PenLine className="size-5" aria-hidden />
             Kendini Test Et
-          </span>
+          </Link>
         </nav>
 
         <div className="ml-auto md:ml-0">

@@ -3,6 +3,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using CezaHukuku.Api.Admin;
 using CezaHukuku.Api.Auth;
+using CezaHukuku.Api.Content;
 using CezaHukuku.Api.Library;
 using CezaHukuku.Api.Personal;
 using CezaHukuku.Api.Search;
@@ -105,6 +106,8 @@ app.MapLibraryEndpoints();
 app.MapAdminLawEndpoints();
 app.MapHighlightEndpoints();
 app.MapSearchEndpoints();
+app.MapNewsEndpoints();
+app.MapQuizEndpoints();
 
 // Derleme sırasında OpenAPI belgesi üretilirken uygulama veritabanına dokunmadan başlatılır.
 if (!IsBuildTimeOpenApiGeneration())

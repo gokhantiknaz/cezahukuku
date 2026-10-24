@@ -23,6 +23,125 @@ namespace CezaHukuku.Infrastructure.Persistence.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("CezaHukuku.Domain.Content.NewsItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<DateOnly>("PublishedOn")
+                        .HasColumnType("date")
+                        .HasColumnName("published_on");
+
+                    b.Property<string>("Summary")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("summary");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)")
+                        .HasColumnName("title");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<string>("Url")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("url");
+
+                    b.Property<string>("Visibility")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("visibility");
+
+                    b.HasKey("Id")
+                        .HasName("pk_news_items");
+
+                    b.HasIndex("PublishedOn")
+                        .HasDatabaseName("ix_news_items_published_on");
+
+                    b.ToTable("news_items", (string)null);
+                });
+
+            modelBuilder.Entity("CezaHukuku.Domain.Content.QuizQuestion", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid?>("ArticleId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("article_id");
+
+                    b.Property<int>("CorrectIndex")
+                        .HasColumnType("integer")
+                        .HasColumnName("correct_index");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<string>("Explanation")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)")
+                        .HasColumnName("explanation");
+
+                    b.Property<Guid>("LawId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("law_id");
+
+                    b.PrimitiveCollection<string[]>("Options")
+                        .IsRequired()
+                        .HasColumnType("text[]")
+                        .HasColumnName("options");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("text");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<string>("Visibility")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("visibility");
+
+                    b.HasKey("Id")
+                        .HasName("pk_quiz_questions");
+
+                    b.HasIndex("ArticleId")
+                        .HasDatabaseName("ix_quiz_questions_article_id");
+
+                    b.HasIndex("LawId")
+                        .HasDatabaseName("ix_quiz_questions_law_id");
+
+                    b.ToTable("quiz_questions", (string)null);
+                });
+
             modelBuilder.Entity("CezaHukuku.Domain.Decisions.ArticleDecision", b =>
                 {
                     b.Property<Guid>("ArticleId")
@@ -806,6 +925,29 @@ namespace CezaHukuku.Infrastructure.Persistence.Migrations
                     b.ToTable("attachment_segments", (string)null);
                 });
 
+            modelBuilder.Entity("CezaHukuku.Domain.Personal.Favorite", b =>
+                {
+                    b.Property<Guid>("OwnerId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("owner_id");
+
+                    b.Property<Guid>("ArticleId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("article_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.HasKey("OwnerId", "ArticleId")
+                        .HasName("pk_favorites");
+
+                    b.HasIndex("ArticleId")
+                        .HasDatabaseName("ix_favorites_article_id");
+
+                    b.ToTable("favorites", (string)null);
+                });
+
             modelBuilder.Entity("CezaHukuku.Domain.Personal.Highlight", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1298,6 +1440,22 @@ namespace CezaHukuku.Infrastructure.Persistence.Migrations
                     b.ToTable("user_tokens", (string)null);
                 });
 
+            modelBuilder.Entity("CezaHukuku.Domain.Content.QuizQuestion", b =>
+                {
+                    b.HasOne("CezaHukuku.Domain.Laws.Article", null)
+                        .WithMany()
+                        .HasForeignKey("ArticleId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_quiz_questions_articles_article_id");
+
+                    b.HasOne("CezaHukuku.Domain.Laws.Law", null)
+                        .WithMany()
+                        .HasForeignKey("LawId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_quiz_questions_laws_law_id");
+                });
+
             modelBuilder.Entity("CezaHukuku.Domain.Decisions.ArticleDecision", b =>
                 {
                     b.HasOne("CezaHukuku.Domain.Laws.Article", null)
@@ -1440,6 +1598,23 @@ namespace CezaHukuku.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_attachment_segments_attachments_attachment_id");
+                });
+
+            modelBuilder.Entity("CezaHukuku.Domain.Personal.Favorite", b =>
+                {
+                    b.HasOne("CezaHukuku.Domain.Laws.Article", null)
+                        .WithMany()
+                        .HasForeignKey("ArticleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_favorites_articles_article_id");
+
+                    b.HasOne("CezaHukuku.Infrastructure.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("OwnerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_favorites_users_owner_id");
                 });
 
             modelBuilder.Entity("CezaHukuku.Domain.Personal.Highlight", b =>

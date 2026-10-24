@@ -39,6 +39,7 @@ public static class HighlightEndpoints
         group.MapDelete("/highlights/{id:guid}", DeleteAsync).WithName("DeleteHighlight");
         group.MapPersonalNoteEndpoints();
         group.MapAttachmentEndpoints();
+        group.MapFavoriteEndpoints();
 
         return group;
     }

@@ -5,12 +5,14 @@
 import { cache } from "react";
 import { cookies } from "next/headers";
 import { getGetArticleUrl, getGetLawNotesUrl, getGetLawUrl, getGetLibraryUrl } from "@/api/generated/library/library";
+import { getListNewsUrl } from "@/api/generated/news/news";
 import { getSearchUrl } from "@/api/generated/search/search";
 import type {
   ArticleDetailResponse,
   EditorialNoteDto,
   LawTreeResponse,
   LibraryResponse,
+  NewsItemDto,
   SearchParams,
   SearchResponse,
 } from "@/api/generated/model";
@@ -62,3 +64,6 @@ export const searchContent = cache(
   async (params: SearchParams): Promise<SearchResponse> =>
     (await apiGet<SearchResponse>(getSearchUrl(params))) ?? { query: params.q ?? "", jump: null, total: 0, counts: [], hits: [] },
 );
+
+/** Ceza Gündemi haberleri (yeniden eskiye). */
+export const getNews = cache(async (limit = 100) => (await apiGet<NewsItemDto[]>(getListNewsUrl({ limit }))) ?? []);

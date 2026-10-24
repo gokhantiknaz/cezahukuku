@@ -2,7 +2,7 @@
 
 import { Fragment, useEffect, useRef } from "react";
 import Link from "next/link";
-import { ChevronLeft, ChevronRight, Copy, FileDown, FileText, Lock, Pencil, Printer, Share2, Star } from "lucide-react";
+import { ChevronLeft, ChevronRight, Copy, FileText, Lock, Pencil, Printer } from "lucide-react";
 import { toast } from "sonner";
 import type { ArticleDetailResponse, ArticleRef } from "@/api/generated/model";
 import { Badge } from "@/components/ui/badge";
@@ -20,6 +20,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useHydrated } from "@/hooks/use-hydrated";
 import { isAdmin, useCurrentUser } from "@/lib/auth";
 import { formatDate } from "@/lib/dates";
+import { FavoriteButton, PdfButton, ShareButton } from "./article-actions";
 import { ArticleDateControl } from "./article-date-control";
 import { ArticleHistory } from "./article-history";
 import { usePublishCurrentArticle } from "./current-article";
@@ -143,21 +144,15 @@ export function ArticleView({ detail, asOf, initialTab }: { detail: ArticleDetai
                 </Link>
               </Button>
             )}
-            <Button variant="outline" disabled title="Yakında">
-              <Star /> Favorilere ekle
-            </Button>
-            <Button variant="outline" disabled title="Yakında">
-              <Share2 /> Paylaş
-            </Button>
+            <FavoriteButton articleId={article.id} />
+            <ShareButton title={`${law.shortName || law.number} Madde ${article.number} — ${article.title}`} />
             <Button variant="outline" onClick={copy}>
               <Copy /> Kopyala
             </Button>
             <Button variant="outline" onClick={() => window.print()}>
               <Printer /> Yazdır
             </Button>
-            <Button variant="outline" disabled title="Yakında">
-              <FileDown /> PDF
-            </Button>
+            <PdfButton />
           </div>
         </header>
 

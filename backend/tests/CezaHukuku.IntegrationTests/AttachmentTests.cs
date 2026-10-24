@@ -40,8 +40,8 @@ public class AttachmentTests(ApiFactory factory)
         var hits = (await (await user.GetAsync("/api/search?q=zincirleme&mine=true")).ReadAsync<SearchResponse>()).Hits;
         var hit = Assert.Single(hits, h => h.Url.Contains(created.Id.ToString()));
         Assert.Equal((SearchKind.Document, "Sayfa 3", $"/belgelerim/{created.Id}?sayfa=3"), (hit.Kind, hit.Context, hit.Url));
-        Assert.Empty((await (await admin.GetAsync("/api/search?q=zincirleme")).ReadAsync<SearchResponse>()).Hits
-            .Where(h => h.Url.Contains(created.Id.ToString())));
+        Assert.DoesNotContain((await (await admin.GetAsync("/api/search?q=zincirleme")).ReadAsync<SearchResponse>()).Hits,
+            h => h.Url.Contains(created.Id.ToString()));
 
         var file = await user.GetAsync($"/api/me/attachments/{created.Id}/file");
         Assert.Equal("application/pdf", file.Content.Headers.ContentType!.MediaType);
@@ -97,8 +97,8 @@ public class AttachmentTests(ApiFactory factory)
         await WaitReadyAsync(owner, created.Id);
         await owner.DeleteAsync($"/api/me/attachments/{created.Id}").ExpectAsync(204);
         await owner.GetAsync($"/api/me/attachments/{created.Id}").ExpectAsync(404);
-        Assert.Empty((await (await owner.GetAsync("/api/search?q=gizli belge&mine=true")).ReadAsync<SearchResponse>()).Hits
-            .Where(h => h.Url.Contains(created.Id.ToString())));
+        Assert.DoesNotContain((await (await owner.GetAsync("/api/search?q=gizli belge&mine=true")).ReadAsync<SearchResponse>()).Hits,
+            h => h.Url.Contains(created.Id.ToString()));
     }
 
     private static async Task<AttachmentDetail> WaitReadyAsync(HttpClient client, Guid id)

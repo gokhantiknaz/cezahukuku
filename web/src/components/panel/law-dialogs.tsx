@@ -20,7 +20,7 @@ import { emptyToNull, Field, FormMessages, OptionSelect, otherMessages, toSortOr
 import { useLibraryRefresh } from "./use-library-refresh";
 
 /** Pencere her açılışta formu baştan kurar (yarım kalan düzenleme sonraki açılışa taşınmasın). */
-function FormDialog({
+export function FormDialog({
   title,
   description,
   trigger,

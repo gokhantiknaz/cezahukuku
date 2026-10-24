@@ -74,6 +74,16 @@ internal sealed class AttachmentSegmentConfiguration : IEntityTypeConfiguration<
     }
 }
 
+internal sealed class FavoriteConfiguration : IEntityTypeConfiguration<Favorite>
+{
+    public void Configure(EntityTypeBuilder<Favorite> b)
+    {
+        b.HasKey(e => new { e.OwnerId, e.ArticleId });
+        b.HasOne<ApplicationUser>().WithMany().HasForeignKey(e => e.OwnerId).OnDelete(DeleteBehavior.Cascade);
+        b.HasOne<Article>().WithMany().HasForeignKey(e => e.ArticleId).OnDelete(DeleteBehavior.Cascade);
+    }
+}
+
 internal static class AnchorJson
 {
     private static readonly JsonSerializerOptions Options = new(JsonSerializerDefaults.Web);
