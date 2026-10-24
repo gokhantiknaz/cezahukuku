@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useCallback, useState, type ReactNode } from "react";
 import { BookOpen, NotebookPen, PanelRightClose, PanelRightOpen } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useDefaultLayout, usePanelRef } from "react-resizable-panels";
@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { useMediaQuery } from "@/hooks/use-media-query";
+import { CurrentArticleProvider } from "./current-article";
 
 type WorkspaceProps = {
   /** Sol panel: kütüphane / kanun ağacı. */
@@ -39,7 +40,7 @@ const safeStorage = {
 /**
  * Ana çalışma alanı: masaüstünde boyutlandırılabilir 3 panel (sol gezinme, orta içerik, sağ notlar —
  * sağ panel kapatılabilir ve kapalıyken içerik genişler). Dar ekranda yalnız içerik görünür,
- * gezinme ve notlar kenardan açılan çekmecelerde.
+ * gezinme ve notlar kenardan açılan çekmecelerde. Açık madde bağlamla (CurrentArticleProvider) sağ panele iletilir.
  */
 export function Workspace(props: WorkspaceProps) {
   const isDesktop = useMediaQuery("(min-width: 1024px)");
@@ -61,46 +62,48 @@ function DesktopWorkspace({ navigation, content, notes }: WorkspaceProps) {
   }
 
   return (
-    <ResizablePanelGroup
-      orientation="horizontal"
-      defaultLayout={layout.defaultLayout}
-      onLayoutChanged={layout.onLayoutChanged}
-      className="min-h-0 flex-1"
-    >
-      <ResizablePanel id="navigation" defaultSize="24" minSize={260} maxSize="40" className="print:hidden">
-        <div className="h-full border-r bg-sidebar">{navigation}</div>
-      </ResizablePanel>
-      <ResizableHandle className="print:hidden" />
-      <ResizablePanel id="content" minSize="35">
-        <div className="relative h-full">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={toggleNotes}
-            className="absolute top-2 right-2 z-10 print:hidden"
-            aria-label={notesOpen ? "Not panelini kapat" : "Not panelini aç"}
-            title={notesOpen ? "Not panelini kapat" : "Not panelini aç"}
-          >
-            {notesOpen ? <PanelRightClose /> : <PanelRightOpen />}
-          </Button>
-          {content}
-        </div>
-      </ResizablePanel>
-      <ResizableHandle className="print:hidden" />
-      <ResizablePanel
-        id="notes"
-        panelRef={notesPanel}
-        defaultSize="22"
-        minSize={260}
-        maxSize="35"
-        collapsible
-        collapsedSize={0}
-        onResize={(size) => setNotesOpen(size.asPercentage > 0)}
-        className="print:hidden"
+    <CurrentArticleProvider>
+      <ResizablePanelGroup
+        orientation="horizontal"
+        defaultLayout={layout.defaultLayout}
+        onLayoutChanged={layout.onLayoutChanged}
+        className="min-h-0 flex-1"
       >
-        <div className="h-full border-l bg-sidebar">{notes}</div>
-      </ResizablePanel>
-    </ResizablePanelGroup>
+        <ResizablePanel id="navigation" defaultSize="24" minSize={260} maxSize="40" className="print:hidden">
+          <div className="h-full border-r bg-sidebar">{navigation}</div>
+        </ResizablePanel>
+        <ResizableHandle className="print:hidden" />
+        <ResizablePanel id="content" minSize="35">
+          <div className="relative h-full">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={toggleNotes}
+              className="absolute top-2 right-2 z-10 print:hidden"
+              aria-label={notesOpen ? "Not panelini kapat" : "Not panelini aç"}
+              title={notesOpen ? "Not panelini kapat" : "Not panelini aç"}
+            >
+              {notesOpen ? <PanelRightClose /> : <PanelRightOpen />}
+            </Button>
+            {content}
+          </div>
+        </ResizablePanel>
+        <ResizableHandle className="print:hidden" />
+        <ResizablePanel
+          id="notes"
+          panelRef={notesPanel}
+          defaultSize="22"
+          minSize={260}
+          maxSize="35"
+          collapsible
+          collapsedSize={0}
+          onResize={(size) => setNotesOpen(size.asPercentage > 0)}
+          className="print:hidden"
+        >
+          <div className="h-full border-l bg-sidebar">{notes}</div>
+        </ResizablePanel>
+      </ResizablePanelGroup>
+    </CurrentArticleProvider>
   );
 }
 
@@ -114,30 +117,35 @@ function MobileWorkspace({ navigation, content, notes }: WorkspaceProps) {
     setOpen(null);
   }
 
-  return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <div className="flex items-center justify-between border-b bg-card px-2 py-1 print:hidden">
-        <Button variant="ghost" onClick={() => setOpen("navigation")}>
-          <BookOpen /> Kütüphane
-        </Button>
-        <Button variant="ghost" onClick={() => setOpen("notes")}>
-          <NotebookPen /> Notlarım
-        </Button>
-      </div>
-      <div className="min-h-0 flex-1">{content}</div>
+  // Notlarım çekmecesinden metindeki bir vurguya gidilince çekmece kapanır.
+  const closeSheet = useCallback(() => setOpen(null), []);
 
-      <Sheet open={open === "navigation"} onOpenChange={(value) => setOpen(value ? "navigation" : null)}>
-        <SheetContent side="left" className="w-[88vw] max-w-sm p-0">
-          <SheetTitle className="sr-only">Kütüphane</SheetTitle>
-          {navigation}
-        </SheetContent>
-      </Sheet>
-      <Sheet open={open === "notes"} onOpenChange={(value) => setOpen(value ? "notes" : null)}>
-        <SheetContent side="right" className="w-[88vw] max-w-sm p-0">
-          <SheetTitle className="sr-only">Notlarım</SheetTitle>
-          {notes}
-        </SheetContent>
-      </Sheet>
-    </div>
+  return (
+    <CurrentArticleProvider onReveal={closeSheet}>
+      <div className="flex min-h-0 flex-1 flex-col">
+        <div className="flex items-center justify-between border-b bg-card px-2 py-1 print:hidden">
+          <Button variant="ghost" onClick={() => setOpen("navigation")}>
+            <BookOpen /> Kütüphane
+          </Button>
+          <Button variant="ghost" onClick={() => setOpen("notes")}>
+            <NotebookPen /> Notlarım
+          </Button>
+        </div>
+        <div className="min-h-0 flex-1">{content}</div>
+
+        <Sheet open={open === "navigation"} onOpenChange={(value) => setOpen(value ? "navigation" : null)}>
+          <SheetContent side="left" className="w-[88vw] max-w-sm p-0">
+            <SheetTitle className="sr-only">Kütüphane</SheetTitle>
+            {navigation}
+          </SheetContent>
+        </Sheet>
+        <Sheet open={open === "notes"} onOpenChange={(value) => setOpen(value ? "notes" : null)}>
+          <SheetContent side="right" className="w-[88vw] max-w-sm p-0">
+            <SheetTitle className="sr-only">Notlarım</SheetTitle>
+            {notes}
+          </SheetContent>
+        </Sheet>
+      </div>
+    </CurrentArticleProvider>
   );
 }

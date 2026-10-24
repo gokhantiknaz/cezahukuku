@@ -11,36 +11,14 @@ import {
   type Ref,
 } from "react";
 import { createPortal } from "react-dom";
-import { useQueryClient } from "@tanstack/react-query";
 import { Check, NotebookPen, Trash2 } from "lucide-react";
-import { toast } from "sonner";
-import {
-  getListHighlightsQueryKey,
-  getListPersonalNotesQueryKey,
-  useCreateHighlight,
-  useCreatePersonalNote,
-  useDeleteHighlight,
-  useDeletePersonalNote,
-  useListHighlights,
-  useListPersonalNotes,
-  useUpdateHighlight,
-  useUpdatePersonalNote,
-} from "@/api/generated/personal/personal";
-import type {
-  CitationSpan,
-  HighlightColor,
-  HighlightDto,
-  ParagraphDto,
-  PersonalNoteDto,
-  TextPosition,
-} from "@/api/generated/model";
+import type { CitationSpan, HighlightColor, ParagraphDto, PersonalNoteDto, TextPosition } from "@/api/generated/model";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { useHydrated } from "@/hooks/use-hydrated";
-import { useCurrentUser } from "@/lib/auth";
-import { canAnnotate, highlightClassName, highlightColors } from "@/lib/highlights";
+import { highlightClassName, highlightColors } from "@/lib/highlights";
 import { cn } from "@/lib/utils";
 import { groupMarks, ParagraphList } from "./article-text";
+import { NoteForm } from "./note-form";
+import { usePersonalLayer } from "./use-personal-layer";
 
 /** Seçimin ya da vurgunun ekrandaki yeri (araç çubuğu üstüne, not düzenleyici altına yerleşir). */
 type Anchor = { top: number; bottom: number; centerX: number };
@@ -104,31 +82,11 @@ export function HighlightableText({
   paragraphs: ParagraphDto[];
   citations: CitationSpan[];
 }) {
-  const { data: user } = useCurrentUser();
-  const enabled = useHydrated() && canAnnotate(user);
+  const layer = usePersonalLayer(articleId, versionId);
+  const { enabled, highlights, noteOf, busy } = layer;
   const containerRef = useRef<HTMLDivElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
   const [overlay, setOverlay] = useState<Overlay | null>(null);
-
-  const queryClient = useQueryClient();
-  const highlightsQuery = useListHighlights(articleId, { versionId }, { query: { enabled } });
-  const notesQuery = useListPersonalNotes(articleId, { query: { enabled } });
-  const highlights = useMemo(() => (highlightsQuery.data?.status === 200 ? highlightsQuery.data.data : []), [highlightsQuery.data]);
-  const notes = useMemo(() => (notesQuery.data?.status === 200 ? notesQuery.data.data : []), [notesQuery.data]);
-  const noteOf = useMemo(() => new Map(notes.filter((n) => n.highlightId).map((n) => [n.highlightId!, n])), [notes]);
-  const refresh = () =>
-    Promise.all([
-      queryClient.invalidateQueries({ queryKey: getListHighlightsQueryKey(articleId).slice(0, 1) }),
-      queryClient.invalidateQueries({ queryKey: getListPersonalNotesQueryKey(articleId) }),
-    ]);
-
-  const createHighlight = useCreateHighlight();
-  const updateHighlight = useUpdateHighlight();
-  const deleteHighlight = useDeleteHighlight();
-  const createNote = useCreatePersonalNote();
-  const updateNote = useUpdatePersonalNote();
-  const deleteNote = useDeletePersonalNote();
-  const busy = [createHighlight, updateHighlight, deleteHighlight, createNote, updateNote, deleteNote].some((m) => m.isPending);
 
   const marks = useMemo(
     () =>
@@ -202,54 +160,29 @@ export function HighlightableText({
     setOverlay({ kind: "note", anchor: toAnchor(marker.getBoundingClientRect()), highlightId: marker.getAttribute("data-note-for")! });
   }
 
-  async function run(action: () => Promise<unknown>, failure: string) {
-    try {
-      await action();
-      await refresh();
-      return true;
-    } catch {
-      toast.error(failure);
-      return false;
-    }
-  }
-
   async function createFromSelection(color: HighlightColor, withNote: boolean) {
     if (overlay?.kind !== "selection") return;
     const { anchor, segments } = overlay;
-    let created: HighlightDto | undefined;
-    const done = await run(async () => {
-      const response = await createHighlight.mutateAsync({ data: { articleVersionId: versionId, color, segments } });
-      if (response.status === 201) created = response.data;
-    }, "Vurgu kaydedilemedi.");
-    if (!done) return;
+    const created = await layer.createHighlight(versionId, color, segments);
+    if (!created) return;
     window.getSelection()?.removeAllRanges();
-    setOverlay(withNote && created ? { kind: "note", anchor, highlightId: created.id } : null);
+    setOverlay(withNote ? { kind: "note", anchor, highlightId: created.id } : null);
   }
 
   async function recolor(highlightId: string, color: HighlightColor) {
-    if (await run(() => updateHighlight.mutateAsync({ id: highlightId, data: { color } }), "Vurgu kaydedilemedi.")) setOverlay(null);
+    if (await layer.recolor(highlightId, color)) setOverlay(null);
   }
 
   async function removeHighlight(highlightId: string) {
-    if (await run(() => deleteHighlight.mutateAsync({ id: highlightId }), "Vurgu silinemedi.")) setOverlay(null);
+    if (await layer.removeHighlight(highlightId)) setOverlay(null);
   }
 
   async function saveNote(highlightId: string, existing: PersonalNoteDto | undefined, text: string) {
-    const saved = await run(
-      () =>
-        existing
-          ? updateNote.mutateAsync({ id: existing.id, data: { text } })
-          : createNote.mutateAsync({ data: { articleId, highlightId, text } }),
-      "Not kaydedilemedi.",
-    );
-    if (saved) {
-      setOverlay(null);
-      toast.success("Not kaydedildi.");
-    }
+    if (await layer.saveNote(highlightId, existing, text)) setOverlay(null);
   }
 
   async function removeNote(note: PersonalNoteDto) {
-    if (await run(() => deleteNote.mutateAsync({ id: note.id }), "Not silinemedi.")) setOverlay(null);
+    if (await layer.removeNote(note)) setOverlay(null);
   }
 
   const current = overlay && overlay.kind !== "selection" ? highlights.find((h) => h.id === overlay.highlightId) : undefined;
@@ -392,7 +325,7 @@ function ToolbarButton({
   );
 }
 
-/** Vurguya bağlı notun düzenleyicisi: vurgunun altında (yer yoksa üstünde) açılan kart. Ctrl+Enter kaydeder. */
+/** Vurguya bağlı notun düzenleyicisi: vurgunun altında (yer yoksa üstünde) açılan kart. */
 function NoteEditor({
   ref,
   anchor,
@@ -412,12 +345,10 @@ function NoteEditor({
   onDelete: (note: PersonalNoteDto) => void;
   onClose: () => void;
 }) {
-  const [text, setText] = useState(note?.text ?? "");
   const width = Math.min(360, window.innerWidth - 16);
   const left = Math.min(Math.max(anchor.centerX - width / 2, 8), window.innerWidth - width - 8);
   const below = anchor.bottom + 8;
   const style = below + 260 < window.innerHeight ? { top: below } : { bottom: window.innerHeight - anchor.top + 8 };
-  const save = () => text.trim() && onSave(text);
 
   return (
     <div
@@ -426,39 +357,15 @@ function NoteEditor({
       aria-label="Not"
       style={{ ...style, left, width }}
       className="fixed z-50 animate-in space-y-3 rounded-lg border bg-popover p-3 text-popover-foreground shadow-xl duration-100 fade-in zoom-in-95"
-      onKeyDown={(e) => {
-        if (e.key === "Escape") onClose();
-        if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) save();
-      }}
     >
       <p className="line-clamp-2 border-l-4 border-highlight-yellow pl-2 text-sm text-muted-foreground italic">“{quote}”</p>
-      <Textarea
-        autoFocus
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        placeholder="Notunuzu yazın… (yalnız siz görürsünüz)"
-        rows={5}
-        maxLength={10_000}
-        aria-label="Not metni"
-        className="font-reading text-base"
+      <NoteForm
+        initialText={note?.text}
+        busy={busy}
+        onSave={onSave}
+        onCancel={onClose}
+        onDelete={note ? () => onDelete(note) : undefined}
       />
-      <div className="flex items-center justify-between gap-2">
-        {note ? (
-          <Button size="sm" variant="ghost" className="text-destructive" disabled={busy} onClick={() => onDelete(note)}>
-            <Trash2 /> Notu sil
-          </Button>
-        ) : (
-          <span className="text-xs text-muted-foreground">Ctrl+Enter ile kaydedin</span>
-        )}
-        <div className="flex gap-2">
-          <Button size="sm" variant="ghost" onClick={onClose}>
-            Vazgeç
-          </Button>
-          <Button size="sm" disabled={busy || !text.trim()} onClick={save}>
-            Kaydet
-          </Button>
-        </div>
-      </div>
     </div>
   );
 }

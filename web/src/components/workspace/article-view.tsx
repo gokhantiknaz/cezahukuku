@@ -22,6 +22,7 @@ import { isAdmin, useCurrentUser } from "@/lib/auth";
 import { formatDate } from "@/lib/dates";
 import { ArticleDateControl } from "./article-date-control";
 import { ArticleHistory } from "./article-history";
+import { usePublishCurrentArticle } from "./current-article";
 import { DecisionList } from "./decision-list";
 import { OldLawCounterparts, RelatedLinks } from "./link-list";
 import { NoteList } from "./note-list";
@@ -60,6 +61,12 @@ export function ArticleView({ detail, asOf }: { detail: ArticleDetailResponse; a
   const note = versionNote(version);
   const { data: user } = useCurrentUser();
   const canEdit = useHydrated() && isAdmin(user);
+  usePublishCurrentArticle({
+    articleId: article.id,
+    versionId: version?.id,
+    label: `${law.shortName || law.number} Madde ${article.number}${article.title ? ` — ${article.title}` : ""}`,
+    blockOrder: paragraphs.flatMap((p) => [`${p.id}:`, ...p.items.map((i) => `${p.id}:${i.id}`)]),
+  });
   const notesOf = (kind: string) => detail.notes.filter((n) => n.kind === kind);
   const tabCounts: Record<string, number> = {
     gerekce: notesOf("gerekce").length,
