@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
+using NpgsqlTypes;
 
 #nullable disable
 
@@ -869,6 +870,123 @@ namespace CezaHukuku.Infrastructure.Persistence.Migrations
                         .HasDatabaseName("UserNameIndex");
 
                     b.ToTable("users", (string)null);
+                });
+
+            modelBuilder.Entity("CezaHukuku.Infrastructure.Search.SearchDoc", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("body");
+
+                    b.Property<string>("BodyFold")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("body_fold");
+
+                    b.Property<string>("BodyNorm")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("body_norm");
+
+                    b.Property<string>("Context")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("context");
+
+                    b.Property<DateOnly?>("Date")
+                        .HasColumnType("date")
+                        .HasColumnName("date");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("kind");
+
+                    b.PrimitiveCollection<Guid[]>("LawIds")
+                        .IsRequired()
+                        .HasColumnType("uuid[]")
+                        .HasColumnName("law_ids");
+
+                    b.PrimitiveCollection<Guid[]>("NodeIds")
+                        .IsRequired()
+                        .HasColumnType("uuid[]")
+                        .HasColumnName("node_ids");
+
+                    b.Property<Guid?>("OwnerId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("owner_id");
+
+                    b.Property<NpgsqlTsVector>("Search")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("tsvector")
+                        .HasColumnName("search")
+                        .HasComputedColumnSql("setweight(to_tsvector('turkish'::regconfig, title_norm), 'A')\n|| setweight(to_tsvector('turkish'::regconfig, body_norm), 'B')\n|| setweight(to_tsvector('simple'::regconfig, title_fold), 'A')\n|| setweight(to_tsvector('simple'::regconfig, body_fold), 'B')", true);
+
+                    b.Property<Guid>("SourceId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("source_id");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("title");
+
+                    b.Property<string>("TitleFold")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("title_fold");
+
+                    b.Property<string>("TitleNorm")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("title_norm");
+
+                    b.Property<string>("Url")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("url");
+
+                    b.Property<string>("Visibility")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("visibility");
+
+                    b.HasKey("Id")
+                        .HasName("pk_search_docs");
+
+                    b.HasIndex("LawIds")
+                        .HasDatabaseName("ix_search_docs_law_ids");
+
+                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("LawIds"), "gin");
+
+                    b.HasIndex("NodeIds")
+                        .HasDatabaseName("ix_search_docs_node_ids");
+
+                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("NodeIds"), "gin");
+
+                    b.HasIndex("OwnerId")
+                        .HasDatabaseName("ix_search_docs_owner_id");
+
+                    b.HasIndex("Search")
+                        .HasDatabaseName("ix_search_docs_search");
+
+                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("Search"), "gin");
+
+                    b.HasIndex("Kind", "SourceId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_search_docs_kind_source_id");
+
+                    b.ToTable("search_docs", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole<System.Guid>", b =>

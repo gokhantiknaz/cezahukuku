@@ -2,6 +2,7 @@ using CezaHukuku.Domain.Decisions;
 using CezaHukuku.Domain.Laws;
 using CezaHukuku.Domain.Personal;
 using CezaHukuku.Infrastructure.Identity;
+using CezaHukuku.Infrastructure.Search;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
@@ -23,6 +24,34 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<ArticleDecision> ArticleDecisions => Set<ArticleDecision>();
     public DbSet<Highlight> Highlights => Set<Highlight>();
     public DbSet<PersonalNote> PersonalNotes => Set<PersonalNote>();
+    public DbSet<SearchDoc> SearchDocs => Set<SearchDoc>();
+
+    /// <summary>
+    /// Kaydı yapar, ardından değişen içeriğin arama indeksini günceller (<see cref="SearchIndexer"/>): arama her
+    /// zaman kaydedilmiş içeriği bulur, uç noktaların ayrıca indeksle uğraşması gerekmez.
+    /// </summary>
+    public override async Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
+    {
+        var changes = SearchIndexChanges.Collect(ChangeTracker);
+        var result = await base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+        if (!changes.IsEmpty)
+            await SearchIndexer.ApplyAsync(this, changes, cancellationToken);
+        return result;
+    }
+
+    public override int SaveChanges(bool acceptAllChangesOnSuccess) =>
+        SaveChangesAsync(acceptAllChangesOnSuccess).GetAwaiter().GetResult();
+
+    /// <summary>
+    /// Üretilen arama satırlarını yazar (yeniden indekslemeyi tetiklemeden) ve izlemeden çıkarır; yalnız
+    /// <see cref="SearchIndexer"/> kullanır.
+    /// </summary>
+    internal async Task SaveSearchDocsAsync(CancellationToken cancellationToken)
+    {
+        await base.SaveChangesAsync(true, cancellationToken);
+        foreach (var entry in ChangeTracker.Entries<SearchDoc>().ToList())
+            entry.State = EntityState.Detached;
+    }
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

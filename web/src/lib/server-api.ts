@@ -5,7 +5,15 @@
 import { cache } from "react";
 import { cookies } from "next/headers";
 import { getGetArticleUrl, getGetLawNotesUrl, getGetLawUrl, getGetLibraryUrl } from "@/api/generated/library/library";
-import type { ArticleDetailResponse, EditorialNoteDto, LawTreeResponse, LibraryResponse } from "@/api/generated/model";
+import { getSearchUrl } from "@/api/generated/search/search";
+import type {
+  ArticleDetailResponse,
+  EditorialNoteDto,
+  LawTreeResponse,
+  LibraryResponse,
+  SearchParams,
+  SearchResponse,
+} from "@/api/generated/model";
 
 const apiUrl = process.env.API_URL ?? "http://localhost:5080";
 
@@ -48,3 +56,9 @@ export function parseDateParam(value: string | string[] | undefined) {
   const text = Array.isArray(value) ? value[0] : value;
   return text && /^\d{4}-\d{2}-\d{2}$/.test(text) && !Number.isNaN(Date.parse(text)) ? text : undefined;
 }
+
+/** Arama; giriş yapmış kullanıcıda private içerik ve kişisel not/vurgular da gelir. */
+export const searchContent = cache(
+  async (params: SearchParams): Promise<SearchResponse> =>
+    (await apiGet<SearchResponse>(getSearchUrl(params))) ?? { query: params.q ?? "", jump: null, total: 0, counts: [], hits: [] },
+);

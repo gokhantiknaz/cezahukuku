@@ -5,10 +5,12 @@ using CezaHukuku.Api.Admin;
 using CezaHukuku.Api.Auth;
 using CezaHukuku.Api.Library;
 using CezaHukuku.Api.Personal;
+using CezaHukuku.Api.Search;
 using CezaHukuku.Domain.Users;
 using CezaHukuku.Infrastructure;
 using CezaHukuku.Infrastructure.Identity;
 using CezaHukuku.Infrastructure.Persistence;
+using CezaHukuku.Infrastructure.Search;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
@@ -102,6 +104,7 @@ app.MapAdminUserEndpoints();
 app.MapLibraryEndpoints();
 app.MapAdminLawEndpoints();
 app.MapHighlightEndpoints();
+app.MapSearchEndpoints();
 
 // Derleme sırasında OpenAPI belgesi üretilirken uygulama veritabanına dokunmadan başlatılır.
 if (!IsBuildTimeOpenApiGeneration())
@@ -120,6 +123,13 @@ if (!IsBuildTimeOpenApiGeneration())
     }
     if (app.Environment.IsDevelopment())
         await scope.ServiceProvider.GetRequiredService<DemoLibrarySeeder>().SeedAsync();
+
+    // Arama indeksi sonradan eklendi: indeks boşken içerik varsa bir kez baştan kurulur.
+    if (!await db.SearchDocs.AnyAsync() && await db.Laws.AnyAsync())
+    {
+        var count = await SearchIndexer.RebuildAllAsync(db);
+        app.Logger.LogInformation("Arama indeksi kuruldu: {Count} kayıt.", count);
+    }
 }
 
 app.Run();

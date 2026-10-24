@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { FolderPlus, ListTree, Lock, Pencil, Plus, RefreshCw, Trash2 } from "lucide-react";
+import { FolderPlus, ListTree, Lock, Pencil, Plus, RefreshCw, Search, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { ApiError } from "@/api/fetcher";
 import { useDeleteLaw, useDeleteLawGroup, useRebuildCitations } from "@/api/generated/admin-laws/admin-laws";
 import { useGetLibrary } from "@/api/generated/library/library";
+import { useRebuildSearchIndex } from "@/api/generated/search/search";
 import type { LawGroupWithLaws } from "@/api/generated/model";
 import { ConfirmDelete } from "@/components/panel/confirm-delete";
 import { LawDialog, LawGroupDialog } from "@/components/panel/law-dialogs";
@@ -30,6 +31,7 @@ export function LibraryAdmin() {
         </p>
         <div className="flex gap-2">
           <RebuildCitationsButton />
+          <RebuildSearchButton />
           <LawGroupDialog
             trigger={
               <Button variant="outline">
@@ -85,6 +87,28 @@ function RebuildCitationsButton() {
       }}
     >
       <RefreshCw className={rebuild.isPending ? "animate-spin" : undefined} /> Atıfları tara
+    </Button>
+  );
+}
+
+/** Arama indeksi her kayıtta kendiliğinden güncellenir; indeks kuralları değişince baştan kurmak için. */
+function RebuildSearchButton() {
+  const rebuild = useRebuildSearchIndex();
+  return (
+    <Button
+      variant="ghost"
+      disabled={rebuild.isPending}
+      title="Arama indeksini bütün içerikten yeniden kurar"
+      onClick={async () => {
+        try {
+          const result = await rebuild.mutateAsync();
+          toast.success(`Arama indeksi yenilendi${result.status === 200 ? `: ${result.data} kayıt` : ""}.`);
+        } catch {
+          toast.error("Arama indeksi yenilenemedi.");
+        }
+      }}
+    >
+      <Search className={rebuild.isPending ? "animate-pulse" : undefined} /> Arama indeksini yenile
     </Button>
   );
 }

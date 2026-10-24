@@ -6,10 +6,9 @@ import {
   Newspaper,
   PenLine,
   Scale,
-  Search,
   type LucideIcon,
 } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { HeaderSearch } from "@/components/search/header-search";
 import { cn } from "@/lib/utils";
 import { UserMenu } from "./user-menu";
 
@@ -35,18 +34,9 @@ export function SiteHeader() {
           </span>
         </Link>
 
-        <form role="search" className="order-last w-full md:order-none md:w-auto md:flex-1" action="#">
-          <label className="relative block">
-            <Search className="absolute top-1/2 left-3 size-5 -translate-y-1/2 text-muted-foreground" aria-hidden />
-            <Input
-              type="search"
-              name="q"
-              disabled
-              placeholder="Madde, konu, karar veya kanun ara… (arama M5'te açılacak)"
-              className="h-10 bg-background pl-10 text-base"
-            />
-          </label>
-        </form>
+        <div role="search" className="order-last w-full md:order-none md:w-auto md:flex-1">
+          <HeaderSearch />
+        </div>
 
         <nav className="hidden items-center gap-1 xl:flex" aria-label="Ana menü">
           {navItems.map((item) => (

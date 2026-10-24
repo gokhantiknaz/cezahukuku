@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment } from "react";
+import { Fragment, useEffect, useRef } from "react";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight, Copy, FileDown, FileText, Lock, Pencil, Printer, Share2, Star } from "lucide-react";
 import { toast } from "sonner";
@@ -54,8 +54,11 @@ function versionNote(version: ArticleDetailResponse["version"]) {
   return [range, version.amendedBy].filter(Boolean).join(" · ") || null;
 }
 
-/** @param asOf Seçilen gün (?tarih=); verilirse o gün yürürlükte olan metin gösterilir. */
-export function ArticleView({ detail, asOf }: { detail: ArticleDetailResponse; asOf?: string }) {
+/**
+ * @param asOf Seçilen gün (?tarih=); verilirse o gün yürürlükte olan metin gösterilir.
+ * @param initialTab Açık gelecek sekme (?sekme=gerekce); verilirse sekmelere kaydırılır.
+ */
+export function ArticleView({ detail, asOf, initialTab }: { detail: ArticleDetailResponse; asOf?: string; initialTab?: string }) {
   const { article, law, path, version } = detail;
   const paragraphs = version?.paragraphs ?? [];
   const note = versionNote(version);
@@ -68,6 +71,11 @@ export function ArticleView({ detail, asOf }: { detail: ArticleDetailResponse; a
     blockOrder: paragraphs.flatMap((p) => [`${p.id}:`, ...p.items.map((i) => `${p.id}:${i.id}`)]),
   });
   const notesOf = (kind: string) => detail.notes.filter((n) => n.kind === kind);
+  const openTab = tabs.some((t) => t.value === initialTab) ? initialTab! : tabs[0].value;
+  const tabsRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (initialTab && openTab === initialTab) tabsRef.current?.scrollIntoView({ block: "start" });
+  }, [article.id, openTab, initialTab]);
   const tabCounts: Record<string, number> = {
     gerekce: notesOf("gerekce").length,
     degisiklikler: detail.versions.length > 1 ? detail.versions.length : 0,
@@ -187,7 +195,8 @@ export function ArticleView({ detail, asOf }: { detail: ArticleDetailResponse; a
 
         <ArticlePager lawSlug={law.slug} previous={detail.previous} next={detail.next} asOf={asOf} />
 
-        <Tabs defaultValue={tabs[0].value} className="mt-6 print:hidden">
+        {/* Başka maddeye ya da sekmeye gelince sekmeler yeniden kurulsun (defaultValue yalnız ilk açılışta geçer). */}
+        <Tabs key={`${article.id}-${openTab}`} ref={tabsRef} defaultValue={openTab} className="mt-6 scroll-mt-4 print:hidden">
           {/* Dar ekranda tek satır, yatay kaydırılır (alt alta kayıp içeriğin üstüne binmesin). */}
           <TabsList variant="line" className="w-full justify-start overflow-x-auto overflow-y-hidden">
             {tabs.map((tab) => (

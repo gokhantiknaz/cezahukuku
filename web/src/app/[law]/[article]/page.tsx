@@ -35,8 +35,11 @@ async function ArticleContent({
 }) {
   const { law: lawSlug, article: articleSlug } = await params;
   // ?tarih=2010-03-15 → o gün yürürlükte olan metin (suç tarihindeki metin).
-  const asOf = parseDateParam((await searchParams).tarih);
+  const query = await searchParams;
+  const asOf = parseDateParam(query.tarih);
   const detail = await getArticle(lawSlug, articleSlug, asOf);
   if (!detail) notFound();
-  return <ArticleView detail={detail} asOf={asOf} />;
+  // ?sekme=gerekce → arama sonucundan gelince ilgili sekme açık gelir.
+  const tab = Array.isArray(query.sekme) ? query.sekme[0] : query.sekme;
+  return <ArticleView detail={detail} asOf={asOf} initialTab={tab} />;
 }
