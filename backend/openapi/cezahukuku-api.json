@@ -1936,6 +1936,166 @@
           }
         }
       }
+    },
+    "/api/me/articles/{articleId}/highlights": {
+      "get": {
+        "tags": [
+          "Personal"
+        ],
+        "operationId": "ListHighlights",
+        "parameters": [
+          {
+            "name": "articleId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "versionId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/HighlightDto"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/me/highlights": {
+      "post": {
+        "tags": [
+          "Personal"
+        ],
+        "operationId": "CreateHighlight",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateHighlightRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HighlightDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/me/highlights/{id}": {
+      "put": {
+        "tags": [
+          "Personal"
+        ],
+        "operationId": "UpdateHighlight",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateHighlightRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Personal"
+        ],
+        "operationId": "DeleteHighlight",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -2478,6 +2638,29 @@
           "diger"
         ]
       },
+      "CreateHighlightRequest": {
+        "required": [
+          "articleVersionId",
+          "color",
+          "segments"
+        ],
+        "type": "object",
+        "properties": {
+          "articleVersionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "color": {
+            "$ref": "#/components/schemas/HighlightColor"
+          },
+          "segments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TextPosition"
+            }
+          }
+        }
+      },
       "CreateUserRequest": {
         "required": [
           "email",
@@ -2684,6 +2867,50 @@
           "dersNotu",
           "genelGerekce"
         ]
+      },
+      "HighlightColor": {
+        "enum": [
+          "yellow",
+          "green",
+          "blue",
+          "orange"
+        ]
+      },
+      "HighlightDto": {
+        "required": [
+          "id",
+          "color",
+          "quote",
+          "segments",
+          "isStale",
+          "createdAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "color": {
+            "$ref": "#/components/schemas/HighlightColor"
+          },
+          "quote": {
+            "type": "string"
+          },
+          "segments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TextPosition"
+            }
+          },
+          "isStale": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
       },
       "HttpValidationProblemDetails": {
         "type": "object",
@@ -4009,6 +4236,47 @@
           }
         }
       },
+      "TextPosition": {
+        "required": [
+          "paragraphId",
+          "itemId",
+          "start",
+          "length"
+        ],
+        "type": "object",
+        "properties": {
+          "paragraphId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "itemId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "start": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "length": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "UpdateHighlightRequest": {
+        "required": [
+          "color"
+        ],
+        "type": "object",
+        "properties": {
+          "color": {
+            "$ref": "#/components/schemas/HighlightColor"
+          }
+        }
+      },
       "UpdateUserRequest": {
         "required": [
           "displayName",
@@ -4084,6 +4352,9 @@
     },
     {
       "name": "AdminLaws"
+    },
+    {
+      "name": "Personal"
     }
   ]
 }

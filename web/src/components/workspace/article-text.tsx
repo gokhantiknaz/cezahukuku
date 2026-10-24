@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { Fragment, type ReactNode } from "react";
 import Link from "next/link";
 import type { CitationSpan, ParagraphDto } from "@/api/generated/model";
 import { cn } from "@/lib/utils";
@@ -21,52 +21,87 @@ export function paragraphsToText(paragraphs: ParagraphDto[]) {
 export const paragraphKey = (p: ParagraphDto) =>
   JSON.stringify([p.number, p.text, p.items.map((i) => [i.level, i.label, i.text])]);
 
-const citationKey = (paragraphId: string, itemId: string | null) => `${paragraphId}:${itemId ?? ""}`;
+const blockKey = (paragraphId: string, itemId: string | null) => `${paragraphId}:${itemId ?? ""}`;
 
-/** Metni atıf bağlantılarıyla böler: "… [13 üncü maddede] yazılı …" → metin, bağlantı, metin. */
-function withCitations(text: string, spans: CitationSpan[] | undefined): ReactNode {
-  if (!spans || spans.length === 0) return text;
+/** Metindeki kişisel vurgu parçası (fıkra ya da bent metninde). */
+export type TextMark = { highlightId: string; start: number; length: number; className: string };
+
+/** Metnin [from, to) aralığını vurgularla böler; üst üste binen vurgularda sonra eklenen görünür. */
+function withMarks(text: string, from: number, to: number, marks: TextMark[]): ReactNode[] {
+  const inside = marks.filter((m) => m.start < to && m.start + m.length > from);
+  if (inside.length === 0) return [text.slice(from, to)];
+  const points = new Set([from, to]);
+  for (const m of inside) {
+    points.add(Math.max(from, m.start));
+    points.add(Math.min(to, m.start + m.length));
+  }
+  const sorted = [...points].sort((a, b) => a - b);
+  return sorted.slice(0, -1).map((start, i) => {
+    const end = sorted[i + 1];
+    const mark = inside.findLast((m) => m.start <= start && m.start + m.length >= end);
+    const piece = text.slice(start, end);
+    return mark ? (
+      <mark key={start} data-highlight-id={mark.highlightId} className={cn("rounded-[2px] text-inherit", mark.className)}>
+        {piece}
+      </mark>
+    ) : (
+      <Fragment key={start}>{piece}</Fragment>
+    );
+  });
+}
+
+/**
+ * Metni atıf bağlantıları ve vurgularla böler: "… [13 üncü maddede] yazılı …" → metin, bağlantı, metin.
+ * Metin sonradan değiştiyse (eski dizin) taşan ya da çakışan atıf atlanır.
+ */
+function renderText(text: string, spans: CitationSpan[] = [], marks: TextMark[] = []): ReactNode {
+  if (spans.length === 0 && marks.length === 0) return text;
   const parts: ReactNode[] = [];
   let position = 0;
   for (const span of [...spans].sort((a, b) => a.start - b.start)) {
-    // Metin sonradan değiştiyse (eski dizin) taşan ya da çakışan atıf atlanır.
     if (span.start < position || span.start + span.length > text.length) continue;
-    parts.push(text.slice(position, span.start));
+    parts.push(...withMarks(text, position, span.start, marks));
     const { target } = span;
     parts.push(
       <Link
-        key={span.start}
+        key={`atif-${span.start}`}
         href={`/${target.lawSlug}/${target.articleSlug}`}
         title={`${target.lawLabel} Madde ${target.number}${target.title ? ` — ${target.title}` : ""}`}
         className="text-primary underline decoration-primary/40 decoration-dotted underline-offset-4 hover:decoration-solid"
       >
-        {text.slice(span.start, span.start + span.length)}
+        {withMarks(text, span.start, span.start + span.length, marks)}
       </Link>,
     );
     position = span.start + span.length;
   }
-  parts.push(text.slice(position));
+  parts.push(...withMarks(text, position, text.length, marks));
   return parts;
 }
 
 /**
  * Madde metni: numaralı fıkralar, bentler ve alt bentler. `marked` içindeki fıkralar vurgulanır (değişenler);
- * `citations` verilirse metindeki madde atıfları bağlantı olur.
+ * `citations` verilirse metindeki madde atıfları bağlantı olur; `marks` kişisel vurgulardır.
+ * Her fıkra/bent metni `data-paragraph-id` / `data-item-id` taşır: seçimin metindeki konumu buradan hesaplanır
+ * (öğenin metin içeriği fıkra/bent metninin aynısıdır).
  */
 export function ParagraphList({
   paragraphs,
   marked,
   citations,
+  marks,
 }: {
   paragraphs: ParagraphDto[];
   marked?: Set<string>;
   citations?: CitationSpan[];
+  marks?: Map<string, TextMark[]>;
 }) {
   const byText = new Map<string, CitationSpan[]>();
   for (const span of citations ?? []) {
-    const key = citationKey(span.paragraphId, span.itemId);
+    const key = blockKey(span.paragraphId, span.itemId);
     byText.set(key, [...(byText.get(key) ?? []), span]);
   }
+  const render = (text: string, paragraphId: string, itemId: string | null) =>
+    renderText(text, byText.get(blockKey(paragraphId, itemId)), marks?.get(blockKey(paragraphId, itemId)));
 
   return (
     <ol className="reading space-y-2">
@@ -77,7 +112,7 @@ export function ParagraphList({
         >
           <span className="text-muted-foreground">{p.number != null ? `(${p.number})` : ""}</span>
           <div>
-            {p.text && <p>{withCitations(p.text, byText.get(citationKey(p.id, null)))}</p>}
+            {p.text && <p data-paragraph-id={p.id}>{render(p.text, p.id, null)}</p>}
             {p.items.length > 0 && (
               <ul className="mt-1 space-y-1">
                 {p.items.map((item) => (
@@ -88,7 +123,9 @@ export function ParagraphList({
                     style={{ paddingLeft: `${Math.max(item.level - 1, 0) * 1.5}rem` }}
                   >
                     {item.label && <span className="shrink-0">{item.label}</span>}
-                    <span>{withCitations(item.text, byText.get(citationKey(p.id, item.id)))}</span>
+                    <span data-paragraph-id={p.id} data-item-id={item.id}>
+                      {render(item.text, p.id, item.id)}
+                    </span>
                   </li>
                 ))}
               </ul>
@@ -98,4 +135,14 @@ export function ParagraphList({
       ))}
     </ol>
   );
+}
+
+/** Vurguları fıkra/bent anahtarına göre gruplar (ParagraphList `marks`). */
+export function groupMarks(items: { paragraphId: string; itemId: string | null; mark: TextMark }[]) {
+  const byBlock = new Map<string, TextMark[]>();
+  for (const { paragraphId, itemId, mark } of items) {
+    const key = blockKey(paragraphId, itemId);
+    byBlock.set(key, [...(byBlock.get(key) ?? []), mark]);
+  }
+  return byBlock;
 }

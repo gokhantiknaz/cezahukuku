@@ -665,6 +665,63 @@ namespace CezaHukuku.Infrastructure.Persistence.Migrations
                     b.ToTable("law_nodes", (string)null);
                 });
 
+            modelBuilder.Entity("CezaHukuku.Domain.Personal.Highlight", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("ArticleId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("article_id");
+
+                    b.Property<Guid>("ArticleVersionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("article_version_id");
+
+                    b.Property<string>("Color")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("color");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<Guid>("OwnerId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("owner_id");
+
+                    b.Property<string>("Segments")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("segments");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_highlights");
+
+                    b.HasIndex("ArticleId")
+                        .HasDatabaseName("ix_highlights_article_id");
+
+                    b.HasIndex("ArticleVersionId")
+                        .HasDatabaseName("ix_highlights_article_version_id");
+
+                    b.HasIndex("OwnerId", "ArticleId")
+                        .HasDatabaseName("ix_highlights_owner_id_article_id");
+
+                    b.ToTable("highlights", (string)null);
+                });
+
             modelBuilder.Entity("CezaHukuku.Infrastructure.Identity.ApplicationUser", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1038,6 +1095,30 @@ namespace CezaHukuku.Infrastructure.Persistence.Migrations
                         .HasForeignKey("ParentId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .HasConstraintName("fk_law_nodes_law_nodes_parent_id");
+                });
+
+            modelBuilder.Entity("CezaHukuku.Domain.Personal.Highlight", b =>
+                {
+                    b.HasOne("CezaHukuku.Domain.Laws.Article", null)
+                        .WithMany()
+                        .HasForeignKey("ArticleId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_highlights_articles_article_id");
+
+                    b.HasOne("CezaHukuku.Domain.Laws.ArticleVersion", null)
+                        .WithMany()
+                        .HasForeignKey("ArticleVersionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_highlights_article_versions_article_version_id");
+
+                    b.HasOne("CezaHukuku.Infrastructure.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("OwnerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_highlights_users_owner_id");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<System.Guid>", b =>

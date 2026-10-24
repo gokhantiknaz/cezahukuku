@@ -25,7 +25,8 @@ import { ArticleHistory } from "./article-history";
 import { DecisionList } from "./decision-list";
 import { OldLawCounterparts, RelatedLinks } from "./link-list";
 import { NoteList } from "./note-list";
-import { ParagraphList, paragraphsToText } from "./article-text";
+import { paragraphsToText } from "./article-text";
+import { HighlightableText } from "./highlightable-text";
 
 // Sekmeler ve dolacakları kilometre taşı.
 const tabs = [
@@ -166,7 +167,12 @@ export function ArticleView({ detail, asOf }: { detail: ArticleDetailResponse; a
                 {version?.isRepealed ? "Bu madde mülgadır." : "Bu maddenin metni henüz girilmedi."}
               </p>
             ) : (
-              <ParagraphList paragraphs={paragraphs} citations={detail.citations} />
+              <HighlightableText
+                articleId={article.id}
+                versionId={version!.id}
+                paragraphs={paragraphs}
+                citations={detail.citations}
+              />
             )}
             {note && <p className="mt-4 border-t pt-3 text-sm text-muted-foreground">{note}</p>}
           </div>

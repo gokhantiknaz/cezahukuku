@@ -4,6 +4,7 @@ using System.Text.Json.Serialization;
 using CezaHukuku.Api.Admin;
 using CezaHukuku.Api.Auth;
 using CezaHukuku.Api.Library;
+using CezaHukuku.Api.Personal;
 using CezaHukuku.Domain.Users;
 using CezaHukuku.Infrastructure;
 using CezaHukuku.Infrastructure.Identity;
@@ -62,7 +63,8 @@ builder.Services.ConfigureApplicationCookie(options =>
 builder.Services.Configure<SecurityStampValidatorOptions>(options => options.ValidationInterval = TimeSpan.FromMinutes(1));
 
 builder.Services.AddAuthorizationBuilder()
-    .AddPolicy(Policies.AdminOnly, policy => policy.RequireRole(Roles.SuperAdmin));
+    .AddPolicy(Policies.AdminOnly, policy => policy.RequireRole(Roles.SuperAdmin))
+    .AddPolicy(Policies.PersonalLayer, policy => policy.RequireRole(Roles.SuperAdmin, Roles.Standard));
 
 // Enum'lar API'de metin olarak taşınır ("public", "kitap"); web istemcisi bunları tip olarak alır.
 // Sayılar yalnız sayı olarak kabul edilir; aksi hâlde OpenAPI şemasında "integer | string" görünür.
@@ -99,6 +101,7 @@ app.MapAuthEndpoints();
 app.MapAdminUserEndpoints();
 app.MapLibraryEndpoints();
 app.MapAdminLawEndpoints();
+app.MapHighlightEndpoints();
 
 // Derleme sırasında OpenAPI belgesi üretilirken uygulama veritabanına dokunmadan başlatılır.
 if (!IsBuildTimeOpenApiGeneration())

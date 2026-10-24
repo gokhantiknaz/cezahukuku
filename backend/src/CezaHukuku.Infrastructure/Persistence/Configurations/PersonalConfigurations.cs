@@ -1,0 +1,43 @@
+using System.Text.Json;
+using CezaHukuku.Domain.Laws;
+using CezaHukuku.Domain.Personal;
+using CezaHukuku.Infrastructure.Identity;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
+
+namespace CezaHukuku.Infrastructure.Persistence.Configurations;
+
+internal sealed class HighlightConfiguration : IEntityTypeConfiguration<Highlight>
+{
+    public void Configure(EntityTypeBuilder<Highlight> b)
+    {
+        b.HasQueryFilter(e => e.DeletedAt == null);
+        b.Property(e => e.Color).HasConversion<string>().HasMaxLength(16);
+        b.HasOne<ApplicationUser>().WithMany().HasForeignKey(e => e.OwnerId).OnDelete(DeleteBehavior.Cascade);
+        b.HasOne<Article>().WithMany().HasForeignKey(e => e.ArticleId).OnDelete(DeleteBehavior.Restrict);
+        b.HasOne<ArticleVersion>().WithMany().HasForeignKey(e => e.ArticleVersionId).OnDelete(DeleteBehavior.Restrict);
+        b.HasIndex(e => new { e.OwnerId, e.ArticleId });
+
+        // Parçalar vurguyla birlikte okunup yazılır; fıkralar gibi tek jsonb sütunda.
+        b.Property(e => e.Segments)
+            .HasColumnType("jsonb")
+            .HasConversion(
+                v => AnchorJson.Serialize(v),
+                v => AnchorJson.Deserialize(v),
+                new ValueComparer<IReadOnlyList<TextAnchor>>(
+                    (x, y) => AnchorJson.Serialize(x) == AnchorJson.Serialize(y),
+                    v => AnchorJson.Serialize(v).GetHashCode(),
+                    v => AnchorJson.Deserialize(AnchorJson.Serialize(v))));
+    }
+}
+
+internal static class AnchorJson
+{
+    private static readonly JsonSerializerOptions Options = new(JsonSerializerDefaults.Web);
+
+    public static string Serialize(IReadOnlyList<TextAnchor>? anchors) => JsonSerializer.Serialize(anchors ?? [], Options);
+
+    public static IReadOnlyList<TextAnchor> Deserialize(string json) =>
+        JsonSerializer.Deserialize<List<TextAnchor>>(json, Options) ?? [];
+}

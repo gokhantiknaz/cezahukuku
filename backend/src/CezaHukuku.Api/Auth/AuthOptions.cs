@@ -14,4 +14,7 @@ public sealed class AuthOptions
 public static class Policies
 {
     public const string AdminOnly = "AdminOnly";
+
+    /// <summary>Kişisel katman (vurgu, not): super_admin ve standard; reader yalnız okur.</summary>
+    public const string PersonalLayer = "PersonalLayer";
 }

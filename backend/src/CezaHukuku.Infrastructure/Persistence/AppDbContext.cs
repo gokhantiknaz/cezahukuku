@@ -1,5 +1,6 @@
 using CezaHukuku.Domain.Decisions;
 using CezaHukuku.Domain.Laws;
+using CezaHukuku.Domain.Personal;
 using CezaHukuku.Infrastructure.Identity;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
@@ -20,6 +21,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<ArticleCitation> ArticleCitations => Set<ArticleCitation>();
     public DbSet<CourtDecision> CourtDecisions => Set<CourtDecision>();
     public DbSet<ArticleDecision> ArticleDecisions => Set<ArticleDecision>();
+    public DbSet<Highlight> Highlights => Set<Highlight>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

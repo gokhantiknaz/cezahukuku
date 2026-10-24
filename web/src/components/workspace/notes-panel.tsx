@@ -1,14 +1,7 @@
 import { Highlighter, Mic, NotebookPen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-
-// Kişisel vurgu renkleri (globals.css'teki --highlight-* değişkenleri).
-export const highlightColors = [
-  { key: "yellow", label: "Sarı", className: "bg-highlight-yellow" },
-  { key: "green", label: "Yeşil", className: "bg-highlight-green" },
-  { key: "blue", label: "Mavi", className: "bg-highlight-blue" },
-  { key: "orange", label: "Turuncu", className: "bg-highlight-orange" },
-] as const;
+import { highlightColors } from "@/lib/highlights";
 
 /** Sağ panel: seçili maddedeki kişisel vurgular ve notlar (M4'te dolacak). */
 export function NotesPanel() {
