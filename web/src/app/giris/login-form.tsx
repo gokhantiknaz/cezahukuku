@@ -1,42 +1,64 @@
 "use client";
 
+import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { ApiError } from "@/api/fetcher";
 import { useLogin } from "@/api/generated/auth/auth";
+import { LoadingOverlay } from "@/components/scales-loader";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useRefreshCurrentUser } from "@/lib/auth";
 
+/** Giriş katmanı bilerek en az bu kadar görünür (terazi animasyonu fark edilsin; hatalı şifrede de aynı süre). */
+const MIN_LOGIN_MS = 1800;
+
+const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
 export function LoginForm() {
   const router = useRouter();
   const refreshUser = useRefreshCurrentUser();
-  const login = useLogin({
-    mutation: {
-      onSuccess: async () => {
-        await refreshUser();
-        router.push("/");
-        // Sunucuda çizilen içerik oturuma bağlı (private kanunlar); önbellekteki anonim hâli yenilensin.
-        router.refresh();
-      },
-    },
-  });
+  const login = useLogin();
+  // İstek sürerken ve başarılı girişten sonra yönlendirme bitene kadar (form o zaman kaldırılır) açık.
+  const [busy, setBusy] = useState(false);
 
-  function handleSubmit(formData: FormData) {
-    login.mutate({
-      data: {
-        email: String(formData.get("email") ?? ""),
-        password: String(formData.get("password") ?? ""),
-        rememberMe: formData.get("rememberMe") === "on",
-      },
-    });
+  // onSubmit (form action değil): hatalı girişte React formu sıfırlamasın, e-posta yazılı kalsın.
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    setBusy(true);
+    const [result] = await Promise.allSettled([
+      login.mutateAsync({
+        data: {
+          email: String(formData.get("email") ?? ""),
+          password: String(formData.get("password") ?? ""),
+          rememberMe: formData.get("rememberMe") === "on",
+        },
+      }),
+      wait(MIN_LOGIN_MS),
+    ]);
+    if (result.status === "rejected") {
+      setBusy(false);
+      return;
+    }
+    await refreshUser();
+    router.push("/");
+    // Sunucuda çizilen içerik oturuma bağlı (private kanunlar); önbellekteki anonim hâli yenilensin.
+    router.refresh();
   }
 
-  const error = login.error instanceof ApiError ? login.error.message : login.error ? "Giriş yapılamadı." : null;
+  const error = busy
+    ? null
+    : login.error instanceof ApiError
+      ? login.error.message
+      : login.error
+        ? "Giriş yapılamadı."
+        : null;
 
   return (
-    <form action={handleSubmit} className="mt-6 space-y-4">
+    <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+      {busy && <LoadingOverlay title="Giriş yapılıyor…" />}
       <div className="space-y-1.5">
         <Label htmlFor="email">E-posta</Label>
         <Input id="email" name="email" type="email" required autoComplete="username" />
@@ -58,8 +80,8 @@ export function LoginForm() {
         </p>
       )}
 
-      <Button type="submit" size="lg" disabled={login.isPending} className="w-full">
-        {login.isPending ? "Giriş yapılıyor…" : "Giriş yap"}
+      <Button type="submit" size="lg" disabled={busy} className="w-full">
+        {busy ? "Giriş yapılıyor…" : "Giriş yap"}
       </Button>
     </form>
   );

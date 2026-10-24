@@ -1,5 +1,7 @@
+import { Suspense } from "react";
 import type { Metadata } from "next";
 import { Noto_Serif, Roboto_Condensed, Source_Sans_3 } from "next/font/google";
+import { NavigationProgress } from "@/components/navigation-progress";
 import { NewsTicker } from "@/components/news-ticker";
 import { SiteHeader } from "@/components/site-header";
 import { cn } from "@/lib/utils";
@@ -37,6 +39,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       {/* Sayfa ekran yüksekliğine sabit: çalışma alanındaki paneller kendi içinde kayar. */}
       <body className="flex h-dvh flex-col print:h-auto">
         <Providers>
+          <Suspense fallback={null}>
+            <NavigationProgress />
+          </Suspense>
           <SiteHeader />
           <main className="flex min-h-0 flex-1 flex-col overflow-auto print:overflow-visible">{children}</main>
           <NewsTicker />

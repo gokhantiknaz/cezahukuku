@@ -210,8 +210,74 @@
   animation: ticker 40s linear infinite;
 }
 
+/*
+ * Adalet terazisi (ScalesLoader): kol ±8° yatar; kefeler kol ucuyla birlikte 40·sin 8° ≈ 5,6 birim iner kalkar.
+ * SVG içinde px = viewBox birimi.
+ */
+@keyframes scales-beam {
+  0%,
+  100% {
+    transform: rotate(-8deg);
+  }
+  50% {
+    transform: rotate(8deg);
+  }
+}
+
+@keyframes scales-pan-left {
+  0%,
+  100% {
+    transform: translateY(5.6px);
+  }
+  50% {
+    transform: translateY(-5.6px);
+  }
+}
+
+@keyframes scales-pan-right {
+  0%,
+  100% {
+    transform: translateY(-5.6px);
+  }
+  50% {
+    transform: translateY(5.6px);
+  }
+}
+
+.scales .scales-beam {
+  transform-box: view-box;
+  transform-origin: 60px 30px;
+  animation: scales-beam var(--scales-duration, 2.4s) ease-in-out infinite;
+}
+
+.scales .scales-pan-left {
+  animation: scales-pan-left var(--scales-duration, 2.4s) ease-in-out infinite;
+}
+
+.scales .scales-pan-right {
+  animation: scales-pan-right var(--scales-duration, 2.4s) ease-in-out infinite;
+}
+
+/* Sayfa geçişi: en üstte soldan sağa kayan ince çubuk. */
+@keyframes nav-progress {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(300%);
+  }
+}
+
+.animate-nav-progress {
+  animation: nav-progress 1.2s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .animate-ticker {
+  .animate-ticker,
+  .animate-nav-progress,
+  .scales .scales-beam,
+  .scales .scales-pan-left,
+  .scales .scales-pan-right {
     animation: none;
   }
 }
