@@ -2,6 +2,7 @@ import Link from "next/link";
 import {
   BookMarked,
   BookOpen,
+  FileSearch,
   House,
   Newspaper,
   PenLine,
@@ -12,13 +13,16 @@ import { HeaderSearch } from "@/components/search/header-search";
 import { cn } from "@/lib/utils";
 import { UserMenu } from "./user-menu";
 
-type NavItem = { label: string; icon: LucideIcon; href?: string; highlighted?: boolean };
+/** wide: yalnız geniş ekranda (2xl) görünür; başlık satırı daha dar ekranda iki satıra taşmasın. */
+type NavItem = { label: string; icon: LucideIcon; href?: string; highlighted?: boolean; wide?: boolean };
 
 // href'i olmayan bölümler ilgili kilometre taşında açılacak.
 const navItems: NavItem[] = [
-  { label: "Ana Sayfa", icon: House, href: "/" },
+  // Logo da ana sayfaya gider.
+  { label: "Ana Sayfa", icon: House, href: "/", wide: true },
   { label: "Kütüphane", icon: BookOpen },
   { label: "Pratik Anlatımlar", icon: BookMarked, highlighted: true },
+  { label: "Atıf Denetimi", icon: FileSearch, href: "/denetle" },
   { label: "Ceza Gündemi", icon: Newspaper, href: "/gundem", highlighted: true },
 ];
 
@@ -34,7 +38,8 @@ export function SiteHeader() {
           </span>
         </Link>
 
-        <div role="search" className="order-last w-full md:order-none md:w-auto md:flex-1">
+        {/* basis-0: satıra sığıp sığmadığına metnin tam genişliğiyle değil, kalan yerle karar verilir. */}
+        <div role="search" className="order-last w-full md:order-none md:w-auto md:min-w-0 md:flex-1 md:basis-0">
           <HeaderSearch />
         </div>
 
@@ -81,7 +86,7 @@ function NavButton({ item }: { item: NavItem }) {
     );
   }
   return (
-    <Link href={item.href} className={cn(className, "hover:bg-accent")}>
+    <Link href={item.href} className={cn(className, "hover:bg-accent", item.wide && "hidden 2xl:flex")}>
       {content}
     </Link>
   );

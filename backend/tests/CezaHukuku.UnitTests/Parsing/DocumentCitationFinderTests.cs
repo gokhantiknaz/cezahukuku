@@ -36,6 +36,23 @@ public class DocumentCitationFinderTests
     public void NotCitations(string text) =>
         Assert.Empty(DocumentCitationFinder.Find(text));
 
+    [Theory]
+    [InlineData("TCK 81/2 uyarınca", "TCK 81/2", "81", 2, null)]
+    [InlineData("TCK m. 53/1-c bendi", "TCK m. 53/1-c", "53", 1, "c")]
+    [InlineData("CMK 231/5'e göre", "CMK 231/5", "231", 5, null)]
+    [InlineData("TCK madde 103/a", "TCK madde 103/a", "103/A", null, null)]
+    public void ParagraphAndItem(string text, string expectedMatch, string article, int? paragraph, string? item)
+    {
+        var citation = Assert.Single(DocumentCitationFinder.Find(text));
+
+        Assert.Equal(expectedMatch, text.Substring(citation.Start, citation.Length));
+        Assert.Equal((article, paragraph, item), (citation.ArticleNumber, citation.Paragraph, citation.Item));
+    }
+
+    [Fact]
+    public void YearAndCaseNumber_IsNotParagraph() =>
+        Assert.Empty(DocumentCitationFinder.Find("AYM 2019/12 sayılı karar"));
+
     [Fact]
     public void SeveralInOneSentence()
     {

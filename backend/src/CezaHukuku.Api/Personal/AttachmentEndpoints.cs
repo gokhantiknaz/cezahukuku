@@ -264,8 +264,8 @@ public static class AttachmentEndpoints
     }
 
     /// <summary>
-    /// Belge metnindeki atıfları kütüphanedeki maddelere bağlar: kısaltma kanunun kısa adıyla ("TCK"), numara
-    /// kanun numarasıyla, ad kanun adıyla eşleşir; madde kütüphanede yoksa atıf düz metin kalır.
+    /// Belge metnindeki atıfları kütüphanedeki maddelere bağlar (<see cref="CitedLaws"/>); madde kütüphanede yoksa
+    /// atıf düz metin kalır.
     /// </summary>
     private static async Task<Dictionary<Guid, List<DocumentCitationSpan>>> ResolveCitationsAsync(
         AppDbContext db, List<AttachmentSegment> segments, CancellationToken ct)
@@ -274,13 +274,8 @@ public static class AttachmentEndpoints
         if (found.Values.All(c => c.Count == 0))
             return [];
 
-        var laws = await db.Laws.AsNoTracking().ToListAsync(ct);
-        Guid? LawOf(DocumentCitation c) => (c.Kind switch
-        {
-            DocumentLawKind.Abbreviation => laws.FirstOrDefault(l => l.ShortName is not null && TurkishText.Fold(l.ShortName) == TurkishText.Fold(c.LawValue)),
-            DocumentLawKind.Number => laws.FirstOrDefault(l => l.Number == c.LawValue),
-            _ => laws.FirstOrDefault(l => TurkishText.Fold(l.Name) == TurkishText.Fold(c.LawValue)),
-        })?.Id;
+        var laws = await CitedLaws.LoadAsync(db, includePrivate: true, ct);
+        Guid? LawOf(DocumentCitation c) => laws.Find(c)?.Id;
 
         var wanted = found.Values.SelectMany(c => c)
             .Select(c => (Law: LawOf(c), Slug: Slugs.ForArticle(c.ArticleNumber)))

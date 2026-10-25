@@ -2,12 +2,13 @@
 
 import { useEffect, useRef, type ReactNode } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
-import { ArrowLeft, Download, ExternalLink } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { ArrowLeft, Download, ExternalLink, FileSearch } from "lucide-react";
 import { useGetAttachment } from "@/api/generated/personal/personal";
 import type { DocumentCitationSpan } from "@/api/generated/model";
 import { Button } from "@/components/ui/button";
 import { attachmentFileUrl, formatBytes, formatDateTime, formatSeconds } from "@/lib/attachments";
+import { handoffKey } from "@/lib/citation-check";
 import { cn } from "@/lib/utils";
 import { StatusBadge } from "./documents-page";
 
@@ -84,6 +85,7 @@ export function DocumentViewer({ id }: { id: string }) {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <StatusBadge attachment={a} />
+          {segments.length > 0 && <CheckCitationsButton text={segments.map((s) => s.text).join("\n\n")} />}
           {pdf && (
             <Button variant="outline" asChild>
               <a href={attachmentFileUrl(a.id)} target="_blank" rel="noreferrer">
@@ -127,5 +129,25 @@ export function DocumentViewer({ id }: { id: string }) {
         </div>
       )}
     </div>
+  );
+}
+
+/** Belgenin metnini Atıf Denetimi sayfasına taşır (metin adres çubuğuna sığmaz; oturum deposuyla gider). */
+function CheckCitationsButton({ text }: { text: string }) {
+  const router = useRouter();
+  return (
+    <Button
+      variant="outline"
+      onClick={() => {
+        try {
+          sessionStorage.setItem(handoffKey, text);
+        } catch {
+          // Depo kapalıysa sayfa boş açılır; metin elle yapıştırılır.
+        }
+        router.push("/denetle");
+      }}
+    >
+      <FileSearch /> Atıfları denetle
+    </Button>
   );
 }

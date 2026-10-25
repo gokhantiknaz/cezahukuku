@@ -1,9 +1,7 @@
 using System.Net;
-using System.Text;
 using CezaHukuku.Api.Common;
 using CezaHukuku.Api.Library;
 using CezaHukuku.Domain.Laws;
-using CezaHukuku.Infrastructure.Attachments;
 using CezaHukuku.Infrastructure.Content;
 using CezaHukuku.Infrastructure.Persistence;
 using CezaHukuku.Parsing.Legislation;
@@ -41,31 +39,13 @@ internal static class AdminImportEndpoints
     /// Kanun metnini dosyadan alır (Word .docx, PDF, düz metin); metin içe aktarma kutusuna konup aynı önizlemeyle
     /// içe aktarılır. PDF'te satırlar sayfa genişliğinde kırıldığından kırık satırları birleştirme önerilir.
     /// </summary>
-    private static async Task<Results<Ok<ExtractedImportText>, ValidationProblem>> ExtractTextAsync(IFormFile file, CancellationToken ct)
-    {
-        if (file.Length == 0 || file.Length > MaxImportFileBytes)
-            return ValidationErrors.Single("file", "Dosya boş ya da çok büyük (en fazla 30 MB).");
-
-        var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
-        await using var buffer = new MemoryStream();
-        await file.CopyToAsync(buffer, ct);
-        buffer.Position = 0;
-        try
+    private static async Task<Results<Ok<ExtractedImportText>, ValidationProblem>> ExtractTextAsync(IFormFile file, CancellationToken ct) =>
+        await TextFiles.ExtractAsync(file, MaxImportFileBytes, "\n", ct) switch
         {
-            return extension switch
-            {
-                ".docx" => TypedResults.Ok(new ExtractedImportText(DocxTextExtractor.Extract(buffer), false)),
-                ".pdf" => TypedResults.Ok(new ExtractedImportText(string.Join('\n', PdfTextExtractor.ExtractPages(buffer)), true)),
-                ".txt" => TypedResults.Ok(new ExtractedImportText(Encoding.UTF8.GetString(buffer.ToArray()), false)),
-                ".doc" => ValidationErrors.Single("file", "Eski Word (.doc) biçimi okunamıyor; belgeyi Word'de .docx olarak kaydedip yükleyin."),
-                _ => ValidationErrors.Single("file", "Yalnız .docx, .pdf ve .txt dosyası yüklenebilir."),
-            };
-        }
-        catch (Exception ex) when (ex is InvalidDataException or System.Xml.XmlException or UglyToad.PdfPig.Core.PdfDocumentFormatException)
-        {
-            return ValidationErrors.Single("file", "Dosya okunamadı; bozuk ya da parola korumalı olabilir.");
-        }
-    }
+            { Result: Ok<ExtractedFileText> ok } => TypedResults.Ok(new ExtractedImportText(ok.Value!.Text, ok.Value.IsPdf)),
+            { Result: ValidationProblem problem } => problem,
+            _ => throw new InvalidOperationException(),
+        };
 
     private static async Task<Results<Ok<LawImportPreview>, NotFound>> PreviewAsync(
         Guid lawId, ImportLawTextRequest request, AppDbContext db)

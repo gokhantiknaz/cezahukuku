@@ -3156,6 +3156,94 @@
           }
         }
       }
+    },
+    "/api/tools/citation-check": {
+      "post": {
+        "tags": [
+          "Tools"
+        ],
+        "operationId": "CheckCitations",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CitationCheckRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CitationCheckResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/tools/extract-text": {
+      "post": {
+        "tags": [
+          "Tools"
+        ],
+        "operationId": "ExtractText",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "required": [
+                  "file"
+                ],
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "$ref": "#/components/schemas/IFormFile"
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExtractedText"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -3915,6 +4003,236 @@
           "error"
         ]
       },
+      "CheckedArticleCitation": {
+        "required": [
+          "start",
+          "length",
+          "key",
+          "label",
+          "article",
+          "paragraph",
+          "item",
+          "severity",
+          "issues"
+        ],
+        "type": "object",
+        "properties": {
+          "start": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "length": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "key": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "article": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/LinkedArticleRef"
+              }
+            ]
+          },
+          "paragraph": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "item": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "severity": {
+            "$ref": "#/components/schemas/CheckSeverity"
+          },
+          "issues": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CitationIssue"
+            }
+          }
+        }
+      },
+      "CheckedDecisionCitation": {
+        "required": [
+          "start",
+          "length",
+          "key",
+          "label",
+          "court",
+          "chamber",
+          "caseNumber",
+          "decisionNumber",
+          "isApplication",
+          "decisionDate",
+          "match",
+          "severity",
+          "issues"
+        ],
+        "type": "object",
+        "properties": {
+          "start": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "length": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "key": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "court": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/Court"
+              }
+            ]
+          },
+          "chamber": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "caseNumber": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "decisionNumber": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "isApplication": {
+            "type": "boolean"
+          },
+          "decisionDate": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "match": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/LinkedDecisionRef"
+              }
+            ]
+          },
+          "severity": {
+            "$ref": "#/components/schemas/CheckSeverity"
+          },
+          "issues": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CitationIssue"
+            }
+          }
+        }
+      },
+      "CheckSeverity": {
+        "enum": [
+          "ok",
+          "info",
+          "warning",
+          "error"
+        ]
+      },
+      "CitationCheckRequest": {
+        "required": [
+          "text",
+          "referenceDate"
+        ],
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "referenceDate": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          }
+        }
+      },
+      "CitationCheckResult": {
+        "required": [
+          "articles",
+          "decisions"
+        ],
+        "type": "object",
+        "properties": {
+          "articles": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CheckedArticleCitation"
+            }
+          },
+          "decisions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CheckedDecisionCitation"
+            }
+          }
+        }
+      },
+      "CitationIssue": {
+        "required": [
+          "code",
+          "severity",
+          "message",
+          "url"
+        ],
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "severity": {
+            "$ref": "#/components/schemas/CheckSeverity"
+          },
+          "message": {
+            "type": "string"
+          },
+          "url": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "CitationSpan": {
         "required": [
           "paragraphId",
@@ -4250,6 +4568,17 @@
           },
           "joinWrappedLines": {
             "type": "boolean"
+          }
+        }
+      },
+      "ExtractedText": {
+        "required": [
+          "text"
+        ],
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string"
           }
         }
       },
@@ -5035,6 +5364,69 @@
           },
           "title": {
             "type": "string"
+          }
+        }
+      },
+      "LinkedDecisionRef": {
+        "required": [
+          "id",
+          "court",
+          "chamber",
+          "kind",
+          "caseNumber",
+          "decisionNumber",
+          "decisionDate",
+          "url",
+          "sourceUrl"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "court": {
+            "$ref": "#/components/schemas/Court"
+          },
+          "chamber": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "kind": {
+            "$ref": "#/components/schemas/DecisionKind"
+          },
+          "caseNumber": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "decisionNumber": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "decisionDate": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "url": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "sourceUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -6180,6 +6572,9 @@
     },
     {
       "name": "Personal"
+    },
+    {
+      "name": "Tools"
     }
   ]
 }

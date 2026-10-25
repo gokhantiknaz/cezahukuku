@@ -7,6 +7,7 @@ using CezaHukuku.Api.Content;
 using CezaHukuku.Api.Library;
 using CezaHukuku.Api.Personal;
 using CezaHukuku.Api.Search;
+using CezaHukuku.Api.Tools;
 using CezaHukuku.Domain.Users;
 using CezaHukuku.Infrastructure;
 using CezaHukuku.Infrastructure.Identity;
@@ -108,6 +109,7 @@ app.MapHighlightEndpoints();
 app.MapSearchEndpoints();
 app.MapNewsEndpoints();
 app.MapQuizEndpoints();
+app.MapCitationCheckEndpoints();
 
 // Derleme sırasında OpenAPI belgesi üretilirken uygulama veritabanına dokunmadan başlatılır.
 if (!IsBuildTimeOpenApiGeneration())
