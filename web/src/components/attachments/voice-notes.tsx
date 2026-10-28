@@ -78,7 +78,7 @@ function useVoiceRecorder(onRecorded: (file: File) => void) {
 
 /**
  * Maddedeki sesli notlarım (sağ panel): kaydet, dinle, yazıya dökülmüş metni oku ya da kendin yaz. Yazıya dökme
- * sunucuda ayarlıysa metin kendiliğinden gelir (işlenirken liste kendini yeniler).
+ * (Faz 3) sunucuda ayarlıysa metin kendiliğinden gelir (işlenirken liste kendini yeniler).
  */
 export function VoiceNotes({ articleId }: { articleId: string }) {
   const queryClient = useQueryClient();
@@ -179,7 +179,7 @@ function VoiceNoteItem({ note, onChanged }: { note: AttachmentDto; onChanged: ()
       <audio ref={audioRef} controls preload="metadata" src={attachmentFileUrl(note.id)} className="h-9 w-full" />
 
       {note.status === "pending" ? (
-        <p className="text-xs text-muted-foreground">Yazıya dökülüyor…</p>
+        <p className="text-xs text-muted-foreground">İşleniyor…</p>
       ) : editing ? (
         <NoteForm initialText={transcript} busy={update.isPending} rows={4} onSave={saveTranscript} onCancel={() => setEditing(false)} />
       ) : detail && detail.segments.length > 0 ? (
@@ -209,7 +209,8 @@ function VoiceNoteItem({ note, onChanged }: { note: AttachmentDto; onChanged: ()
         </div>
       ) : (
         <div className="flex flex-wrap items-center gap-1 text-xs text-muted-foreground">
-          {note.status === "failed" ? note.error : detail?.transcriptionEnabled ? "Konuşma algılanmadı." : "Yazıya dökme açık değil."}
+          {/* Yazıya dökme kapalıyken (Faz 3) bundan hiç söz edilmez; kullanıcı metni kendisi yazabilir. */}
+          {note.status === "failed" ? note.error : detail?.transcriptionEnabled && "Konuşma algılanmadı."}
           <Button size="xs" variant="ghost" onClick={() => setEditing(true)}>
             <Pencil /> Metni yaz
           </Button>
