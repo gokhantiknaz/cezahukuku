@@ -36,14 +36,15 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="tr" className={cn("h-full antialiased", uiFont.variable, bodyFont.variable, logoFont.variable)}>
-      {/* Sayfa ekran yüksekliğine sabit: çalışma alanındaki paneller kendi içinde kayar. */}
-      <body className="flex h-dvh flex-col print:h-auto">
+      {/* Geniş ekranda sayfa ekran yüksekliğine sabit: çalışma alanındaki paneller kendi içinde kayar. Dar ekranda
+          sayfanın tamamı kayar: tarayıcının adres çubuğu ve başlık kaydırınca çekilir, okuma alanı büyür. */}
+      <body className="flex min-h-dvh flex-col lg:h-dvh print:h-auto">
         <Providers>
           <Suspense fallback={null}>
             <NavigationProgress />
           </Suspense>
           <SiteHeader />
-          <main className="flex min-h-0 flex-1 flex-col overflow-auto print:overflow-visible">{children}</main>
+          <main className="flex flex-1 flex-col lg:min-h-0 lg:overflow-auto print:overflow-visible">{children}</main>
           <NewsTicker />
         </Providers>
       </body>

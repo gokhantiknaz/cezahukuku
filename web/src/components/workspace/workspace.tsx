@@ -1,14 +1,16 @@
 "use client";
 
 import { useCallback, useState, type ReactNode } from "react";
-import { BookOpen, NotebookPen, PanelRightClose, PanelRightOpen } from "lucide-react";
+import Link from "next/link";
+import { BookOpen, ChevronLeft, ChevronRight, NotebookPen, PanelRightClose, PanelRightOpen } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useDefaultLayout, usePanelRef } from "react-resizable-panels";
 import { Button } from "@/components/ui/button";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { useMediaQuery } from "@/hooks/use-media-query";
-import { CurrentArticleProvider } from "./current-article";
+import { cn } from "@/lib/utils";
+import { CurrentArticleProvider, useCurrentArticle, type ArticleLink } from "./current-article";
 
 type WorkspaceProps = {
   /** Sol panel: kütüphane / kanun ağacı. */
@@ -39,8 +41,8 @@ const safeStorage = {
 
 /**
  * Ana çalışma alanı: masaüstünde boyutlandırılabilir 3 panel (sol gezinme, orta içerik, sağ notlar —
- * sağ panel kapatılabilir ve kapalıyken içerik genişler). Dar ekranda yalnız içerik görünür,
- * gezinme ve notlar kenardan açılan çekmecelerde. Açık madde bağlamla (CurrentArticleProvider) sağ panele iletilir.
+ * sağ panel kapatılabilir ve kapalıyken içerik genişler). Dar ekranda yalnız içerik görünür (sayfayla birlikte kayar),
+ * gezinme ve notlar kenardan açılan çekmecelerde; alttaki sabit çubukta önceki/sonraki madde, Kütüphane ve Notlarım. Açık madde bağlamla (CurrentArticleProvider) sağ panele iletilir.
  */
 export function Workspace(props: WorkspaceProps) {
   const isDesktop = useMediaQuery("(min-width: 1024px)");
@@ -122,16 +124,9 @@ function MobileWorkspace({ navigation, content, notes }: WorkspaceProps) {
 
   return (
     <CurrentArticleProvider onReveal={closeSheet}>
-      <div className="flex min-h-0 flex-1 flex-col">
-        <div className="flex items-center justify-between border-b bg-card px-2 py-1 print:hidden">
-          <Button variant="ghost" onClick={() => setOpen("navigation")}>
-            <BookOpen /> Kütüphane
-          </Button>
-          <Button variant="ghost" onClick={() => setOpen("notes")}>
-            <NotebookPen /> Notlarım
-          </Button>
-        </div>
-        <div className="min-h-0 flex-1">{content}</div>
+      <div className="flex flex-1 flex-col">
+        <div className="flex-1">{content}</div>
+        <MobileBottomBar onOpen={setOpen} />
 
         <Sheet open={open === "navigation"} onOpenChange={(value) => setOpen(value ? "navigation" : null)}>
           <SheetContent side="left" className="w-[88vw] max-w-sm p-0">
@@ -147,5 +142,52 @@ function MobileWorkspace({ navigation, content, notes }: WorkspaceProps) {
         </Sheet>
       </div>
     </CurrentArticleProvider>
+  );
+}
+
+const barCell = "flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 px-1 py-1.5 text-xs";
+
+/** Dar ekranda alta yapışan çubuk: başparmakla önceki/sonraki madde, kütüphane ve notlar. */
+function MobileBottomBar({ onOpen }: { onOpen: (panel: "navigation" | "notes") => void }) {
+  const { article } = useCurrentArticle();
+  return (
+    <nav
+      aria-label="Madde gezinmesi"
+      className="sticky bottom-0 z-30 flex border-t bg-card pb-[env(safe-area-inset-bottom)] shadow-[0_-2px_6px_rgb(0_0_0/0.04)] print:hidden"
+    >
+      <PagerCell link={article?.previous ?? null} direction="previous" />
+      <button type="button" className={cn(barCell, "hover:bg-accent")} onClick={() => onOpen("navigation")}>
+        <BookOpen className="size-5" aria-hidden />
+        Kütüphane
+      </button>
+      <button type="button" className={cn(barCell, "hover:bg-accent")} onClick={() => onOpen("notes")}>
+        <NotebookPen className="size-5" aria-hidden />
+        Notlarım
+      </button>
+      <PagerCell link={article?.next ?? null} direction="next" />
+    </nav>
+  );
+}
+
+function PagerCell({ link, direction }: { link: ArticleLink | null; direction: "previous" | "next" }) {
+  const Icon = direction === "previous" ? ChevronLeft : ChevronRight;
+  const fallback = direction === "previous" ? "Önceki" : "Sonraki";
+  if (!link) {
+    return (
+      <span className={cn(barCell, "text-muted-foreground/50")} aria-hidden>
+        <Icon className="size-5" />
+        {fallback}
+      </span>
+    );
+  }
+  return (
+    <Link
+      href={link.href}
+      className={cn(barCell, "hover:bg-accent")}
+      aria-label={`${fallback} madde: ${link.label}`}
+    >
+      <Icon className="size-5" aria-hidden />
+      <span className="max-w-full truncate">{link.label}</span>
+    </Link>
   );
 }

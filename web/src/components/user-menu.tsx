@@ -8,11 +8,11 @@ import { Button } from "@/components/ui/button";
 import { isAdmin, useCurrentUser, useRefreshCurrentUser } from "@/lib/auth";
 import { canAnnotate } from "@/lib/highlights";
 
-export function UserMenu() {
+/** Oturumu kapatır, ana sayfaya döner. */
+export function useSignOut() {
   const router = useRouter();
-  const { data: user, isPending } = useCurrentUser();
   const refreshUser = useRefreshCurrentUser();
-  const logout = useLogout({
+  return useLogout({
     mutation: {
       onSettled: async () => {
         await refreshUser();
@@ -21,6 +21,12 @@ export function UserMenu() {
       },
     },
   });
+}
+
+/** Başlıktaki kullanıcı düğmeleri; telefonda (md altı) bunlar ☰ menüsündedir. */
+export function UserMenu() {
+  const { data: user, isPending } = useCurrentUser();
+  const logout = useSignOut();
 
   if (isPending) return <div className="h-9 w-24" aria-hidden />;
 

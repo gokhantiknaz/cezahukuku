@@ -13,7 +13,19 @@ export default function HomePage() {
           <LibraryNavigation />
         </Suspense>
       }
-      content={<WelcomeView />}
+      content={
+        <>
+          {/* Telefonda solda panel yok: kütüphane doğrudan ana sayfada. */}
+          <div className="lg:hidden">
+            <Suspense fallback={<LibraryPanelSkeleton />}>
+              <LibraryNavigation />
+            </Suspense>
+          </div>
+          <div className="h-full max-lg:hidden">
+            <WelcomeView />
+          </div>
+        </>
+      }
       notes={<NotesPanel />}
     />
   );

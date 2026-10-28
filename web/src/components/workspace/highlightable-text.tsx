@@ -14,6 +14,7 @@ import { createPortal } from "react-dom";
 import { Check, NotebookPen, Trash2 } from "lucide-react";
 import type { CitationSpan, HighlightColor, ParagraphDto, PersonalNoteDto, TextPosition } from "@/api/generated/model";
 import { Button } from "@/components/ui/button";
+import { useMediaQuery } from "@/hooks/use-media-query";
 import { highlightClassName, highlightColors } from "@/lib/highlights";
 import { cn } from "@/lib/utils";
 import { groupMarks, ParagraphList } from "./article-text";
@@ -70,6 +71,10 @@ function selectionSegments(range: Range, container: Element): TextPosition[] {
  * çubuğu açılır ("Not ekle" seçimi sarıyla vurgulayıp not düzenleyiciyi açar); var olan vurguya tıklayınca rengi
  * değiştirilir, notu yazılır ya da vurgu silinir. Notlu vurgunun sonunda not simgesi durur. Vurgular gösterilen
  * sürümün metnine göre yerleştirilir; madde değiştiği için bulunamayanlar metinde görünmez (sayısı altta belirtilir).
+ *
+ * Dokunmatik ekranda seçim uzun basışla yapılır ve tarayıcı parmak kalkınca olay göndermeyebilir: seçim
+ * `selectionchange` ile izlenir. Araç çubuğu seçimin üstünde değil ekranın altında açılır (telefonun kendi
+ * Kopyala menüsüyle çakışmasın); not düzenleyici ekranın üstünde (klavye altta açılır).
  */
 export function HighlightableText({
   articleId,
@@ -87,6 +92,7 @@ export function HighlightableText({
   const containerRef = useRef<HTMLDivElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
   const [overlay, setOverlay] = useState<Overlay | null>(null);
+  const coarse = useMediaQuery("(pointer: coarse)", false);
 
   const marks = useMemo(
     () =>
@@ -119,7 +125,8 @@ export function HighlightableText({
       const target = event.target as Node;
       if (!overlayRef.current?.contains(target) && !containerRef.current?.contains(target)) close();
     };
-    window.addEventListener("scroll", close, true);
+    // Dokunmatikte çubuk ekranın altına sabit: kaydırınca yeri kaymaz, kapanmasına gerek yok.
+    if (!coarse) window.addEventListener("scroll", close, true);
     window.addEventListener("keydown", onKey);
     document.addEventListener("pointerdown", onPointerDown);
     return () => {
@@ -127,7 +134,32 @@ export function HighlightableText({
       window.removeEventListener("keydown", onKey);
       document.removeEventListener("pointerdown", onPointerDown);
     };
-  }, [overlay]);
+  }, [overlay, coarse]);
+
+  // Dokunmatik seçim: seçim tutamaçlarıyla genişletilirken her değişimde değil, durunca okunur. Seçim kalkınca
+  // çubuk kapanmaz (çubuğa dokunmak seçimi kaldırabilir; vurgu saklanan parçalarla yapılır).
+  const noteOpen = overlay?.kind === "note";
+  useEffect(() => {
+    if (!enabled || !coarse || noteOpen) return;
+    let timer: number | undefined;
+    const onChange = () => {
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => {
+        const container = containerRef.current;
+        const selection = window.getSelection();
+        if (!container || !selection || selection.isCollapsed || selection.rangeCount === 0) return;
+        const range = selection.getRangeAt(0);
+        if (!container.contains(range.commonAncestorContainer) && !range.intersectsNode(container)) return;
+        const segments = selectionSegments(range, container);
+        if (segments.length > 0) setOverlay({ kind: "selection", anchor: toAnchor(range.getBoundingClientRect()), segments });
+      }, 250);
+    };
+    document.addEventListener("selectionchange", onChange);
+    return () => {
+      window.clearTimeout(timer);
+      document.removeEventListener("selectionchange", onChange);
+    };
+  }, [enabled, coarse, noteOpen]);
 
   function handlePointerUp(event: PointerEvent | KeyboardEvent) {
     const container = containerRef.current;
@@ -215,6 +247,7 @@ export function HighlightableText({
                 key={current.id}
                 ref={overlayRef}
                 anchor={overlay.anchor}
+                docked={coarse}
                 quote={current.quote}
                 note={noteOf.get(current.id)}
                 busy={busy}
@@ -228,7 +261,12 @@ export function HighlightableText({
               ref={overlayRef}
               role="toolbar"
               aria-label={overlay.kind === "selection" ? "Vurgula" : "Vurguyu düzenle"}
-              style={{ top: overlay.anchor.top - 52 > 8 ? overlay.anchor.top - 52 : overlay.anchor.bottom + 8, left: overlay.anchor.centerX }}
+              style={
+                coarse
+                  ? // Alttaki madde çubuğunun üstünde.
+                    { bottom: "calc(env(safe-area-inset-bottom) + 4.5rem)", left: "50%" }
+                  : { top: overlay.anchor.top - 52 > 8 ? overlay.anchor.top - 52 : overlay.anchor.bottom + 8, left: overlay.anchor.centerX }
+              }
               // Düğmeye basmak metindeki seçimi kaldırmasın.
               onMouseDown={(e) => e.preventDefault()}
               className="fixed z-50 flex -translate-x-1/2 animate-in items-center gap-1 rounded-full border bg-popover p-1.5 shadow-lg duration-100 fade-in zoom-in-95"
@@ -261,7 +299,7 @@ export function HighlightableText({
                         aria-label={`${color.label} ile vurgula`}
                         aria-pressed={overlay.kind === "highlight" ? selected : undefined}
                         className={cn(
-                          "flex size-7 items-center justify-center rounded-full border border-black/10 transition-transform hover:scale-110",
+                          "flex size-7 items-center justify-center rounded-full border border-black/10 transition-transform hover:scale-110 pointer-coarse:size-10",
                           color.className,
                           selected && "ring-2 ring-primary ring-offset-1 ring-offset-popover",
                         )}
@@ -317,7 +355,7 @@ function ToolbarButton({
       title={label}
       aria-label={label}
       className={cn(
-        "flex size-7 items-center justify-center rounded-full text-muted-foreground hover:bg-accent",
+        "flex size-7 items-center justify-center rounded-full text-muted-foreground hover:bg-accent pointer-coarse:size-10",
         destructive ? "hover:text-destructive" : "hover:text-primary",
       )}
       {...props}
@@ -325,10 +363,14 @@ function ToolbarButton({
   );
 }
 
-/** Vurguya bağlı notun düzenleyicisi: vurgunun altında (yer yoksa üstünde) açılan kart. */
+/**
+ * Vurguya bağlı notun düzenleyicisi: vurgunun altında (yer yoksa üstünde) açılan kart. `docked`: dokunmatikte ekranın
+ * üstünde, tam genişlikte (klavye altta açılıp kartı örtmesin).
+ */
 function NoteEditor({
   ref,
   anchor,
+  docked,
   quote,
   note,
   busy,
@@ -338,6 +380,7 @@ function NoteEditor({
 }: {
   ref: Ref<HTMLDivElement>;
   anchor: Anchor;
+  docked: boolean;
   quote: string;
   note: PersonalNoteDto | undefined;
   busy: boolean;
@@ -348,7 +391,11 @@ function NoteEditor({
   const width = Math.min(360, window.innerWidth - 16);
   const left = Math.min(Math.max(anchor.centerX - width / 2, 8), window.innerWidth - width - 8);
   const below = anchor.bottom + 8;
-  const style = below + 260 < window.innerHeight ? { top: below } : { bottom: window.innerHeight - anchor.top + 8 };
+  const style = docked
+    ? { top: 8 }
+    : below + 260 < window.innerHeight
+      ? { top: below }
+      : { bottom: window.innerHeight - anchor.top + 8 };
 
   return (
     <div

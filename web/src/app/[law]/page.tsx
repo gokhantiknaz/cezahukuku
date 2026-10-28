@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { ArticleSkeleton } from "@/components/workspace/article-view";
 import { LawIntro } from "@/components/workspace/law-intro";
-import { getLaw } from "@/lib/server-api";
+import { getLaw, getLibrary } from "@/lib/server-api";
 
 export async function generateMetadata({ params }: PageProps<"/[law]">): Promise<Metadata> {
   const { law: lawSlug } = await params;
@@ -28,7 +28,7 @@ export default function LawPage({ params }: PageProps<"/[law]">) {
 
 async function LawOverview({ params }: { params: Promise<{ law: string }> }) {
   const { law: lawSlug } = await params;
-  const tree = await getLaw(lawSlug);
+  const [library, tree] = await Promise.all([getLibrary(), getLaw(lawSlug)]);
   if (!tree) notFound();
-  return <LawIntro tree={tree} />;
+  return <LawIntro tree={tree} groups={library.groups} />;
 }

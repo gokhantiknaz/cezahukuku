@@ -65,7 +65,7 @@ async function SearchContent({ searchParams }: { searchParams: Promise<Record<st
   return (
     <>
       <Form key={`${q}|${lawSlug}`} action="/ara" className="mt-4 flex flex-wrap gap-2" role="search">
-        <label className="relative min-w-60 flex-1">
+        <label className="relative w-full sm:w-auto sm:min-w-60 sm:flex-1">
           <span className="sr-only">Aranacak ifade</span>
           <Search className="absolute top-1/2 left-3 size-5 -translate-y-1/2 text-muted-foreground" aria-hidden />
           <Input
@@ -81,7 +81,8 @@ async function SearchContent({ searchParams }: { searchParams: Promise<Record<st
           name="kanun"
           defaultValue={lawSlug ?? ""}
           aria-label="Kanun"
-          className="h-11 rounded-md border bg-card px-3 text-base"
+          // Uzun kanun adları kutuyu ekrandan taşırmasın.
+          className="h-11 min-w-0 flex-1 rounded-md border bg-card px-3 text-base sm:max-w-xs sm:flex-none"
         >
           <option value="">Bütün kanunlar</option>
           {laws.map((law) => (

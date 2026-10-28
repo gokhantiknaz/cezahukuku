@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useParams, usePathname } from "next/navigation";
+import { useParams, usePathname, useRouter } from "next/navigation";
 import {
   ArrowLeft,
   BookOpen,
@@ -138,8 +138,17 @@ function LibraryList({ groups }: { groups: LawGroupWithLaws[] }) {
 function LawTreeView({ tree, onBackToLibrary }: { tree: LawTreeResponse; onBackToLibrary: () => void }) {
   const [query, setQuery] = useState("");
   const params = useParams<{ article?: string }>();
+  const router = useRouter();
   const selectedSlug = params.article ?? null;
   const filtering = query.trim().length > 0;
+
+  /** Enter (telefonda "Git"): numarası tutan maddeye, yoksa ilk eşleşene gider. */
+  function jump(event: React.FormEvent) {
+    event.preventDefault();
+    const { exact, results } = filterArticles(tree, query);
+    const target = exact ?? results[0];
+    if (target) router.push(`/${tree.law.slug}/${target.slug}`);
+  }
   const { law } = tree;
   const isEmpty = tree.nodes.length === 0 && tree.articles.length === 0;
 
@@ -165,16 +174,19 @@ function LawTreeView({ tree, onBackToLibrary }: { tree: LawTreeResponse; onBackT
         <p className="px-1 text-sm text-muted-foreground">
           {law.name} ({law.number})
         </p>
-        <label className="relative block">
-          <Search className="absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
-          <Input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Madde no veya başlık ara…"
-            className="pl-8"
-            aria-label="Bu kanunda madde ara"
-          />
-        </label>
+        <form onSubmit={jump} role="search">
+          <label className="relative block">
+            <Search className="absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
+            <Input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Madde no veya başlık ara…"
+              enterKeyHint="go"
+              className="h-10 pl-8 text-base md:h-8 md:text-sm"
+              aria-label="Bu kanunda madde ara"
+            />
+          </label>
+        </form>
       </div>
 
       <ScrollArea className="min-h-0 flex-1">
@@ -347,11 +359,18 @@ function FilteredArticles({
   query: string;
   selectedSlug: string | null;
 }) {
-  const normalizedNumber = query.trim().replace(/^(m(adde)?\.?\s*)/i, "");
-  const results = [...tree.articles, ...flattenArticles(tree.nodes)].filter(
-    (a) => a.number === normalizedNumber || matchesTr(a.title, query) || matchesTr(`madde ${a.number}`, query),
-  );
+  const { results } = filterArticles(tree, query);
 
   if (results.length === 0) return <p className="px-2 py-4 text-sm text-muted-foreground">Eşleşen madde yok.</p>;
   return <ArticleList articles={results} lawSlug={tree.law.slug} indent={0} selectedSlug={selectedSlug} />;
+}
+
+/** Kanunda madde süzgeci: "81", "m. 81", "madde 81" numaraya; başka metin başlığa bakar. */
+function filterArticles(tree: LawTreeResponse, query: string) {
+  const normalizedNumber = query.trim().replace(/^(m(adde)?\.?\s*)/i, "");
+  const all = [...tree.articles, ...flattenArticles(tree.nodes)];
+  const results = all.filter(
+    (a) => a.number === normalizedNumber || matchesTr(a.title, query) || matchesTr(`madde ${a.number}`, query),
+  );
+  return { exact: all.find((a) => a.number.toLocaleLowerCase("tr") === normalizedNumber.toLocaleLowerCase("tr")), results };
 }

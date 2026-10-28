@@ -1,4 +1,4 @@
-import { Fragment, type ReactNode } from "react";
+import { Fragment, type CSSProperties, type ReactNode } from "react";
 import Link from "next/link";
 import { StickyNote } from "lucide-react";
 import type { CitationSpan, ParagraphDto } from "@/api/generated/model";
@@ -136,7 +136,8 @@ export function ParagraphList({
       {paragraphs.map((p) => (
         <li
           key={p.id}
-          className={cn("grid grid-cols-[2.25rem_1fr]", marked?.has(p.id) && "-mx-1 rounded bg-accent px-1")}
+          // Telefonda fıkra numarası ve bent girintisi daha dar: satıra daha çok kelime sığsın.
+          className={cn("grid grid-cols-[1.9rem_1fr] md:grid-cols-[2.25rem_1fr]", marked?.has(p.id) && "-mx-1 rounded bg-accent px-1")}
         >
           <span className="text-muted-foreground">{p.number != null ? `(${p.number})` : ""}</span>
           <div>
@@ -147,8 +148,8 @@ export function ParagraphList({
                   // Seviye 0: bentlerden sonra fıkrayı bağlayan düz metin; 1 bent, 2 alt bent.
                   <li
                     key={item.id}
-                    className="flex gap-2"
-                    style={{ paddingLeft: `${Math.max(item.level - 1, 0) * 1.5}rem` }}
+                    className="flex gap-1.5 pl-[calc(var(--level)*1rem)] md:gap-2 md:pl-[calc(var(--level)*1.5rem)]"
+                    style={{ "--level": Math.max(item.level - 1, 0) } as CSSProperties}
                   >
                     {item.label && <span className="shrink-0">{item.label}</span>}
                     <span data-paragraph-id={p.id} data-item-id={item.id}>

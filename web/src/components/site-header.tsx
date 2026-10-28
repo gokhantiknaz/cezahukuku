@@ -1,45 +1,31 @@
 import Link from "next/link";
-import {
-  BookMarked,
-  BookOpen,
-  FileSearch,
-  House,
-  Newspaper,
-  PenLine,
-  Scale,
-  type LucideIcon,
-} from "lucide-react";
+import { Scale } from "lucide-react";
 import { HeaderSearch } from "@/components/search/header-search";
 import { cn } from "@/lib/utils";
+import { AutoHideHeader } from "./auto-hide-header";
+import { MobileMenu } from "./mobile-menu";
+import { navItems, testItem, type NavItem } from "./nav-items";
 import { UserMenu } from "./user-menu";
 
-/** wide: yalnız geniş ekranda (2xl) görünür; başlık satırı daha dar ekranda iki satıra taşmasın. */
-type NavItem = { label: string; icon: LucideIcon; href?: string; highlighted?: boolean; wide?: boolean };
-
-// href'i olmayan bölümler ilgili kilometre taşında açılacak.
-const navItems: NavItem[] = [
-  // Logo da ana sayfaya gider.
-  { label: "Ana Sayfa", icon: House, href: "/", wide: true },
-  { label: "Kütüphane", icon: BookOpen },
-  { label: "Pratik Anlatımlar", icon: BookMarked, highlighted: true },
-  { label: "Atıf Denetimi", icon: FileSearch, href: "/denetle" },
-  { label: "Ceza Gündemi", icon: Newspaper, href: "/gundem", highlighted: true },
-];
-
+/**
+ * Başlık her genişlikte tek satır. Telefonda logo, arama simgesi ve ☰ menü (bölümler ve kullanıcı sayfaları orada);
+ * md'den itibaren kullanıcı düğmeleri, lg'den itibaren arama kutusu, xl'den itibaren bölüm menüsü de satırda.
+ */
 export function SiteHeader() {
+  const TestIcon = testItem.icon;
   return (
-    <header className="border-b bg-card print:hidden">
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-2">
-        <Link href="/" className="flex items-center gap-3 text-primary">
-          <Scale className="size-10" strokeWidth={1.5} aria-hidden />
-          <span className="leading-tight">
-            <span className="block font-serif text-xl font-bold tracking-wide sm:text-2xl">CEZA HUKUKÇUSU</span>
-            <span className="block text-sm text-muted-foreground">Ceza Hukuku Notları</span>
+    <AutoHideHeader className="border-b bg-card print:hidden">
+      <div className="flex items-center gap-x-2 px-3 py-2 md:gap-x-4 md:px-4">
+        <Link href="/" className="flex min-w-0 items-center gap-2 text-primary sm:gap-3">
+          <Scale className="size-8 shrink-0 sm:size-10" strokeWidth={1.5} aria-hidden />
+          <span className="min-w-0 leading-tight">
+            <span className="block truncate font-serif text-lg font-bold tracking-wide sm:text-2xl">CEZA HUKUKÇUSU</span>
+            <span className="hidden text-sm text-muted-foreground sm:block">Ceza Hukuku Notları</span>
           </span>
         </Link>
 
         {/* basis-0: satıra sığıp sığmadığına metnin tam genişliğiyle değil, kalan yerle karar verilir. */}
-        <div role="search" className="order-last w-full md:order-none md:w-auto md:min-w-0 md:flex-1 md:basis-0">
+        <div role="search" className="ml-auto shrink-0 lg:ml-0 lg:min-w-0 lg:flex-1 lg:shrink lg:basis-0">
           <HeaderSearch />
         </div>
 
@@ -48,19 +34,20 @@ export function SiteHeader() {
             <NavButton key={item.label} item={item} />
           ))}
           <Link
-            href="/test"
+            href={testItem.href}
             className="ml-1 inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 font-medium text-primary-foreground hover:bg-primary/90"
           >
-            <PenLine className="size-5" aria-hidden />
-            Kendini Test Et
+            <TestIcon className="size-5" aria-hidden />
+            {testItem.label}
           </Link>
         </nav>
 
-        <div className="ml-auto md:ml-0">
+        <div className="hidden md:block">
           <UserMenu />
         </div>
+        <MobileMenu />
       </div>
-    </header>
+    </AutoHideHeader>
   );
 }
 

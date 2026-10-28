@@ -17,7 +17,8 @@ const sections = [
 export function PanelNav() {
   const pathname = usePathname();
   return (
-    <nav className="flex gap-1 border-b" aria-label="Yönetim paneli">
+    // Dar ekranda tek satır, yana kaydırılır.
+    <nav className="flex gap-1 overflow-x-auto border-b" aria-label="Yönetim paneli">
       {sections.map((section) => {
         const active = pathname.startsWith(section.href);
         return (
@@ -26,7 +27,7 @@ export function PanelNav() {
             href={section.href}
             aria-current={active ? "page" : undefined}
             className={cn(
-              "-mb-px border-b-2 px-3 py-2 text-base",
+              "-mb-px shrink-0 border-b-2 px-3 py-2 text-base whitespace-nowrap",
               active ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground",
             )}
           >

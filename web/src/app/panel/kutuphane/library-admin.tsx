@@ -29,7 +29,7 @@ export function LibraryAdmin() {
         <p className="text-sm text-muted-foreground">
           Kanunları gruplar hâlinde ekleyin; maddeleri “Yapı ve maddeler” ekranından girin.
         </p>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <RebuildCitationsButton />
           <RebuildSearchButton />
           <LawGroupDialog

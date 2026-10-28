@@ -125,7 +125,8 @@ function QuickSearchBody({ onClose }: { onClose: () => void }) {
       )}
 
       <div className="flex items-center justify-between gap-2 border-t bg-muted/40 px-4 py-2 text-xs text-muted-foreground">
-        <span className="flex items-center gap-1">
+        {/* Klavye ipuçları dokunmatik ekranda anlamsız. */}
+        <span className="flex items-center gap-1 pointer-coarse:hidden">
           <kbd className="rounded border bg-card px-1">↑</kbd>
           <kbd className="rounded border bg-card px-1">↓</kbd> seç ·
           <kbd className="rounded border bg-card px-1">
@@ -134,7 +135,7 @@ function QuickSearchBody({ onClose }: { onClose: () => void }) {
           aç · <kbd className="rounded border bg-card px-1">Esc</kbd> kapat
         </span>
         {text.trim() && (
-          <button type="button" className="text-primary hover:underline" onClick={() => go(`/ara?q=${encodeURIComponent(text.trim())}`)}>
+          <button type="button" className="ml-auto py-1 text-primary hover:underline" onClick={() => go(`/ara?q=${encodeURIComponent(text.trim())}`)}>
             {result && result.total > 0 ? `Tüm sonuçlar (${result.total})` : "Detaylı arama"} →
           </button>
         )}
