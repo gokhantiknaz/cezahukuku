@@ -76,18 +76,23 @@ public class PdfFootnotesTests
     [Fact]
     public void AdjacentMarkers_NumberGluedToDate_AndMarkerAfterPunctuationSpace()
     {
-        var text = PdfFootnotes.Normalize("""
-            Madde 1- (1) Birinci fıkra.12
-            (2) İkinci fıkra; 3
+        // 1–9 önceki sayfalarda; "112/3/2014" tarih değil: 11 numaralı dipnot + "2/3/2014". Satırın kendisi geçerli bir
+        // tarihle başlıyorsa ("22/3/2000 tarih ve …", önceki dipnotun devamı) yapışık numara sayılmaz.
+        var earlier = string.Concat(Enumerable.Range(1, 9).Select(n => $"Önceki sayfa.{n}\n{n} 1/1/2000 tarihli ve 1 sayılı Kanunla eklenmiştir.\n"));
+        var text = PdfFootnotes.Normalize(earlier + """
+            Madde 1- (1) Birinci fıkra.1011
+            (2) İkinci fıkra; 12
 
-            1 1/1/2000 tarihli ve 1 sayılı Kanunla eklenmiştir.
-            22/3/2014 tarihli ve 6529 sayılı Kanunla değiştirilmiştir.
-            3 Bu fıkra 5/5/2005 tarihinde eklenmiştir.
+            10 1/1/2000 tarihli ve 1 sayılı Kanunun 2 nci maddesiyle "eski" ibaresi
+            22/3/2000 tarih ve 4551 sayılı Kanunla "yeni" olarak değiştirilmiştir.
+            112/3/2014 tarihli ve 6529 sayılı Kanunla değiştirilmiştir.
+            12 Bu fıkra 5/5/2005 tarihinde eklenmiştir.
             """);
 
-        Assert.Contains("Birinci fıkra.[1][2]", text);
-        Assert.Contains("İkinci fıkra; [3]", text);
-        Assert.Contains("[2] 2/3/2014 tarihli ve 6529 sayılı Kanunla değiştirilmiştir.", text);
+        Assert.Contains("Birinci fıkra.[10][11]", text);
+        Assert.Contains("İkinci fıkra; [12]", text);
+        Assert.Contains("[10] 1/1/2000 tarihli ve 1 sayılı Kanunun 2 nci maddesiyle \"eski\" ibaresi 22/3/2000 tarih ve 4551 sayılı Kanunla \"yeni\" olarak değiştirilmiştir.", text);
+        Assert.Contains("[11] 2/3/2014 tarihli ve 6529 sayılı Kanunla değiştirilmiştir.", text);
     }
 
     [Fact]
@@ -112,6 +117,48 @@ public class PdfFootnotesTests
         Assert.Equal("1/1/2000 tarihli ve 1 sayılı Kanunun 2 nci maddesiyle bu fıkrada yer alan \"eski\" ibaresi \"yeni\" şeklinde değiştirilmiştir.",
             articles[0].Footnotes!.Single().Text);
         Assert.Empty(law.Warnings);
+    }
+
+    [Fact]
+    public void OldLawConventions_From1632()
+    {
+        // Askerî Ceza Kanunu: başlıklar iki noktayla biter, ilk dipnot harfli bentlerden oluşur, bap başlığının altında
+        // ara başlık, ikinci kısımda Romen rakamlı ara başlıklar, sonda büyük-küçük harfli "işlenemeyen hükümler".
+        var law = LawTextParser.Parse("""
+            ASKERİ CEZA KANUNU1
+            BİRİNCİ BAP
+            Cezalar
+            Umumi hükümler
+            Askeri cürüm ve kabahat:
+            Madde 1 – Türk Ceza Kanunu esasları tatbik olunur.
+            1 - Ölüm cezası askeri cürümdür.
+
+            1 a -Bu Kanunda geçen "erat" tabiri 211 sayılı Kanunla "erbaş ve er" olarak
+            değiştirilmiştir.
+            b - Adli amirlik 353 sayılı Kanunun geçici 1. maddesi ile sona
+            ermiştir.
+            İhtiyat askeri şahıslar:
+            Madde 2 – İhtiyat askeri şahıslar bu kanuna tabidirler.
+            İKİNCİ BAP
+            Disiplin cezaları
+            I - DİSİPLİN CEZALARININ NEVİLERİ
+            Disiplin cezalarının nevileri:
+            Madde 3 – (Mülga: 31/1/2013-6413/45 md.)
+            22/5/1930 Tarihli Ve 1632 Sayılı Ana Kanuna İşlenemeyen Hükümler
+            Madde 38 – Başka kanunun maddesi.
+            """, new LawTextParserOptions { JoinWrappedLines = true });
+
+        Assert.Empty(law.Warnings);
+        Assert.Equal(["Cezalar — Umumi hükümler", "Disiplin cezaları"], law.Nodes.Select(n => n.Title));
+        var roman = Assert.Single(law.Nodes[1].Children);
+        Assert.Equal((ParsedNodeKind.Ayrim, "I", "Disiplin Cezalarının Nevileri"), (roman.Kind, roman.Number, roman.Title));
+
+        var articles = Articles(law).ToList();
+        Assert.Equal(["1", "2", "3"], articles.Select(a => a.Number));
+        Assert.Equal(["Askeri cürüm ve kabahat", "İhtiyat askeri şahıslar", "Disiplin cezalarının nevileri"], articles.Select(a => a.Title));
+        // Dipnotun b bendi madde metnine karışmaz.
+        Assert.DoesNotContain(articles[0].Paragraphs, p => p.Text.Contains("Adli amirlik"));
+        Assert.Equal(1, law.FootnoteCount);
     }
 
     [Fact]

@@ -109,6 +109,16 @@ public static partial class LawTextParser
 
         int NextOrder() => stack.Count > 0 ? stack[^1].NextOrder() : rootOrder++;
 
+        // Düğüm başlığının altındaki ikinci satır, eski kanunlarda ara başlık ("İKİNCİ BAP / Cezalar / Umumi hükümler",
+        // "II - CEZA VERMEK SALAHİYETİ / A - Umumi surette"): henüz maddesi olmayan düğümün başlığına eklenir.
+        void AddSubtitleOrWarn(string subtitle)
+        {
+            if (stack.Count > 0 && stack[^1] is { Title.Length: > 0, Articles.Count: 0, Children.Count: 0 } open)
+                open.Title += " — " + subtitle;
+            else
+                warnings.Add($"Başlık olarak kullanılamayan satır atlandı: “{Shorten(subtitle)}”");
+        }
+
         foreach (var source in lines)
         {
             var line = source.Text;
@@ -117,7 +127,7 @@ public static partial class LawTextParser
                 started = true;
                 FinishArticle();
                 if (pendingTitle is not null)
-                    warnings.Add($"Başlık olarak kullanılamayan satır atlandı: “{Shorten(pendingTitle)}”");
+                    AddSubtitleOrWarn(pendingTitle);
                 pendingTitle = null;
                 if (awaitingTitle is not null)
                     warnings.Add($"“{awaitingTitle.Number}” düğümünün başlığı bulunamadı.");
@@ -128,7 +138,10 @@ public static partial class LawTextParser
                 var node = new NodeDraft(heading.Kind, heading.Number, NextOrder());
                 (stack.Count > 0 ? stack[^1].Children : rootNodes).Add(node);
                 stack.Add(node);
-                awaitingTitle = node;
+                if (heading.Title is not null)
+                    node.Title = heading.Title;
+                else
+                    awaitingTitle = node;
                 continue;
             }
 
@@ -154,7 +167,8 @@ public static partial class LawTextParser
                 pendingTitle = null;
                 pendingTitleFootnotes = [];
                 FinishArticle();
-                article = new ArticleDraft(header.Number, title?.Text ?? "", NextOrder(), footnotes);
+                // Eski kanunlarda başlık iki noktayla biter ("Askeri şahıslar:").
+                article = new ArticleDraft(header.Number, title?.Text.TrimEnd(':', ' ') ?? "", NextOrder(), footnotes);
                 article.Footnotes.AddRange(title?.Footnotes ?? []);
                 article.Footnotes.AddRange(source.Footnotes);
                 if (header.Rest.Length > 0)
@@ -175,7 +189,7 @@ public static partial class LawTextParser
             {
                 // Düğüm başlığından sonra, ilk maddeden önce gelen satır: ilk maddenin başlığı.
                 if (pendingTitle is not null)
-                    warnings.Add($"Başlık olarak kullanılamayan satır atlandı: “{Shorten(pendingTitle)}”");
+                    AddSubtitleOrWarn(pendingTitle);
                 (pendingTitle, pendingTitleFootnotes) = (line, source.Footnotes);
             }
         }
@@ -249,7 +263,9 @@ public static partial class LawTextParser
 
     /// <summary>"5237 SAYILI KANUNA İŞLENEMEYEN HÜKÜMLER", "… SAYILI KANUNA EK VE DEĞİŞİKLİK GETİREN …".</summary>
     private static bool IsAppendixStart(string line) =>
-        line.Contains("SAYILI KANUNA", StringComparison.Ordinal) && line == line.ToUpper(Turkish);
+        (line.Contains("SAYILI KANUNA", StringComparison.Ordinal) && line == line.ToUpper(Turkish))
+        // Eski kanunlarda başlık büyük-küçük harfli: "22/5/1930 Tarihli Ve 1632 Sayılı Ana Kanuna İşlenemeyen Hükümler".
+        || line.ToUpper(Turkish).Contains("KANUNA İŞLENEMEYEN HÜKÜMLER", StringComparison.Ordinal);
 
     private static bool IsWrappedContinuation(string line) =>
         char.IsLower(line[0])
@@ -262,10 +278,15 @@ public static partial class LawTextParser
 
     internal static bool IsArticleHeaderLine(string line) => ArticleHeaderMatch(line) is not null;
 
-    private sealed record Heading(ParsedNodeKind Kind, string Number);
+    /// <param name="Title">Başlık aynı satırdaysa ("I - DİSİPLİN CEZALARININ NEVİLERİ"); null ise sonraki satırdır.</param>
+    private sealed record Heading(ParsedNodeKind Kind, string Number, string? Title = null);
 
     private static Heading? HeadingMatch(string line)
     {
+        if (line.Length > 80)
+            return null;
+        if (RomanHeadingPattern().Match(line) is { Success: true } roman)
+            return new Heading(ParsedNodeKind.Ayrim, roman.Groups[1].Value, TitleCase(roman.Groups[2].Value));
         if (line.Length > 60)
             return null;
         var match = HeadingPattern().Match(line.ToUpper(Turkish));
@@ -324,9 +345,12 @@ public static partial class LawTextParser
         string.Join(' ', text.ToLower(Turkish).Split(' ', StringSplitOptions.RemoveEmptyEntries)
             .Select(word => char.ToUpper(word[0], Turkish) + word[1..]));
 
-    /// <summary>Madde başlığı olabilecek satır: kısa, nokta/virgülle bitmeyen, fıkra ya da bent olmayan.</summary>
+    /// <summary>
+    /// Madde başlığı olabilecek satır: kısa, nokta/virgülle bitmeyen, fıkra ya da bent olmayan. Eski kanunlarda başlık
+    /// iki noktayla biter ("İhtiyat askeri şahıslar:").
+    /// </summary>
     private static bool IsTitleCandidate(string line) =>
-        line.Length <= 200 && !".,;:".Contains(line[^1]) && !BentStart().IsMatch(line) && !ParagraphStart().IsMatch(line);
+        line.Length <= 200 && !".,;".Contains(line[^1]) && !BentStart().IsMatch(line) && !ParagraphStart().IsMatch(line);
 
     private static string Shorten(string text) => text.Length <= 60 ? text : text[..57] + "…";
 
@@ -434,6 +458,10 @@ public static partial class LawTextParser
     // Sıra sayısı -(I)NCI ekiyle biter: BİRİNCİ, ÜÇÜNCÜ, ALTINCI, DOKUZUNCU, ON BİRİNCİ…
     [GeneratedRegex(@"^([A-ZÇĞİÖŞÜ ]*?(?:İNCİ|INCI|UNCU|ÜNCÜ|NCİ|NCI|NCU|NCÜ))\s+(KİTAP|KISIM|BÖLÜM|AYRIM|BAP|FASIL)$")]
     private static partial Regex HeadingPattern();
+
+    // Eski kanunlarda bap içindeki Romen rakamlı ara başlık, başlığı aynı satırda: "I - CEZANIN VERİLMESİ".
+    [GeneratedRegex(@"^([IVX]{1,5})\s*[-–.]\s*([A-ZÇĞİÖŞÜÂÎÛ][A-ZÇĞİÖŞÜÂÎÛ ,'’]{2,})$")]
+    private static partial Regex RomanHeadingPattern();
 
     [GeneratedRegex(@"^(?:(?<kind>Ek|EK|Geçici|GEÇİCİ)\s+)?(?:Madde|MADDE)\s+(?<no>\d+)(?:\s*/\s*(?<sub>[A-Za-zÇĞİÖŞÜçğıöşü]))?\s*\.?\s*[-–—]\s*(?<rest>.*)$")]
     private static partial Regex ArticleHeaderPattern();

@@ -29,9 +29,13 @@ public static partial class PdfFootnotes
 
         var body = new List<string>();
         var footnotes = new List<(int Number, StringBuilder Text)>();
-        // Son dipnot kümesinden (sayfa altından) sonraki gövde satırları: sıradaki dipnotların işaretleri buradadır.
+        // Sıradaki dipnotların işaretleri son iki dipnot kümesi (sayfa altı) arasındaki gövde satırlarındadır: Word
+        // sayfaya sığmayan dipnotu işaretinden bir sonraki sayfanın altına kaydırabilir.
         var segmentStart = 0;
+        var previousSegmentStart = 0;
         var expected = 1;
+        // "[n]" olarak işaretlenmiş dipnotlar ("12" yapışık yazılınca 1 ile birlikte 2 de işaretlenir).
+        var marked = new HashSet<int>();
         StringBuilder? open = null;
         // Sayfa sonunda yarım kalan dipnot: devamı sonraki sayfanın dipnot çizgisinden hemen sonra gelir.
         (int Number, StringBuilder Text)? cut = null;
@@ -41,10 +45,15 @@ public static partial class PdfFootnotes
         {
             var raw = lines[i];
             var line = raw.Trim();
-            if (FootnoteStart(line, expected) is { } footnoteText && MarkFootnote(body, segmentStart, expected))
+            if (FootnoteStart(line, expected) is { } footnoteText && MarkFootnote(body, previousSegmentStart, expected, marked))
             {
                 if (cut is { } unfinished && !afterSeparator)
-                    warnings?.Add($"{unfinished.Number} numaralı dipnot sayfa sonunda bölünmüş, devamı ayırt edilemedi: devamı bir maddenin metnine karışmış olabilir; önizlemede kontrol edin.");
+                {
+                    if (TakeContinuation(body, segmentStart) is { } rest)
+                        unfinished.Text.Append(' ').Append(rest);
+                    else
+                        warnings?.Add($"{unfinished.Number} numaralı dipnot sayfa sonunda bölünmüş, devamı ayırt edilemedi: devamı bir maddenin metnine karışmış olabilir; önizlemede kontrol edin.");
+                }
                 (cut, afterSeparator) = (null, false);
                 open = new StringBuilder(footnoteText);
                 footnotes.Add((expected, open));
@@ -57,11 +66,14 @@ public static partial class PdfFootnotes
                 if (line.Length == 0 || IsSeparator(raw))
                     continue;
                 var complete = IsComplete(open.ToString(), line);
+                // Bentli dipnot ("a - … değiştirilmiştir." "b - …"): her bent kendi cümlesiyle biter, dipnot sürer.
+                if (complete && ListFootnote().IsMatch(open.ToString()) && ListFootnote().IsMatch(line))
+                    complete = false;
                 // Sonraki sayfa madde başlığıyla başlayabilir: ardından "Madde N-" gelen, büyük harfle başlayıp
                 // noktalamasız biten kısa satır başlıktır (dipnot satırları sayfa genişliğindedir).
                 var titleOfNextArticle = i + 1 < lines.Length
                     && LawTextParser.IsArticleHeaderLine(lines[i + 1].Trim())
-                    && line.Length <= 80 && char.IsUpper(line[0]) && !".,;:".Contains(line[^1]);
+                    && line.Length <= 80 && char.IsUpper(line[0]) && !".,;".Contains(line[^1]);
                 if (!complete && !titleOfNextArticle && !LawTextParser.IsStructureLine(line))
                 {
                     open.Append(' ').Append(line);
@@ -72,7 +84,7 @@ public static partial class PdfFootnotes
                 if (!complete)
                     cut = footnotes[^1];
                 open = null;
-                segmentStart = body.Count;
+                (previousSegmentStart, segmentStart) = (segmentStart, body.Count);
             }
 
             if (cut is { } dangling)
@@ -103,17 +115,14 @@ public static partial class PdfFootnotes
     }
 
     /// <summary>
-    /// Sıradaki dipnotun işaretini son sayfanın gövde satırlarında arar ve "[n]" yapar. Önceki bir dipnotla birlikte
+    /// Sıradaki dipnotun işaretini son sayfaların gövde satırlarında arar ve "[n]" yapar. Önceki bir dipnotla birlikte
     /// yapışık yazılmış ("910") ve o sırada zaten işaretlenmişse de bulunmuş sayılır.
     /// </summary>
-    private static bool MarkFootnote(List<string> body, int segmentStart, int number)
+    private static bool MarkFootnote(List<string> body, int segmentStart, int number, HashSet<int> marked)
     {
+        if (marked.Contains(number))
+            return true;
         var marker = $"[{number}]";
-        for (var i = body.Count - 1; i >= segmentStart; i--)
-        {
-            if (body[i].Contains(marker, StringComparison.Ordinal))
-                return true;
-        }
         for (var i = segmentStart; i < body.Count; i++)
         {
             var line = body[i];
@@ -123,18 +132,54 @@ public static partial class PdfFootnotes
                 if (Split(digits.Value, number) is { } numbers)
                 {
                     body[i] = line[..digits.Index] + string.Concat(numbers.Select(n => $"[{n}]")) + line[(digits.Index + digits.Length)..];
+                    marked.UnionWith(numbers);
                     return true;
                 }
+            }
+            // Tarayıcıdan kopyalanınca üst simge kendi satırına düşebilir: "Askeri şahıslar:" ⏎ "3".
+            if (line.Trim() is { Length: > 0 } alone && alone.All(char.IsAsciiDigit) && i > segmentStart
+                && Split(alone, number) is { } own)
+            {
+                var previous = i - 1;
+                while (previous > segmentStart && body[previous].Trim().Length == 0)
+                    previous--;
+                body[previous] = body[previous].TrimEnd() + string.Concat(own.Select(n => $"[{n}]"));
+                body[i] = "";
+                marked.UnionWith(own);
+                return true;
             }
             // Büyük harfli başlıkta işaret boşlukla ayrılmış olabilir: "SEKİZİNCİ BAP 41".
             if (HeadingWithNumber().Match(line.TrimEnd()) is { Success: true } heading
                 && heading.Groups[2].Value == number.ToString(CultureInfo.InvariantCulture))
             {
                 body[i] = line.TrimEnd()[..heading.Groups[2].Index].TrimEnd() + marker;
+                marked.Add(number);
                 return true;
             }
         }
         return false;
+    }
+
+    /// <summary>
+    /// Bölünmüş dipnotun devamı, dipnot çizgisi metne geçmemişse: sonraki dipnottan hemen önce, boş satırdan sonra gelen
+    /// ve dipnot gibi biten ("…kaldırılmıştır.") kısa satır kümesi gövdeden alınır.
+    /// </summary>
+    private static string? TakeContinuation(List<string> body, int segmentStart)
+    {
+        var end = body.Count;
+        while (end > segmentStart && body[end - 1].Trim().Length == 0)
+            end--;
+        var start = end;
+        while (start > segmentStart && body[start - 1].Trim().Length > 0)
+            start--;
+        if (start == end || start == segmentStart || end - start > 6)
+            return null;
+        var block = body.GetRange(start, end - start).Select(l => l.Trim()).ToList();
+        var text = string.Join(' ', block);
+        if (!ClosingVerb().IsMatch(text) || LawTextParser.IsStructureLine(block[0]) || block[0].StartsWith('('))
+            return null;
+        body.RemoveRange(start, body.Count - start);
+        return text;
     }
 
     /// <summary>
@@ -149,7 +194,8 @@ public static partial class PdfFootnotes
         var rest = line[prefix.Length..];
         if (rest.Length > 1 && char.IsWhiteSpace(rest[0]) && FootnoteTextStart().IsMatch(rest.TrimStart()))
             return rest.Trim();
-        return DateStart().IsMatch(rest) ? rest.Trim() : null;
+        // Satırın kendisi tarihle başlıyorsa ("22/3/2000 tarih ve …", bir dipnotun devamı) numara yapışık değildir.
+        return DateStart().IsMatch(rest) && !DateStart().IsMatch(line) ? rest.Trim() : null;
     }
 
     /// <summary>"910", 9'dan başlayarak ardışık numaralara bölünürse [9, 10]; "41" ve 41 → [41]; bölünemezse null.</summary>
@@ -200,6 +246,10 @@ public static partial class PdfFootnotes
 
     [GeneratedRegex(@"^\d{1,2}/\d{1,2}/\d{4}\b")]
     private static partial Regex DateStart();
+
+    // Harfli bent: "a -Bu Kanunda …", "b - Bu Kanundaki …".
+    [GeneratedRegex(@"^[a-zçğıöşü]\s?-\s?\S")]
+    private static partial Regex ListFootnote();
 
     // Harfe ya da noktalamaya yapışık sayı: "BAP41", "olamaz.5", "md.)4", "uygulanmaz.910"; ya da satır sonunda
     // noktalamadan sonra boşlukla ayrılmış: "deyiminden; 50". "29/6/2005", "Ek:8/8/2026", "5377/5" gibi tarih ve
