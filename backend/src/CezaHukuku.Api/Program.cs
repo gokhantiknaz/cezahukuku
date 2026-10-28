@@ -3,6 +3,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using CezaHukuku.Api.Admin;
 using CezaHukuku.Api.Auth;
+using CezaHukuku.Api.Common;
 using CezaHukuku.Api.Content;
 using CezaHukuku.Api.Library;
 using CezaHukuku.Api.Personal;
@@ -78,12 +79,17 @@ builder.Services.ConfigureHttpJsonOptions(options =>
     options.SerializerOptions.NumberHandling = JsonNumberHandling.Strict;
 });
 
-builder.Services.AddProblemDetails();
-// Okunamayan istek gövdesi (bozuk JSON, yanlış tip) istemci hatasıdır; geliştirmede minimal API bunu istisna
-// olarak fırlattığından hata yakalayıcı 500 yerine istisnanın kendi kodunu (400) dönsün.
+builder.Services.AddProblemDetails(options => options.CustomizeProblemDetails = RequestBodyErrors.AddFieldErrors);
+// Okunamayan istek gövdesi (bozuk JSON, yanlış biçimde tarih) istemci hatasıdır. Minimal API bunu her ortamda
+// istisna olarak fırlatsın ki hata yakalayıcı alan bazında hata içeren 400 dönsün (RequestBodyErrors); istemci
+// hatası olduğundan sunucu günlüğüne "unhandled exception" olarak yazılmaz (istek satırı yine 400 ile görünür).
+builder.Services.Configure<RouteHandlerOptions>(options => options.ThrowOnBadRequest = true);
 builder.Services.Configure<ExceptionHandlerOptions>(options =>
+{
     options.StatusCodeSelector = exception =>
-        exception is BadHttpRequestException badRequest ? badRequest.StatusCode : StatusCodes.Status500InternalServerError);
+        exception is BadHttpRequestException badRequest ? badRequest.StatusCode : StatusCodes.Status500InternalServerError;
+    options.SuppressDiagnosticsCallback = context => context.Exception is BadHttpRequestException;
+});
 builder.Services.AddOpenApi();
 
 var app = builder.Build();
