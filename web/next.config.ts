@@ -5,6 +5,9 @@ import type { NextConfig } from "next";
 const apiUrl = process.env.API_URL ?? "http://localhost:5080";
 
 const nextConfig: NextConfig = {
+  // Geliştirme sunucusu localhost dışından gelen istekleri (sayfanın JS dosyaları dahil) varsayılan olarak engeller;
+  // telefondan yerel ağ adresiyle (http://192.168.x.x:3000) denenebilsin. Yalnız `next dev`i etkiler.
+  allowedDevOrigins: ["192.168.*.*", "10.*.*.*"],
   cacheComponents: true,
   partialPrefetching: true,
   turbopack: {
