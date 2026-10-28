@@ -193,6 +193,17 @@ public class LawTextParserTests
     }
 
     [Fact]
+    public void JoinWrappedLines_JoinsAmendmentNoteBrokenAtDash()
+    {
+        const string text = "Madde 1- (1) Birinci cümle. (Ek cümle:24/12/2025-\n7571/14 md.) İkinci cümle.";
+
+        var article = LawTextParser.Parse(text, new LawTextParserOptions { JoinWrappedLines = true }).Articles.Single();
+
+        Assert.Equal("Birinci cümle. (Ek cümle:24/12/2025-7571/14 md.) İkinci cümle.", article.Paragraphs.Single().Text);
+        Assert.Equal(new DateOnly(2025, 12, 24), article.LastAmendedOn);
+    }
+
+    [Fact]
     public void WarnsWhenNoArticleFound()
     {
         Assert.Contains(LawTextParser.Parse("Bu bir kanun metni değil.").Warnings, w => w.Contains("madde bulunamadı"));

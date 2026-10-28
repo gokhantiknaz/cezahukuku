@@ -66,13 +66,15 @@ public sealed record LawTextParserOptions
 /// Bir kanunun tam metnini (mevzuat.gov.tr biçimi) ağaç ve maddelere ayırır. Kurallar gerçek metinden çıkarıldı:
 /// <list type="bullet">
 /// <item>"BİRİNCİ KİTAP" / "İKİNCİ KISIM" / "DOKUZUNCU BÖLÜM" / "… AYRIM" düğümdür; sonraki satır başlığıdır.
-/// Düğümler Kitap › Kısım › Bölüm › Ayrım sırasıyla iç içe yerleşir.</item>
+/// Düğümler Kitap › Kısım › Bölüm › Ayrım sırasıyla iç içe yerleşir. Eski kanunlardaki "SEKİZİNCİ BAP" bölüm,
+/// "BİRİNCİ FASIL" ayrım düzeyindedir (adları olduğu gibi kalır).</item>
 /// <item>"Madde 1-", "Madde 61. -", "MADDE 9 –", "Geçici Madde 1 –", "Ek Madde 2-" maddeyi başlatır.</item>
 /// <item>Madde satırından hemen önceki, nokta/virgülle bitmeyen kısa satır maddenin başlığıdır.</item>
 /// <item>Gövdesi yalnız "(Mülga: …)" olan madde mülgadır.</item>
 /// <item>"[12]" dipnot işaretleri metinden atılır ama maddeye not edilir; "[1] …" ile başlayan dipnotlar ve
 /// "… SAYILI KANUNA …" ile başlayan ek listeler (başka kanunların geçici maddeleri dahil) kanun metninin sonu sayılır.
-/// Dipnotların metni okunup işaretinin geçtiği maddeye bağlanır.</item>
+/// Dipnotların metni okunup işaretinin geçtiği maddeye bağlanır. PDF'ten alınan metindeki dipnotlar (yapışık işaret,
+/// sayfa altındaki açıklama) önce bu biçime çevrilir (<see cref="PdfFootnotes"/>).</item>
 /// <item>İlk düğüm ya da maddeden önceki satırlar künyedir (Kanun Numarası, Kabul Tarihi, Resmî Gazete).</item>
 /// </list>
 /// Fıkra ve bentler <see cref="ArticleTextParser"/> ile ayrılır.
@@ -86,7 +88,7 @@ public static partial class LawTextParser
         options ??= new LawTextParserOptions();
         var warnings = new List<string>();
         var footnotes = new Dictionary<int, string>();
-        var lines = PrepareLines(text, options, footnotes);
+        var lines = PrepareLines(text, options, footnotes, warnings);
 
         var rootNodes = new List<NodeDraft>();
         var rootArticles = new List<ArticleDraft>();
@@ -197,13 +199,14 @@ public static partial class LawTextParser
     /// Satırları ayırır, dipnot işaretlerini metinden alıp satıra not eder, metnin sonundaki dipnotları
     /// <paramref name="footnotes"/>'a okur (birden çok satıra yayılan dipnot birleştirilir).
     /// </summary>
-    private static List<SourceLine> PrepareLines(string? text, LawTextParserOptions options, Dictionary<int, string> footnotes)
+    private static List<SourceLine> PrepareLines(
+        string? text, LawTextParserOptions options, Dictionary<int, string> footnotes, List<string> warnings)
     {
         var lines = new List<SourceLine>();
         var ended = false;
         int? openFootnote = null;
 
-        foreach (var raw in (text ?? "").Normalize(NormalizationForm.FormC).Split('\n'))
+        foreach (var raw in PdfFootnotes.Normalize((text ?? "").Normalize(NormalizationForm.FormC), warnings).Split('\n'))
         {
             // Dipnot satırı ("[1] …") işaretler silinmeden önce tanınmalı.
             if (FootnoteLine().Match(raw.TrimStart()) is { Success: true } footnote)
@@ -233,7 +236,10 @@ public static partial class LawTextParser
                 continue;
             }
 
-            if (options.JoinWrappedLines && lines.Count > 0 && IsWrappedContinuation(line))
+            if (options.JoinWrappedLines && lines.Count > 0 && DateDashLineEnd().IsMatch(lines[^1].Text) && char.IsDigit(line[0]))
+                // Değişiklik notu tirede kırılmış: "(Değişik cümle:24/12/2025-" + "7571/14 md.)" boşluksuz birleşir.
+                lines[^1] = new SourceLine(lines[^1].Text + line, [.. lines[^1].Footnotes, .. markers]);
+            else if (options.JoinWrappedLines && lines.Count > 0 && IsWrappedContinuation(line))
                 lines[^1] = new SourceLine(lines[^1].Text + " " + line, [.. lines[^1].Footnotes, .. markers]);
             else
                 lines.Add(new SourceLine(line, markers));
@@ -251,6 +257,11 @@ public static partial class LawTextParser
         && HeadingMatch(line) is null
         && ArticleHeaderMatch(line) is null;
 
+    /// <summary>Madde ("Madde 81-") ya da düğüm ("SEKİZİNCİ BAP") başlatan satır.</summary>
+    internal static bool IsStructureLine(string line) => HeadingMatch(line) is not null || ArticleHeaderMatch(line) is not null;
+
+    internal static bool IsArticleHeaderLine(string line) => ArticleHeaderMatch(line) is not null;
+
     private sealed record Heading(ParsedNodeKind Kind, string Number);
 
     private static Heading? HeadingMatch(string line)
@@ -265,7 +276,7 @@ public static partial class LawTextParser
         {
             "KİTAP" => ParsedNodeKind.Kitap,
             "KISIM" => ParsedNodeKind.Kisim,
-            "BÖLÜM" => ParsedNodeKind.Bolum,
+            "BÖLÜM" or "BAP" => ParsedNodeKind.Bolum,
             _ => ParsedNodeKind.Ayrim,
         };
         return new Heading(kind, TitleCase(line));
@@ -421,7 +432,7 @@ public static partial class LawTextParser
     private static partial Regex FootnoteLine();
 
     // Sıra sayısı -(I)NCI ekiyle biter: BİRİNCİ, ÜÇÜNCÜ, ALTINCI, DOKUZUNCU, ON BİRİNCİ…
-    [GeneratedRegex(@"^([A-ZÇĞİÖŞÜ ]*?(?:İNCİ|INCI|UNCU|ÜNCÜ|NCİ|NCI|NCU|NCÜ))\s+(KİTAP|KISIM|BÖLÜM|AYRIM)$")]
+    [GeneratedRegex(@"^([A-ZÇĞİÖŞÜ ]*?(?:İNCİ|INCI|UNCU|ÜNCÜ|NCİ|NCI|NCU|NCÜ))\s+(KİTAP|KISIM|BÖLÜM|AYRIM|BAP|FASIL)$")]
     private static partial Regex HeadingPattern();
 
     [GeneratedRegex(@"^(?:(?<kind>Ek|EK|Geçici|GEÇİCİ)\s+)?(?:Madde|MADDE)\s+(?<no>\d+)(?:\s*/\s*(?<sub>[A-Za-zÇĞİÖŞÜçğıöşü]))?\s*\.?\s*[-–—]\s*(?<rest>.*)$")]
@@ -438,6 +449,9 @@ public static partial class LawTextParser
 
     [GeneratedRegex(@"\d{1,2}/\d{1,2}/\d{4}")]
     private static partial Regex NoteDate();
+
+    [GeneratedRegex(@"\d{1,2}/\d{1,2}/\d{4}\s*[-–]$")]
+    private static partial Regex DateDashLineEnd();
 
     [GeneratedRegex(@"Kanun Numarası\s*:\s*(\d+)")]
     private static partial Regex MetaNumber();

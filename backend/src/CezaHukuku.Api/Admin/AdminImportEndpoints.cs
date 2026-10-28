@@ -37,10 +37,11 @@ internal static class AdminImportEndpoints
 
     /// <summary>
     /// Kanun metnini dosyadan alır (Word .docx, PDF, düz metin); metin içe aktarma kutusuna konup aynı önizlemeyle
-    /// içe aktarılır. PDF'te satırlar sayfa genişliğinde kırıldığından kırık satırları birleştirme önerilir.
+    /// içe aktarılır. PDF'te satırlar sayfa genişliğinde kırıldığından kırık satırları birleştirme önerilir; dipnot
+    /// çizgisi korunur (sayfa sonunda bölünen dipnotun devamı ayırt edilsin).
     /// </summary>
     private static async Task<Results<Ok<ExtractedImportText>, ValidationProblem>> ExtractTextAsync(IFormFile file, CancellationToken ct) =>
-        await TextFiles.ExtractAsync(file, MaxImportFileBytes, "\n", ct) switch
+        await TextFiles.ExtractAsync(file, MaxImportFileBytes, "\n", ct, markFootnoteSeparator: true) switch
         {
             { Result: Ok<ExtractedFileText> ok } => TypedResults.Ok(new ExtractedImportText(ok.Value!.Text, ok.Value.IsPdf)),
             { Result: ValidationProblem problem } => problem,

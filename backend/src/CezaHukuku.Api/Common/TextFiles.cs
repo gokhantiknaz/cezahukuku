@@ -11,8 +11,10 @@ internal sealed record ExtractedFileText(string Text, bool IsPdf);
 internal static class TextFiles
 {
     /// <param name="pageSeparator">PDF sayfaları arasına konan ayraç.</param>
+    /// <param name="markFootnoteSeparator">PDF'te sayfa altındaki dipnot çizgisi "_____" satırı olarak kalsın
+    /// (kanun içe aktarma; bkz. PdfFootnotes).</param>
     public static async Task<Results<Ok<ExtractedFileText>, ValidationProblem>> ExtractAsync(
-        IFormFile file, long maxBytes, string pageSeparator, CancellationToken ct)
+        IFormFile file, long maxBytes, string pageSeparator, CancellationToken ct, bool markFootnoteSeparator = false)
     {
         if (file.Length == 0 || file.Length > maxBytes)
             return ValidationErrors.Single("file", $"Dosya boş ya da çok büyük (en fazla {maxBytes / 1024 / 1024} MB).");
@@ -26,7 +28,7 @@ internal static class TextFiles
             return extension switch
             {
                 ".docx" => TypedResults.Ok(new ExtractedFileText(DocxTextExtractor.Extract(buffer), false)),
-                ".pdf" => TypedResults.Ok(new ExtractedFileText(string.Join(pageSeparator, PdfTextExtractor.ExtractPages(buffer)), true)),
+                ".pdf" => TypedResults.Ok(new ExtractedFileText(string.Join(pageSeparator, PdfTextExtractor.ExtractPages(buffer, markFootnoteSeparator)), true)),
                 ".txt" => TypedResults.Ok(new ExtractedFileText(Encoding.UTF8.GetString(buffer.ToArray()), false)),
                 ".doc" => ValidationErrors.Single("file", "Eski Word (.doc) biçimi okunamıyor; belgeyi Word'de .docx olarak kaydedip yükleyin."),
                 _ => ValidationErrors.Single("file", "Yalnız .docx, .pdf ve .txt dosyası yüklenebilir."),
