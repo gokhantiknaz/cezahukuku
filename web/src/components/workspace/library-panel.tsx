@@ -366,7 +366,7 @@ function FilteredArticles({
 }
 
 /** Kanunda madde süzgeci: "81", "m. 81", "madde 81" numaraya; başka metin başlığa bakar. */
-function filterArticles(tree: LawTreeResponse, query: string) {
+export function filterArticles(tree: LawTreeResponse, query: string) {
   const normalizedNumber = query.trim().replace(/^(m(adde)?\.?\s*)/i, "");
   const all = [...tree.articles, ...flattenArticles(tree.nodes)];
   const results = all.filter(

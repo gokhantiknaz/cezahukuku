@@ -38,7 +38,7 @@ export function QuizAdmin() {
   return (
     <div className="mt-4 space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <select value={lawId} onChange={(e) => setLawId(e.target.value)} aria-label="Kanun" className="h-9 rounded-md border bg-card px-3">
+        <select value={lawId} onChange={(e) => setLawId(e.target.value)} aria-label="Kanun" className="h-9 w-full min-w-0 rounded-md border bg-card px-3 sm:w-auto sm:max-w-md">
           <option value="">Bütün kanunlar</option>
           {laws.map((law) => (
             <option key={law.id} value={law.id}>

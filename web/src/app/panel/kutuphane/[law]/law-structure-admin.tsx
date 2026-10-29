@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
-import { ArrowLeft, ExternalLink, FileInput, FilePlus, FolderPlus, Lock, NotebookText } from "lucide-react";
+import { ArrowLeft, ExternalLink, FileInput, FilePlus, FolderPlus, Lock, NotebookText, Search } from "lucide-react";
 import { ApiError } from "@/api/fetcher";
 import { useGetLaw, useGetLawNotes } from "@/api/generated/library/library";
 import type { LawTreeResponse } from "@/api/generated/model";
@@ -11,8 +11,10 @@ import { ArticleEditor } from "@/components/panel/article-editor";
 import { nodeKindLabels } from "@/components/panel/form";
 import { NodeEditor } from "@/components/panel/node-editor";
 import { NotesEditor } from "@/components/panel/notes-editor";
-import { allArticles, findNode, selfAndDescendantIds, treeRows } from "@/components/panel/tree-utils";
+import { allArticles, findNode, selfAndDescendantIds, treeRows, type TreeRow } from "@/components/panel/tree-utils";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { filterArticles } from "@/components/workspace/library-panel";
 import { cn } from "@/lib/utils";
 
 type Selection =
@@ -47,10 +49,22 @@ function StructureEditor({ tree }: { tree: LawTreeResponse }) {
     return article ? { kind: "article", id: article.id } : null;
   });
 
-  const rows = treeRows(tree);
+  // Madde süzgeci: "81", "m. 81" ya da başlıktan; süzülünce ağaç yerine düz madde listesi.
+  const [filter, setFilter] = useState("");
+  const filtered = filter.trim() ? filterArticles(tree, filter) : null;
+  const allRows = treeRows(tree);
+  const rows: TreeRow[] = filtered ? filtered.results.map((article) => ({ type: "article", article, depth: 0 })) : allRows;
   const selectedNode = selection?.kind === "node" ? findNode(tree.nodes, selection.id) : undefined;
   const selectedArticle = selection?.kind === "article" ? allArticles(tree).find((a) => a.id === selection.id) : undefined;
   const isSelected = (kind: "node" | "article", id: string) => selection?.kind === kind && selection.id === id;
+
+  // Dar ekranda düzenleyici ağacın altında kalır: seçince oraya kaydırılır.
+  const editorRef = useRef<HTMLElement>(null);
+  function select(next: Selection) {
+    setSelection(next);
+    if (window.matchMedia("(max-width: 1023px)").matches)
+      requestAnimationFrame(() => editorRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
+  }
 
   return (
     <div className="mt-4">
@@ -69,7 +83,7 @@ function StructureEditor({ tree }: { tree: LawTreeResponse }) {
         <div className="flex gap-1">
           <Button variant="outline" size="sm" asChild>
             <Link href={`/panel/kutuphane/${law.slug}/ice-aktar`}>
-              <FileInput /> {rows.length > 0 ? "Güncel metinle güncelle" : "Metinden içe aktar"}
+              <FileInput /> {allRows.length > 0 ? "Güncel metinle güncelle" : "Metinden içe aktar"}
             </Link>
           </Button>
           <Button variant="ghost" size="sm" asChild>
@@ -81,24 +95,46 @@ function StructureEditor({ tree }: { tree: LawTreeResponse }) {
       </div>
 
       <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(18rem,26rem)_1fr]">
-        <aside className="rounded-lg border bg-card">
+        <aside className="min-w-0 rounded-lg border bg-card">
           <div className="flex flex-wrap gap-1 border-b p-2">
-            <Button variant="outline" size="sm" onClick={() => setSelection({ kind: "new-node", parentId: null })}>
+            <Button variant="outline" size="sm" onClick={() => select({ kind: "new-node", parentId: null })}>
               <FolderPlus /> Düğüm
             </Button>
-            <Button variant="outline" size="sm" onClick={() => setSelection({ kind: "new-article", nodeId: null })}>
+            <Button variant="outline" size="sm" onClick={() => select({ kind: "new-article", nodeId: null })}>
               <FilePlus /> Madde
             </Button>
             <Button
               variant={selection?.kind === "law-notes" ? "default" : "outline"}
               size="sm"
               className="ml-auto"
-              onClick={() => setSelection({ kind: "law-notes" })}
+              onClick={() => select({ kind: "law-notes" })}
             >
               <NotebookText /> Kanun notları
             </Button>
           </div>
-          {rows.length === 0 ? (
+          {allRows.length > 0 && (
+            <form
+              className="relative border-b p-2"
+              onSubmit={(e) => {
+                e.preventDefault();
+                const target = filtered?.exact ?? filtered?.results[0];
+                if (target) select({ kind: "article", id: target.id });
+              }}
+            >
+              <Search className="pointer-events-none absolute top-1/2 left-4 size-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={filter}
+                onChange={(e) => setFilter(e.target.value)}
+                placeholder="Madde no veya başlık…"
+                aria-label="Madde süz"
+                enterKeyHint="go"
+                className="h-10 pl-8 text-base md:h-8 md:text-sm"
+              />
+            </form>
+          )}
+          {filtered && rows.length === 0 ? (
+            <p className="p-4 text-sm text-muted-foreground">Eşleşen madde yok.</p>
+          ) : allRows.length === 0 ? (
             <p className="p-4 text-sm text-muted-foreground">
               Kanun boş. Kanunun tamamını{" "}
               <Link href={`/panel/kutuphane/${law.slug}/ice-aktar`} className="text-primary underline">
@@ -107,13 +143,13 @@ function StructureEditor({ tree }: { tree: LawTreeResponse }) {
               ya da “Birinci Kitap” gibi bir düğüm (bölümsüz kanunda doğrudan madde) ekleyerek elle girebilirsiniz.
             </p>
           ) : (
-            <ul className="max-h-[70vh] overflow-y-auto p-1">
+            <ul className="max-h-[50vh] overflow-y-auto p-1 lg:max-h-[70vh]">
               {rows.map((row) =>
                 row.type === "node" ? (
                   <li key={row.node.id} className="group flex items-center" style={{ paddingLeft: row.depth * 14 }}>
                     <button
                       type="button"
-                      onClick={() => setSelection({ kind: "node", id: row.node.id })}
+                      onClick={() => select({ kind: "node", id: row.node.id })}
                       className={cn(
                         "min-w-0 flex-1 rounded-md px-2 py-1.5 text-left",
                         isSelected("node", row.node.id) ? "bg-primary text-primary-foreground" : "hover:bg-accent",
@@ -133,7 +169,7 @@ function StructureEditor({ tree }: { tree: LawTreeResponse }) {
                         size="icon-sm"
                         title="Altına düğüm ekle"
                         aria-label={`${row.node.number} altına düğüm ekle`}
-                        onClick={() => setSelection({ kind: "new-node", parentId: row.node.id })}
+                        onClick={() => select({ kind: "new-node", parentId: row.node.id })}
                       >
                         <FolderPlus />
                       </Button>
@@ -142,7 +178,7 @@ function StructureEditor({ tree }: { tree: LawTreeResponse }) {
                         size="icon-sm"
                         title="Altına madde ekle"
                         aria-label={`${row.node.number} altına madde ekle`}
-                        onClick={() => setSelection({ kind: "new-article", nodeId: row.node.id })}
+                        onClick={() => select({ kind: "new-article", nodeId: row.node.id })}
                       >
                         <FilePlus />
                       </Button>
@@ -152,7 +188,7 @@ function StructureEditor({ tree }: { tree: LawTreeResponse }) {
                   <li key={row.article.id} style={{ paddingLeft: row.depth * 14 }}>
                     <button
                       type="button"
-                      onClick={() => setSelection({ kind: "article", id: row.article.id })}
+                      onClick={() => select({ kind: "article", id: row.article.id })}
                       className={cn(
                         "grid w-full grid-cols-[5rem_1fr_auto] items-center gap-1 rounded-md px-2 py-1 text-left text-sm",
                         isSelected("article", row.article.id)
@@ -171,10 +207,11 @@ function StructureEditor({ tree }: { tree: LawTreeResponse }) {
           )}
         </aside>
 
-        <section className="rounded-lg border bg-card p-4">
+        <section ref={editorRef} className="min-w-0 scroll-mt-16 rounded-lg border bg-card p-3 sm:p-4">
           {selection === null && (
             <p className="text-muted-foreground">
-              Soldan bir düğüm ya da madde seçin, ya da yeni ekleyin. Düğümlerin yanındaki simgelerle o düğümün
+              <span className="lg:hidden">Yukarıdan</span>
+              <span className="max-lg:hidden">Soldan</span> bir düğüm ya da madde seçin, ya da yeni ekleyin. Düğümlerin yanındaki simgelerle o düğümün
               altına bölüm veya madde eklenir.
             </p>
           )}

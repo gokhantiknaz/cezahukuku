@@ -134,8 +134,9 @@ function UserTable({ currentUserId }: { currentUserId: string }) {
 
   return (
     <section className="mt-6 rounded-lg border bg-card">
-      <Table>
-        <TableHeader>
+      {/* Dar ekranda her kullanıcı bir kart: satır ızgaraya dönüşür, başlık satırı gizlenir. */}
+      <Table className="max-md:block">
+        <TableHeader className="max-md:hidden">
           <TableRow className="bg-accent hover:bg-accent">
             <TableHead className="text-accent-foreground">Ad Soyad</TableHead>
             <TableHead className="text-accent-foreground">E-posta</TableHead>
@@ -144,7 +145,7 @@ function UserTable({ currentUserId }: { currentUserId: string }) {
             <TableHead />
           </TableRow>
         </TableHeader>
-        <TableBody>
+        <TableBody className="max-md:block">
           {data.data.map((user) => (
             <UserRow key={user.id} user={user} isSelf={user.id === currentUserId} />
           ))}
@@ -182,23 +183,26 @@ function UserRow({ user, isSelf }: { user: UserSummary; isSelf: boolean }) {
   const actionError = errorText(updateUser.error ?? resetPassword.error);
 
   return (
-    <TableRow className="align-top">
-      <TableCell>
+    <TableRow className="align-top max-md:grid max-md:grid-cols-[1fr_auto] max-md:items-center max-md:gap-x-3 max-md:gap-y-2 max-md:p-3">
+      <TableCell className="max-md:col-span-2 max-md:p-0">
         <Input value={displayName} onChange={(e) => setDisplayName(e.target.value)} aria-label="Ad Soyad" />
       </TableCell>
-      <TableCell className="pt-4">{user.email}</TableCell>
-      <TableCell>
+      <TableCell className="pt-4 max-md:col-span-2 max-md:truncate max-md:p-0 max-md:text-muted-foreground">{user.email}</TableCell>
+      <TableCell className="max-md:min-w-0 max-md:p-0">
         <RoleSelect value={role} disabled={isSelf} onValueChange={setRole} />
       </TableCell>
-      <TableCell className="pt-4">
-        <Checkbox
-          checked={isActive}
-          disabled={isSelf}
-          onCheckedChange={(checked) => setIsActive(checked === true)}
-          aria-label="Aktif"
-        />
+      <TableCell className="pt-4 max-md:p-0">
+        <label className="flex items-center gap-2">
+          <Checkbox
+            checked={isActive}
+            disabled={isSelf}
+            onCheckedChange={(checked) => setIsActive(checked === true)}
+            aria-label="Aktif"
+          />
+          <span className="md:hidden">Aktif</span>
+        </label>
       </TableCell>
-      <TableCell className="space-y-2">
+      <TableCell className="space-y-2 max-md:col-span-2 max-md:p-0">
         <Button
           disabled={!dirty || updateUser.isPending}
           onClick={() => updateUser.mutate({ id: user.id, data: { displayName, role, isActive } })}
@@ -213,7 +217,7 @@ function UserRow({ user, isSelf }: { user: UserSummary; isSelf: boolean }) {
             placeholder="Yeni şifre"
             aria-label="Yeni şifre"
             autoComplete="new-password"
-            className="w-36"
+            className="w-36 max-md:flex-1"
           />
           <Button
             variant="outline"
