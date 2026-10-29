@@ -34,6 +34,10 @@ Geliştirmede boş veritabanına küçük bir örnek kütüphane (gruplar, kanun
 
 ## Çalıştırma
 
+Windows'ta tek adımda: `dev.cmd` (ya da `.\dev.ps1`). API'yi ayrı pencerede başlatır, `/api/health` yanıt verince
+web'i açar; böylece web, API ayağa kalkmadan istek atıp `ECONNREFUSED` yazmaz. Zaten çalışanı yeniden başlatmaz.
+Elle:
+
 ```bash
 dotnet run --project backend/src/CezaHukuku.Api   # http://localhost:5080 (API dokümanı: /scalar)
 cd web && npm run dev                             # http://localhost:3000
