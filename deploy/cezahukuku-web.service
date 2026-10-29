@@ -1,0 +1,23 @@
+# /etc/systemd/system/cezahukuku-web.service — Next.js (yalnız 127.0.0.1:3000; önünde Caddy)
+[Unit]
+Description=Ceza Hukukçusu web
+After=network.target cezahukuku-api.service
+Wants=cezahukuku-api.service
+
+[Service]
+User=cezahukuku
+Group=cezahukuku
+WorkingDirectory=/opt/cezahukuku/web
+ExecStart=/usr/bin/node /opt/cezahukuku/web/node_modules/next/dist/bin/next start -H 127.0.0.1 -p 3000
+Environment=NODE_ENV=production
+Environment=API_URL=http://127.0.0.1:5080
+Environment=NEXT_TELEMETRY_DISABLED=1
+Restart=always
+RestartSec=5
+ProtectSystem=strict
+ReadWritePaths=/opt/cezahukuku/web/.next
+PrivateTmp=true
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target

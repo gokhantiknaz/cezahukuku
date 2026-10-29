@@ -1,0 +1,26 @@
+# /etc/systemd/system/cezahukuku-api.service — .NET API (yalnız 127.0.0.1:5080; dışarıya Caddy → web → API)
+[Unit]
+Description=Ceza Hukukçusu API
+After=network.target postgresql.service
+Requires=postgresql.service
+
+[Service]
+User=cezahukuku
+Group=cezahukuku
+WorkingDirectory=/opt/cezahukuku/api
+ExecStart=/usr/bin/dotnet /opt/cezahukuku/api/CezaHukuku.Api.dll
+EnvironmentFile=/etc/cezahukuku/api.env
+Environment=ASPNETCORE_ENVIRONMENT=Production
+Environment=ASPNETCORE_URLS=http://127.0.0.1:5080
+Environment=DOTNET_NOLOGO=1
+Restart=always
+RestartSec=5
+KillSignal=SIGINT
+# Yazılabilir tek yer: yüklenen dosyalar ve oturum anahtarları.
+ProtectSystem=strict
+ReadWritePaths=/var/lib/cezahukuku
+PrivateTmp=true
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target

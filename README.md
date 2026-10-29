@@ -63,3 +63,7 @@ Entegrasyon testleri gerçek API'yi aynı sunucudaki ayrı `cezahukuku_integrati
 çalıştırır; bu veritabanı her test oturumunda silinip yeniden kurulur. Elle deneme yaptığınız geliştirme
 veritabanından (user-secrets'taki `Database=`) bilerek ayrıdır.
 Başka bir sunucu için `CEZAHUKUKU_TEST_CONNECTION` ortam değişkenini ayarlayın.
+
+## Canlıya alma
+
+Tek Linux sunucuda (Caddy + Next.js + .NET API + PostgreSQL) kurulum ve güncelleme: [deploy/README.md](deploy/README.md).

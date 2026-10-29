@@ -1,0 +1,27 @@
+# /etc/caddy/Caddyfile — alan adını kendi adresinizle değiştirin. Caddy HTTPS sertifikasını (Let's Encrypt) kendisi
+# alır ve yeniler; 80 ve 443 portları açık olmalı.
+cezahukuku.example.com {
+	encode zstd gzip
+	reverse_proxy 127.0.0.1:3000
+
+	# PDF ve ses yüklemeleri için (API tarafındaki sınırlar ayrıca geçerli).
+	request_body {
+		max_size 100MB
+	}
+
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+
+	log {
+		output file /var/log/caddy/cezahukuku.log
+	}
+}
+
+# www ile gelen ziyaretçiyi ana adrese yönlendir.
+www.cezahukuku.example.com {
+	redir https://cezahukuku.example.com{uri} permanent
+}

@@ -14,6 +14,7 @@ using CezaHukuku.Infrastructure;
 using CezaHukuku.Infrastructure.Identity;
 using CezaHukuku.Infrastructure.Persistence;
 using CezaHukuku.Infrastructure.Search;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
@@ -26,6 +27,14 @@ builder.Host.UseSerilog((context, logger) => logger
     .WriteTo.Console());
 
 builder.Services.AddInfrastructure(builder.Configuration);
+
+// Oturum çerezini şifreleyen anahtarlar: sunucuda kalıcı bir klasörde tutulur ki yeniden başlatınca oturumlar düşmesin.
+if (builder.Configuration["DataProtection:KeysPath"] is { Length: > 0 } keysPath)
+{
+    builder.Services.AddDataProtection()
+        .SetApplicationName("cezahukuku")
+        .PersistKeysToFileSystem(new DirectoryInfo(keysPath));
+}
 builder.Services.Configure<AuthOptions>(builder.Configuration.GetSection(AuthOptions.Section));
 
 builder.Services
@@ -41,13 +50,14 @@ builder.Services
     .AddDefaultTokenProviders();
 
 // Web istemcisi Next.js üzerinden aynı origin'den gelir; kimlik doğrulama HttpOnly cookie ile.
-// (Faz 2 mobil için bearer token şeması eklenecek.)
+// (Faz 2 mobil için bearer token şeması eklenecek.) Canlıda site yalnız HTTPS'tir: API'ye Next.js'ten iç ağda http ile
+// gelinse de çerez Secure işaretlenir.
 builder.Services.ConfigureApplicationCookie(options =>
 {
     options.Cookie.Name = "ch_auth";
     options.Cookie.HttpOnly = true;
     options.Cookie.SameSite = SameSiteMode.Lax;
-    options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+    options.Cookie.SecurePolicy = builder.Environment.IsDevelopment() ? CookieSecurePolicy.SameAsRequest : CookieSecurePolicy.Always;
     options.ExpireTimeSpan = TimeSpan.FromDays(14);
     options.SlidingExpiration = true;
 
@@ -121,7 +131,8 @@ app.MapCitationCheckEndpoints();
 if (!IsBuildTimeOpenApiGeneration())
 {
     await using var scope = app.Services.CreateAsyncScope();
-    if (app.Environment.IsDevelopment())
+    // Geliştirmede her zaman; canlıda Database:MigrateOnStartup=true ise (tek sunuculu kurulum).
+    if (app.Environment.IsDevelopment() || app.Configuration.GetValue<bool>("Database:MigrateOnStartup"))
         await scope.ServiceProvider.GetRequiredService<AppDbContext>().Database.MigrateAsync();
     await scope.ServiceProvider.GetRequiredService<IdentitySeeder>().SeedAsync();
 
