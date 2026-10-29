@@ -176,6 +176,7 @@ sudo tail -f /var/log/caddy/cezahukuku.log          # gelen istekler
 - **Çerez güvenliği:** Canlıda çerez `Secure` işaretlidir, yani yalnız HTTPS üzerinden gönderilir. Siteyi HTTPS'siz
   bir IP adresinden açarsanız giriş yapılamaz.
 - **İleride:**
-  - Sesli notu yazıya dökme ve OCR, Faz 3'te eklenecek.
+  - Faz 2: mobil uygulama (Expo). Faz 3: sesli notu yazıya dökme ve OCR. Faz 4: mevzuat değişiklik takibi.
+    Faz 5: kaynak gösteren yapay zekâ asistanı.
   - Trafik artarsa veritabanı ayrı bir sunucuya taşınabilir.
   - Dosyalar S3 uyumlu bir depoya alınabilir (`IFileStorage`).
