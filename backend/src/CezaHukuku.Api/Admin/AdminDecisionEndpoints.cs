@@ -24,6 +24,7 @@ internal static class AdminDecisionEndpoints
         group.MapPost("/decisions", CreateAsync).WithName("CreateDecision");
         group.MapPut("/decisions/{id:guid}", UpdateAsync).WithName("UpdateDecision");
         group.MapDelete("/decisions/{id:guid}", DeleteAsync).WithName("DeleteDecision");
+        group.MapPost("/decisions/article-suggestions", SuggestArticlesAsync).WithName("SuggestDecisionArticles");
         group.MapPut("/articles/{articleId:guid}/decisions/{decisionId:guid}", LinkAsync).WithName("LinkDecision");
         group.MapDelete("/articles/{articleId:guid}/decisions/{decisionId:guid}", UnlinkAsync).WithName("UnlinkDecision");
     }
@@ -92,9 +93,16 @@ internal static class AdminDecisionEndpoints
         if (decision is null)
             return TypedResults.NotFound();
         var errors = Apply(decision, request);
+
+        // Güncellemede verilen maddeler bağlantılara eklenir; var olan bağlantılar kaldırılmaz.
+        var linked = await db.ArticleDecisions.Where(l => l.DecisionId == id).Select(l => l.ArticleId).ToListAsync();
+        var articleIds = (request.ArticleIds ?? []).Distinct().Except(linked).ToList();
+        if (articleIds.Count > 0 && await db.Articles.CountAsync(a => articleIds.Contains(a.Id)) != articleIds.Count)
+            errors.Add("articleIds", "Bağlanacak maddelerden biri bulunamadı.");
         if (errors.HasErrors)
             return errors.ToProblem();
 
+        db.ArticleDecisions.AddRange(articleIds.Select(articleId => new ArticleDecision { ArticleId = articleId, DecisionId = id }));
         await db.SaveChangesAsync();
         return TypedResults.Ok(await ToDetailAsync(decision, db));
     }
@@ -110,6 +118,10 @@ internal static class AdminDecisionEndpoints
         await db.SaveChangesAsync();
         return TypedResults.NoContent();
     }
+
+    private static async Task<Ok<DecisionArticleSuggestions>> SuggestArticlesAsync(
+        SuggestDecisionArticlesRequest request, AppDbContext db, CancellationToken ct) =>
+        TypedResults.Ok(await DecisionArticleSuggestionsQuery.FindAsync(db, request, ct));
 
     private static async Task<Results<NoContent, NotFound>> LinkAsync(Guid articleId, Guid decisionId, AppDbContext db)
     {

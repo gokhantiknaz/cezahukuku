@@ -6,7 +6,7 @@ namespace CezaHukuku.Api.Admin;
 
 /// <param name="Outcome">Yalnız norm denetiminde: iptal, kısmen iptal, ret.</param>
 /// <param name="Html">Tam metin ya da ilgili kısım (düzenleyiciden HTML); sunucuda temizlenir.</param>
-/// <param name="ArticleIds">Oluştururken bağlanacak maddeler; güncellemede yok sayılır (bağlantılar ayrı yönetilir).</param>
+/// <param name="ArticleIds">Bağlanacak maddeler; güncellemede var olan bağlantılara eklenir (kaldırma ayrı yapılır).</param>
 public sealed record SaveDecisionRequest(
     Court Court,
     string? Chamber,

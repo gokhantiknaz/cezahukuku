@@ -18,6 +18,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { courtLabels, outcomeLabels } from "@/lib/decisions";
+import { DecisionArticleSuggestions } from "./decision-article-suggestions";
 import { emptyToNull, Field, FormMessages, OptionSelect, otherMessages, visibilityLabels } from "./form";
 import { useLibraryRefresh } from "./use-library-refresh";
 
@@ -143,6 +144,8 @@ function DecisionForm({
   });
   const set = (key: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
     setForm((f) => ({ ...f, [key]: e.target.value }));
+  // Metindeki atıflardan seçilen maddeler; kaydedince bağlanır (güncellemede var olan bağlantılara eklenir).
+  const [suggested, setSuggested] = useState<string[]>([]);
   const create = useCreateDecision();
   const update = useUpdateDecision();
   const error = create.error ?? update.error;
@@ -164,7 +167,7 @@ function DecisionForm({
       html: emptyToNull(form.html),
       sourceUrl: emptyToNull(form.sourceUrl),
       visibility: form.visibility,
-      articleIds: decision ? null : (articleIds ?? null),
+      articleIds: [...new Set([...(decision ? [] : (articleIds ?? [])), ...suggested])],
     };
     const saved = decision
       ? await update.mutateAsync({ id: decision.id, data })
@@ -241,6 +244,13 @@ function DecisionForm({
         <p className="mb-1.5 text-sm font-medium">Kararın metni (isteğe bağlı)</p>
         <RichTextEditor value={form.html} onChange={(html) => setForm((f) => ({ ...f, html }))} label="Kararın metni" />
       </div>
+      <DecisionArticleSuggestions
+        text={`${form.summary}\n${form.html}`}
+        decisionId={decision?.id}
+        fixedIds={decision ? [] : (articleIds ?? [])}
+        selected={suggested}
+        onChange={setSuggested}
+      />
       <div className="grid gap-4 sm:grid-cols-[1fr_16rem]">
         <Field label="Kaynak bağlantısı" htmlFor="decision-source" error={error} field="sourceUrl">
           <Input

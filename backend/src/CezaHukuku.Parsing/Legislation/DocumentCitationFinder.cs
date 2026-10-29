@@ -59,7 +59,7 @@ public static partial class DocumentCitationFinder
 
     // Kısaltma (2-6 büyük harf) + isteğe bağlı ek ('nın, ’nun) + isteğe bağlı "m." / "md." / "madde(si)" + numara
     // ("81", "103/a") + isteğe bağlı fıkra ve bent ("/2", "/1-c") + isteğe bağlı sıra eki ve "madde…" ("81. maddesi",
-    // "231 inci maddesi").
+    // "231 inci maddesi", "82/1-a maddesi").
     // Numara 4 haneden uzunsa alınmaz; dört haneli numaranın arkasındaki "/rakam" (yıl ve esas sırası: "AYM 2019/123")
     // fıkra sayılmaz.
     [GeneratedRegex("""
@@ -71,7 +71,7 @@ public static partial class DocumentCitationFinder
         (?<no>\d{1,4}(?:/[a-zA-Z](?![\p{L}]))?)
         (?:/(?<para>\d{1,2})(?:\s*-\s*(?<item>[a-zçğıöşü])(?![\p{L}]))?)?
         (?![\d/])
-        (?:\s*(?:\.|['’]?(?:inci|ıncı|uncu|üncü|nci|ncı|ncu|ncü|ci|cı|cu|cü))\s+madde[\p{L}]*)?
+        (?:\s*(?:\.|['’]?(?:inci|ıncı|uncu|üncü|nci|ncı|ncu|ncü|ci|cı|cu|cü))?\s+madde[\p{L}]*)?
         """, RegexOptions.IgnorePatternWhitespace)]
     private static partial Regex ShortReference();
 }

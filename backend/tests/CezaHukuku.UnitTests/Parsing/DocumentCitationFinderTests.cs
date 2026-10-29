@@ -41,6 +41,7 @@ public class DocumentCitationFinderTests
     [InlineData("TCK m. 53/1-c bendi", "TCK m. 53/1-c", "53", 1, "c")]
     [InlineData("CMK 231/5'e göre", "CMK 231/5", "231", 5, null)]
     [InlineData("TCK madde 103/a", "TCK madde 103/a", "103/A", null, null)]
+    [InlineData("TCK'nın 82/1-a maddesi kapsamında", "TCK'nın 82/1-a maddesi", "82", 1, "a")]
     public void ParagraphAndItem(string text, string expectedMatch, string article, int? paragraph, string? item)
     {
         var citation = Assert.Single(DocumentCitationFinder.Find(text));

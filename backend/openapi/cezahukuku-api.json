@@ -1912,6 +1912,36 @@
         }
       }
     },
+    "/api/admin/decisions/article-suggestions": {
+      "post": {
+        "tags": [
+          "AdminLaws"
+        ],
+        "operationId": "SuggestDecisionArticles",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SuggestDecisionArticlesRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DecisionArticleSuggestions"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/admin/articles/{articleId}/decisions/{decisionId}": {
       "put": {
         "tags": [
@@ -4378,6 +4408,58 @@
           }
         }
       },
+      "DecisionArticleSuggestion": {
+        "required": [
+          "article",
+          "mentions",
+          "cited",
+          "excerpt",
+          "linked"
+        ],
+        "type": "object",
+        "properties": {
+          "article": {
+            "$ref": "#/components/schemas/LinkedArticle"
+          },
+          "mentions": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "cited": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "excerpt": {
+            "type": "string"
+          },
+          "linked": {
+            "type": "boolean"
+          }
+        }
+      },
+      "DecisionArticleSuggestions": {
+        "required": [
+          "items",
+          "notFound"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DecisionArticleSuggestion"
+            }
+          },
+          "notFound": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
       "DecisionDto": {
         "required": [
           "id",
@@ -6406,6 +6488,28 @@
             "items": {
               "$ref": "#/components/schemas/SearchHit"
             }
+          }
+        }
+      },
+      "SuggestDecisionArticlesRequest": {
+        "required": [
+          "text",
+          "decisionId"
+        ],
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "decisionId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
           }
         }
       },

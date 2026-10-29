@@ -31,6 +31,7 @@ import type {
   ArticleVersionDetail,
   BulkOldLawLinksRequest,
   BulkOldLawLinksResult,
+  DecisionArticleSuggestions,
   EditorialNoteDto,
   ExtractImportTextBody,
   ExtractedImportText,
@@ -52,7 +53,8 @@ import type {
   SaveLawGroupRequest,
   SaveLawNodeRequest,
   SaveLawRequest,
-  SearchArticlesParams
+  SearchArticlesParams,
+  SuggestDecisionArticlesRequest
 } from '.././model';
 
 import { apiFetch } from '../../fetcher';
@@ -2656,6 +2658,83 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       > => {
 
       const mutationOptions = getDeleteDecisionMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    export type suggestDecisionArticlesResponse200 = {
+  data: DecisionArticleSuggestions
+  status: 200
+}
+    
+export type suggestDecisionArticlesResponseSuccess = (suggestDecisionArticlesResponse200) & {
+  headers: Headers;
+};
+;
+
+export type suggestDecisionArticlesResponse = (suggestDecisionArticlesResponseSuccess)
+
+export const getSuggestDecisionArticlesUrl = () => {
+
+
+  
+
+  return `/api/admin/decisions/article-suggestions`
+}
+
+export const suggestDecisionArticles = async (suggestDecisionArticlesRequest: SuggestDecisionArticlesRequest, options?: RequestInit): Promise<suggestDecisionArticlesResponse> => {
+  
+  return apiFetch<suggestDecisionArticlesResponse>(getSuggestDecisionArticlesUrl(),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      suggestDecisionArticlesRequest,)
+  }
+);}
+
+
+
+
+export const getSuggestDecisionArticlesMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof suggestDecisionArticles>>, TError,{data: SuggestDecisionArticlesRequest}, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof suggestDecisionArticles>>, TError,{data: SuggestDecisionArticlesRequest}, TContext> => {
+
+const mutationKey = ['suggestDecisionArticles'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof suggestDecisionArticles>>, {data: SuggestDecisionArticlesRequest}> = (props) => {
+          const {data} = props ?? {};
+
+          return  suggestDecisionArticles(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SuggestDecisionArticlesMutationResult = NonNullable<Awaited<ReturnType<typeof suggestDecisionArticles>>>
+    export type SuggestDecisionArticlesMutationBody = SuggestDecisionArticlesRequest
+    export type SuggestDecisionArticlesMutationError = unknown
+
+    export const useSuggestDecisionArticles = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof suggestDecisionArticles>>, TError,{data: SuggestDecisionArticlesRequest}, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof suggestDecisionArticles>>,
+        TError,
+        {data: SuggestDecisionArticlesRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getSuggestDecisionArticlesMutationOptions(options);
 
       return useMutation(mutationOptions, queryClient);
     }

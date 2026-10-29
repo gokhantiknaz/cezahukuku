@@ -113,13 +113,41 @@ public class DecisionTests(ApiFactory factory)
         await factory.CreateAnonymousClient().GetAsync("/api/admin/decisions").ExpectAsync(401);
     }
 
-    private static async Task<(LawSummary Law, ArticleSummary M81, ArticleSummary M82)> CreateLawAsync(HttpClient admin)
+    [Fact]
+    public async Task ArticleSuggestions_FromDecisionText_AndAddedOnUpdate()
+    {
+        var admin = await factory.CreateAdminClientAsync();
+        // Kısaltma her çalıştırmada farklı: ortak veritabanındaki öbür "TCK"lerle karışmasın.
+        var abbreviation = new string(Enumerable.Range(0, 5).Select(_ => "ABCDEFGHJKLMNPRSTUVYZ"[Random.Shared.Next(21)]).ToArray());
+        var (_, m81, m82) = await CreateLawAsync(admin, abbreviation);
+        var created = await (await admin.PostJsonAsync("/api/admin/decisions", Ictihat($"2019/{Guid.NewGuid():N}"[..20], articles: [m81.Id])))
+            .ReadAsync<AdminDecisionDetail>(201);
+
+        var text = $"<p>Sanığın eylemi {abbreviation}'nın 82/1-a maddesi kapsamındadır; ilk derece mahkemesi {abbreviation} m. 81 "
+            + $"uyarınca hüküm kurmuştur. {abbreviation} 82 tekrar. {abbreviation} 999 ile KDV 18 ise önerilmez.</p>";
+        var suggestions = await (await admin.PostJsonAsync("/api/admin/decisions/article-suggestions",
+                new SuggestDecisionArticlesRequest(text, created.Decision.Id)))
+            .ReadAsync<DecisionArticleSuggestions>();
+
+        Assert.Equal([("82", 2, false), ("81", 1, true)], suggestions.Items.Select(i => (i.Article.Number, i.Mentions, i.Linked)));
+        Assert.Equal([$"{abbreviation}'nın 82/1-a maddesi", $"{abbreviation} 82"], suggestions.Items[0].Cited);
+        Assert.StartsWith("Sanığın eylemi", suggestions.Items[0].Excerpt);
+        Assert.Equal([$"{abbreviation} 999"], suggestions.NotFound);
+
+        // Güncellemede verilen madde eklenir, var olan bağlantı kalır.
+        var updated = await (await admin.PutJsonAsync($"/api/admin/decisions/{created.Decision.Id}",
+                Ictihat(created.Decision.CaseNumber!, articles: [m82.Id])))
+            .ReadAsync<AdminDecisionDetail>();
+        Assert.Equal(["81", "82"], updated.Articles.Select(a => a.Number));
+    }
+
+    private static async Task<(LawSummary Law, ArticleSummary M81, ArticleSummary M82)> CreateLawAsync(HttpClient admin, string abbreviation = "TCK")
     {
         var group = await (await admin.PostJsonAsync("/api/admin/law-groups",
                 new SaveLawGroupRequest("Kararlar", "t" + Guid.NewGuid().ToString("N")[..12], null)))
             .ReadAsync<LawGroupSummary>(201);
         var law = await (await admin.PostJsonAsync("/api/admin/laws",
-                new SaveLawRequest(group.Id, "5237", "Türk Ceza Kanunu", "TCK", "t" + Guid.NewGuid().ToString("N")[..12],
+                new SaveLawRequest(group.Id, "5237", "Türk Ceza Kanunu", abbreviation, "t" + Guid.NewGuid().ToString("N")[..12],
                     null, null, null, Visibility.Public, null)))
             .ReadAsync<LawSummary>(201);
         var m81 = await (await admin.PostJsonAsync($"/api/admin/laws/{law.Id}/articles",
