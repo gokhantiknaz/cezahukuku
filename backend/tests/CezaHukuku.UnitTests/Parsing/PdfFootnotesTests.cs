@@ -162,6 +162,40 @@ public class PdfFootnotesTests
     }
 
     [Fact]
+    public void EdgeCopy_GluedAndLoneFootnoteNumbers_DoNotLeakIntoNodeTitle()
+    {
+        // 5237 sayılı TCK, Edge'in PDF görüntüleyicisinden kopyalanmış: dipnot çizgisi yok, numara metne ("1Bu") ya da
+        // tarihe ("22/7/2018" = 2 ve "2/7/2018") yapışık ya da kendi satırında; bölüm başlığı sayfanın son satırı.
+        var law = LawTextParser.Parse("""
+            TÜRK CEZA KANUNU1
+            BİRİNCİ BÖLÜM
+            Temel İlkeler
+            Kanunun amacı
+            Madde 1- (1) Amacı korumaktır.2
+            1Bu Kanunun yürürlük ve uygulama şekli için 5252 sayılı Kanuna bakınız.
+            22/7/2018 tarihli ve 700 sayılı KHK’nin 156 ncı maddesiyle değiştirilmiştir.
+            Tanımlar
+            Madde 2- (1) Tanımlar şunlardır.3
+            ONUNCU BÖLÜM
+            Malvarlığına Karşı Suçlar
+            3
+            24/3/2016 tarihli ve 6698 sayılı Kanunun 30 uncu maddesiyle bu fıkrada yer alan “Kişilerin”
+            ibaresi “Kişisel verinin, kişilerin” şeklinde değiştirilmiştir.
+            Hırsızlık
+            Madde 3- (1) Malı alan kimseye hapis cezası verilir.
+            """, new LawTextParserOptions { JoinWrappedLines = true });
+
+        Assert.Empty(law.Warnings);
+        Assert.Equal(3, law.FootnoteCount);
+        Assert.Equal(["Temel İlkeler", "Malvarlığına Karşı Suçlar"], law.Nodes.Select(n => n.Title));
+        var articles = Articles(law).ToList();
+        Assert.Equal(["Kanunun amacı", "Tanımlar", "Hırsızlık"], articles.Select(a => a.Title));
+        Assert.Equal("Amacı korumaktır.", articles[0].Paragraphs.Single().Text);
+        Assert.StartsWith("2/7/2018 tarihli", articles[0].Footnotes!.Single().Text);
+        Assert.StartsWith("24/3/2016 tarihli", articles[1].Footnotes!.Single().Text);
+    }
+
+    [Fact]
     public void WebFormatAndTextWithoutFootnotes_AreUnchanged()
     {
         const string web = "Madde 1- Metin.[1]\n[1] Not.";

@@ -45,7 +45,19 @@ public static partial class PdfFootnotes
         {
             var raw = lines[i];
             var line = raw.Trim();
-            if (FootnoteStart(line, expected) is { } footnoteText && MarkFootnote(body, previousSegmentStart, expected, marked))
+            // Edge'den kopyalanınca dipnot numarası kendi satırında kalabilir: "82" ⏎ "28/3/2023 tarihli …".
+            if (line == expected.ToString(CultureInfo.InvariantCulture) && i + 1 < lines.Length
+                && lines[i + 1].Trim() is { Length: > 0 } nextLine && (StartsWithDate(nextLine) || GluedFootnoteText().IsMatch(nextLine))
+                && !LawTextParser.IsStructureLine(nextLine) && !LawTextParser.IsArticleHeaderLine(nextLine))
+            {
+                line = $"{line} {nextLine}";
+                if (FootnoteStart(line, expected, false) is not null && MarkFootnote(body, previousSegmentStart, expected, marked))
+                    i++;
+                else
+                    line = raw.Trim();
+            }
+            var continuing = cut is not null || (open is not null && line.Length > 0 && !IsComplete(open.ToString(), line));
+            if (FootnoteStart(line, expected, continuing) is { } footnoteText && MarkFootnote(body, previousSegmentStart, expected, marked))
             {
                 if (cut is { } unfinished && !afterSeparator)
                 {
@@ -183,10 +195,12 @@ public static partial class PdfFootnotes
     }
 
     /// <summary>
-    /// Satır <paramref name="number"/> numaralı dipnotla başlıyorsa dipnotun metni: "41 Bu başlık …" ya da numarası
-    /// tarihe yapışık "552/3/2014 tarihli …" (55 ve "2/3/2014 …"). "1 - …" gibi bent satırları dipnot değildir.
+    /// Satır <paramref name="number"/> numaralı dipnotla başlıyorsa dipnotun metni: "41 Bu başlık …", numarası
+    /// tarihe yapışık "552/3/2014 tarihli …" (55 ve "2/3/2014 …") ya da sözcüğe yapışık "1Bu Kanunun …" (Edge'in PDF
+    /// görüntüleyicisinden kopyalanınca). "1 - …" gibi bent satırları dipnot değildir.
     /// </summary>
-    private static string? FootnoteStart(string line, int number)
+    /// <param name="continuing">Açık dipnotun cümlesi bitmedi: tarihle başlayan satır onun devamı olabilir.</param>
+    private static string? FootnoteStart(string line, int number, bool continuing)
     {
         var prefix = number.ToString(CultureInfo.InvariantCulture);
         if (!line.StartsWith(prefix, StringComparison.Ordinal))
@@ -194,9 +208,17 @@ public static partial class PdfFootnotes
         var rest = line[prefix.Length..];
         if (rest.Length > 1 && char.IsWhiteSpace(rest[0]) && FootnoteTextStart().IsMatch(rest.TrimStart()))
             return rest.Trim();
-        // Satırın kendisi tarihle başlıyorsa ("22/3/2000 tarih ve …", bir dipnotun devamı) numara yapışık değildir.
-        return DateStart().IsMatch(rest) && !DateStart().IsMatch(line) ? rest.Trim() : null;
+        if (GluedFootnoteText().IsMatch(rest))
+            return rest.Trim();
+        // Satırın kendisi tarihle başlıyorsa ("22/3/2000 tarih ve …") yarım kalmış dipnotun devamıdır; önceki dipnot
+        // bitmişse ya da gövdedeysek numara yapışıktır ("22/7/2018" = 2 ve "2/7/2018"; Edge'den kopyalanınca).
+        return StartsWithDate(rest) && (!StartsWithDate(line) || !continuing) ? rest.Trim() : null;
     }
+
+    private static bool StartsWithDate(string text) =>
+        DateStart().Match(text) is { Success: true } date
+        && int.Parse(date.Groups[1].Value, CultureInfo.InvariantCulture) is >= 1 and <= 31
+        && int.Parse(date.Groups[2].Value, CultureInfo.InvariantCulture) is >= 1 and <= 12;
 
     /// <summary>"910", 9'dan başlayarak ardışık numaralara bölünürse [9, 10]; "41" ve 41 → [41]; bölünemezse null.</summary>
     private static List<int>? Split(string digits, int first)
@@ -244,8 +266,12 @@ public static partial class PdfFootnotes
     [GeneratedRegex(@"^[\p{L}\d""“'‘]")]
     private static partial Regex FootnoteTextStart();
 
-    [GeneratedRegex(@"^\d{1,2}/\d{1,2}/\d{4}\b")]
+    [GeneratedRegex(@"^(\d{1,2})/(\d{1,2})/\d{4}\b")]
     private static partial Regex DateStart();
+
+    // Numaraya yapışık dipnot metni büyük harfli bir sözcükle ("Bu", "Anayasa") ya da tırnakla başlar.
+    [GeneratedRegex(@"^(?:\p{Lu}\p{Ll}|[""“'‘])")]
+    private static partial Regex GluedFootnoteText();
 
     // Harfli bent: "a -Bu Kanunda …", "b - Bu Kanundaki …".
     [GeneratedRegex(@"^[a-zçğıöşü]\s?-\s?\S")]
