@@ -45,6 +45,9 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         // Yüklenen dosyalar her test oturumunda geçici klasöre.
         Environment.SetEnvironmentVariable("Storage__Root", StorageRoot);
         Environment.SetEnvironmentVariable("Transcription__BaseUrl", "");
+        // Testler hep aynı (boş) istemci adresinden ve hızla giriş yapar; hız sınırı ayrıca denenir (AuthTests).
+        Environment.SetEnvironmentVariable("RateLimit__LoginPerMinute", "100000");
+        Environment.SetEnvironmentVariable("RateLimit__ToolsPerMinute", "100000");
     }
 
     // Geliştirme ortamında Program migration'ları uygular ve ilk yöneticiyi açar.

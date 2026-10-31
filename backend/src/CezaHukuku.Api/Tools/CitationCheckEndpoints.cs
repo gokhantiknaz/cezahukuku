@@ -19,7 +19,7 @@ public static class CitationCheckEndpoints
 
     public static void MapCitationCheckEndpoints(this IEndpointRouteBuilder app)
     {
-        var group = app.MapGroup("/api/tools").WithTags("Tools");
+        var group = app.MapGroup("/api/tools").WithTags("Tools").RequireRateLimiting(RateLimits.Tools);
         group.MapPost("/citation-check", CheckAsync).WithName("CheckCitations").AllowAnonymous();
         group.MapPost("/extract-text", ExtractTextAsync).WithName("ExtractText")
             .RequireAuthorization()

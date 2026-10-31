@@ -15,6 +15,7 @@ using CezaHukuku.Infrastructure.Identity;
 using CezaHukuku.Infrastructure.Persistence;
 using CezaHukuku.Infrastructure.Search;
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
@@ -125,13 +126,29 @@ builder.Services.Configure<ExceptionHandlerOptions>(options =>
 });
 builder.Services.AddOpenApi();
 
+// İstemci adresi (hız sınırı, günlük): canlıda Caddy → Next.js → API zincirinde Caddy X-Forwarded-For'u istemcinin
+// adresiyle yazar, Next.js aynen iletir. Yalnız yerel bağlantıdan (127.0.0.1 / ::1) gelen başlığa güvenilir; API
+// dışarıya kapalıdır (127.0.0.1:5080).
+builder.Services.Configure<ForwardedHeadersOptions>(options => options.ForwardedHeaders = ForwardedHeaders.XForwardedFor);
+builder.Services.AddRateLimits(builder.Configuration);
+
 var app = builder.Build();
 
+app.UseForwardedHeaders();
+// Yüklenen dosyalar (PDF, ses) dahil her yanıt: tarayıcı türü tahmin etmesin, başka sitenin çerçevesinde açılmasın.
+// Next.js sayfalara aynı başlıkları kendisi ekler; /api isteklerini ise olduğu gibi iletir.
+app.Use((context, next) =>
+{
+    context.Response.Headers.XContentTypeOptions = "nosniff";
+    context.Response.Headers.XFrameOptions = "DENY";
+    return next(context);
+});
 app.UseSerilogRequestLogging();
 app.UseExceptionHandler();
 app.UseStatusCodePages();
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseRateLimiter();
 
 if (app.Environment.IsDevelopment())
 {

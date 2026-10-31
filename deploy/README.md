@@ -175,6 +175,9 @@ sudo tail -f /var/log/caddy/cezahukuku.log          # gelen istekler
   durumdur.
 - **Çerez güvenliği:** Canlıda çerez `Secure` işaretlidir, yani yalnız HTTPS üzerinden gönderilir. Siteyi HTTPS'siz
   bir IP adresinden açarsanız giriş yapılamaz.
+- **Hız sınırı:** Giriş (dakikada 10) ve atıf denetleyici (dakikada 20) istemci IP'si başına sınırlıdır
+  (`RateLimit__LoginPerMinute`, `RateLimit__ToolsPerMinute`). IP, Caddy'nin yazdığı `X-Forwarded-For` başlığından
+  okunur; bu yüzden Next.js ve API yalnız `127.0.0.1`'de dinlemeli, dışarıya yalnız Caddy açık olmalıdır.
 - **İleride:**
   - Faz 2: mobil uygulama (Expo). Faz 3: sesli notu yazıya dökme ve OCR. Faz 4: mevzuat değişiklik takibi.
     Faz 5: kaynak gösteren yapay zekâ asistanı.

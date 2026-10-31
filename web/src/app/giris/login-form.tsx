@@ -16,6 +16,21 @@ const MIN_LOGIN_MS = 1800;
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
+/**
+ * Oturum süresi dolunca kalınan sayfaya dönülür. Yalnız bu sitenin bir yolu kabul edilir: tarayıcı "/\başka-site"
+ * adresini "//başka-site" gibi okur, bu yüzden metin değil çözümlenen adresin kökeni denetlenir.
+ */
+function safeNext(next: string | null) {
+  if (!next) return "/";
+  try {
+    const url = new URL(next, window.location.origin);
+    if (url.origin !== window.location.origin || url.pathname.startsWith("/giris")) return "/";
+    return url.pathname + url.search + url.hash;
+  } catch {
+    return "/";
+  }
+}
+
 export function LoginForm() {
   const router = useRouter();
   const refreshUser = useRefreshCurrentUser();
@@ -43,9 +58,7 @@ export function LoginForm() {
       return;
     }
     await refreshUser();
-    // Oturum süresi dolunca kalınan sayfaya dönülür (yalnız site içi yol: "//başka-site" değil).
-    const next = new URLSearchParams(window.location.search).get("next");
-    router.push(next?.startsWith("/") && !next.startsWith("//") && !next.startsWith("/giris") ? next : "/");
+    router.push(safeNext(new URLSearchParams(window.location.search).get("next")));
     // Sunucuda çizilen içerik oturuma bağlı (private kanunlar); önbellekteki anonim hâli yenilensin.
     router.refresh();
   }

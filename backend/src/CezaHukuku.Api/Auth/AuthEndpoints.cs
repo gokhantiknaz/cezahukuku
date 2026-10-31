@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using CezaHukuku.Api.Common;
 using CezaHukuku.Domain.Users;
 using CezaHukuku.Infrastructure.Identity;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -9,11 +10,14 @@ namespace CezaHukuku.Api.Auth;
 
 public static class AuthEndpoints
 {
+    /// <summary>Kayıtlı olmayan hesapla girişte karşılaştırılan sahte şifre özeti (bkz. LoginAsync).</summary>
+    private static string? DummyHash;
+
     public static RouteGroupBuilder MapAuthEndpoints(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/api/auth").WithTags("Auth");
 
-        group.MapPost("/login", LoginAsync).WithName("Login").AllowAnonymous();
+        group.MapPost("/login", LoginAsync).WithName("Login").AllowAnonymous().RequireRateLimiting(RateLimits.Login);
         group.MapPost("/logout", LogoutAsync).WithName("Logout").RequireAuthorization();
         group.MapGet("/me", MeAsync).WithName("GetCurrentUser").RequireAuthorization();
         group.MapPost("/register", RegisterAsync).WithName("Register").AllowAnonymous();
@@ -30,7 +34,14 @@ public static class AuthEndpoints
 
         var user = await userManager.FindByEmailAsync(request.Email);
         if (user is null || !user.IsActive)
+        {
+            // Şifre karşılaştırması ~60 ms sürer: hesap yokken de yapılır, yanıt süresi e-postanın kayıtlı olduğunu
+            // ele vermesin.
+            var hasher = userManager.PasswordHasher;
+            DummyHash ??= hasher.HashPassword(new ApplicationUser(), Guid.NewGuid().ToString());
+            hasher.VerifyHashedPassword(new ApplicationUser(), DummyHash, request.Password ?? "");
             return invalid;
+        }
 
         var result = await signInManager.PasswordSignInAsync(user, request.Password, request.RememberMe, lockoutOnFailure: true);
         if (result.IsLockedOut)
