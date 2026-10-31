@@ -9,6 +9,12 @@ public sealed class AuthOptions
     /// standart rolle kullanıcı oluşturur.
     /// </summary>
     public bool AllowRegistration { get; set; }
+
+    /// <summary>"Beni hatırla" seçilmeden açılan oturum bu kadar dakika işlem yapılmazsa kapanır (en az 10).</summary>
+    public int IdleTimeoutMinutes { get; set; } = 60;
+
+    /// <summary>"Beni hatırla" ile açılan oturum bu kadar gün işlem yapılmazsa kapanır (en az 1).</summary>
+    public int RememberMeDays { get; set; } = 14;
 }
 
 public static class Policies

@@ -7,6 +7,7 @@ import { useLogout } from "@/api/generated/auth/auth";
 import { Button } from "@/components/ui/button";
 import { isAdmin, useCurrentUser, useRefreshCurrentUser } from "@/lib/auth";
 import { canAnnotate } from "@/lib/highlights";
+import { markSigningOut } from "./session-keeper";
 
 /** Oturumu kapatır, ana sayfaya döner. */
 export function useSignOut() {
@@ -14,6 +15,7 @@ export function useSignOut() {
   const refreshUser = useRefreshCurrentUser();
   return useLogout({
     mutation: {
+      onMutate: markSigningOut,
       onSettled: async () => {
         await refreshUser();
         router.push("/");

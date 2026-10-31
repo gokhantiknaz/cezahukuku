@@ -1,6 +1,8 @@
 using CezaHukuku.Api.Admin;
 using CezaHukuku.Api.Auth;
 using CezaHukuku.Domain.Users;
+using Microsoft.AspNetCore.TestHost;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace CezaHukuku.IntegrationTests;
 
@@ -15,6 +17,41 @@ public class AuthTests(ApiFactory factory)
         var me = await (await admin.GetAsync("/api/auth/me")).ReadAsync<CurrentUserResponse>();
         Assert.Equal(ApiFactory.AdminEmail, me.Email);
         Assert.Equal([Roles.SuperAdmin], me.Roles);
+    }
+
+    [Fact]
+    public async Task Session_ClosesAfterIdleTimeout_UnlessRememberMe()
+    {
+        var clock = new TestClock(DateTimeOffset.UtcNow);
+        await using var app = factory.WithWebHostBuilder(builder =>
+            builder.ConfigureTestServices(services => services.AddSingleton<TimeProvider>(clock)));
+        async Task<HttpClient> SignInAsync(bool rememberMe)
+        {
+            var client = app.CreateClient();
+            await (await client.PostJsonAsync("/api/auth/login", new LoginRequest(ApiFactory.AdminEmail, ApiFactory.AdminPassword, rememberMe)))
+                .ReadAsync<CurrentUserResponse>();
+            return client;
+        }
+        var session = await SignInAsync(rememberMe: false);
+        var remembered = await SignInAsync(rememberMe: true);
+
+        // Her işlem 60 dakikalık süreyi baştan başlatır (varsayılan kayan yenileme 20. dakikada yenilemezdi, oturum
+        // 60. dakikada kapanırdı).
+        clock.Advance(TimeSpan.FromMinutes(20));
+        await session.GetAsync("/api/auth/me").ExpectAsync(200);
+        clock.Advance(TimeSpan.FromMinutes(50));
+        await session.GetAsync("/api/auth/me").ExpectAsync(200);
+
+        clock.Advance(TimeSpan.FromMinutes(61));
+        await session.GetAsync("/api/auth/me").ExpectAsync(401);
+        await remembered.GetAsync("/api/auth/me").ExpectAsync(200);
+    }
+
+    private sealed class TestClock(DateTimeOffset now) : TimeProvider
+    {
+        public void Advance(TimeSpan by) => now += by;
+
+        public override DateTimeOffset GetUtcNow() => now;
     }
 
     [Fact]

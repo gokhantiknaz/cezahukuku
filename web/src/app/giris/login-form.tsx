@@ -43,7 +43,9 @@ export function LoginForm() {
       return;
     }
     await refreshUser();
-    router.push("/");
+    // Oturum süresi dolunca kalınan sayfaya dönülür (yalnız site içi yol: "//başka-site" değil).
+    const next = new URLSearchParams(window.location.search).get("next");
+    router.push(next?.startsWith("/") && !next.startsWith("//") && !next.startsWith("/giris") ? next : "/");
     // Sunucuda çizilen içerik oturuma bağlı (private kanunlar); önbellekteki anonim hâli yenilensin.
     router.refresh();
   }

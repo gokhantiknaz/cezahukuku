@@ -52,14 +52,37 @@ builder.Services
 // Web istemcisi Next.js üzerinden aynı origin'den gelir; kimlik doğrulama HttpOnly cookie ile.
 // (Faz 2 mobil için bearer token şeması eklenecek.) Canlıda site yalnız HTTPS'tir: API'ye Next.js'ten iç ağda http ile
 // gelinse de çerez Secure işaretlenir.
+// Oturum süresi hareketsizliğe göredir: her istek süreyi baştan başlatır. "Beni hatırla" seçilmezse
+// Auth:IdleTimeoutMinutes (60 dk), seçilirse Auth:RememberMeDays (14 gün).
+var authSettings = builder.Configuration.GetSection(AuthOptions.Section).Get<AuthOptions>() ?? new AuthOptions();
+var idleTimeout = TimeSpan.FromMinutes(Math.Max(10, authSettings.IdleTimeoutMinutes));
+var rememberMeTimeout = TimeSpan.FromDays(Math.Max(1, authSettings.RememberMeDays));
 builder.Services.ConfigureApplicationCookie(options =>
 {
     options.Cookie.Name = "ch_auth";
     options.Cookie.HttpOnly = true;
     options.Cookie.SameSite = SameSiteMode.Lax;
     options.Cookie.SecurePolicy = builder.Environment.IsDevelopment() ? CookieSecurePolicy.SameAsRequest : CookieSecurePolicy.Always;
-    options.ExpireTimeSpan = TimeSpan.FromDays(14);
+    options.ExpireTimeSpan = idleTimeout;
     options.SlidingExpiration = true;
+
+    // Kalıcı oturum kendi süresiyle açılır; kayan yenileme her biletin kendi süresini korur.
+    options.Events.OnSigningIn = context =>
+    {
+        if (context.Properties.IsPersistent)
+            context.Properties.ExpiresUtc = context.Properties.IssuedUtc!.Value + rememberMeTimeout;
+        return Task.CompletedTask;
+    };
+    // Varsayılan kayan yenileme sürenin yarısı geçince yapılır (60 dk'lık oturum 30–60 dk arasında kapanırdı);
+    // bir dakikadan eski bilet her istekte yenilenir, böylece süre son işlemden itibaren tam sayılır.
+    var validatePrincipal = options.Events.OnValidatePrincipal;
+    options.Events.OnValidatePrincipal = async context =>
+    {
+        await validatePrincipal(context);
+        if (context.Principal is not null && context.Properties.IssuedUtc is { } issued
+            && context.Options.TimeProvider!.GetUtcNow() - issued > TimeSpan.FromMinutes(1))
+            context.ShouldRenew = true;
+    };
 
     // API olduğu için login sayfasına yönlendirme yerine durum kodu dön.
     options.Events.OnRedirectToLogin = context =>
