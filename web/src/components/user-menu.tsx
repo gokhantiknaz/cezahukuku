@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { FolderOpen, LogIn, LogOut, Settings, Star } from "lucide-react";
+import { FolderOpen, LogIn, LogOut, NotebookPen, Settings, Star } from "lucide-react";
 import { useLogout } from "@/api/generated/auth/auth";
 import { Button } from "@/components/ui/button";
 import { isAdmin, useCurrentUser, useRefreshCurrentUser } from "@/lib/auth";
@@ -49,6 +49,13 @@ export function UserMenu() {
         <Button variant="ghost" size="lg" asChild>
           <Link href="/favoriler" title="Favorilerim" aria-label="Favorilerim">
             <Star /> <span className="hidden min-[1800px]:inline">Favorilerim</span>
+          </Link>
+        </Button>
+      )}
+      {canAnnotate(user) && (
+        <Button variant="ghost" size="lg" asChild>
+          <Link href="/notlarim" title="Vurgu ve notlarım" aria-label="Notlarım">
+            <NotebookPen /> <span className="hidden min-[1800px]:inline">Notlarım</span>
           </Link>
         </Button>
       )}

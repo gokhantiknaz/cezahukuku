@@ -2918,6 +2918,29 @@
         }
       }
     },
+    "/api/me/notebook": {
+      "get": {
+        "tags": [
+          "Personal"
+        ],
+        "operationId": "GetNotebook",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/NotebookArticleDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/admin/news": {
       "post": {
         "tags": [
@@ -5578,6 +5601,76 @@
           "diger",
           null
         ]
+      },
+      "NotebookArticleDto": {
+        "required": [
+          "article",
+          "highlights",
+          "notes",
+          "lastChangedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "article": {
+            "$ref": "#/components/schemas/LinkedArticleRef"
+          },
+          "highlights": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NotebookHighlightDto"
+            }
+          },
+          "notes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PersonalNoteDto"
+            }
+          },
+          "lastChangedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "NotebookHighlightDto": {
+        "required": [
+          "id",
+          "color",
+          "quote",
+          "isStale",
+          "note",
+          "createdAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "color": {
+            "$ref": "#/components/schemas/HighlightColor"
+          },
+          "quote": {
+            "type": "string"
+          },
+          "isStale": {
+            "type": "boolean"
+          },
+          "note": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/PersonalNoteDto"
+              }
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
       },
       "OldLawLinkRow": {
         "required": [

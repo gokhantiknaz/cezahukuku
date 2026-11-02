@@ -19,7 +19,7 @@ import { highlightClassName, highlightColors } from "@/lib/highlights";
 import { cn } from "@/lib/utils";
 import { groupMarks, ParagraphList } from "./article-text";
 import { NoteForm } from "./note-form";
-import { usePersonalLayer } from "./use-personal-layer";
+import { revealHighlight, usePersonalLayer } from "./use-personal-layer";
 
 /** Seçimin ya da vurgunun ekrandaki yeri (araç çubuğu üstüne, not düzenleyici altına yerleşir). */
 type Anchor = { top: number; bottom: number; centerX: number };
@@ -135,6 +135,14 @@ export function HighlightableText({
       document.removeEventListener("pointerdown", onPointerDown);
     };
   }, [overlay, coarse]);
+
+  // Notlarım sayfasından gelinince (#vurgu-<id>) vurgular yüklenip çizildikten sonra o vurguya kaydırılır.
+  const revealedHash = useRef<string | null>(null);
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (!hash.startsWith("#vurgu-") || revealedHash.current === hash) return;
+    if (revealHighlight(decodeURIComponent(hash.slice("#vurgu-".length)))) revealedHash.current = hash;
+  }, [marks]);
 
   // Dokunmatik seçim: seçim tutamaçlarıyla genişletilirken her değişimde değil, durunca okunur. Seçim kalkınca
   // çubuk kapanmaz (çubuğa dokunmak seçimi kaldırabilir; vurgu saklanan parçalarla yapılır).

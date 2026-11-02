@@ -34,6 +34,7 @@ import type {
   HttpValidationProblemDetails,
   ListAttachmentsParams,
   ListHighlightsParams,
+  NotebookArticleDto,
   PersonalNoteDto,
   UpdateAttachmentRequest,
   UpdateHighlightRequest,
@@ -1769,4 +1770,108 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
       return useMutation(mutationOptions, queryClient);
     }
+    export type getNotebookResponse200 = {
+  data: NotebookArticleDto[]
+  status: 200
+}
     
+export type getNotebookResponseSuccess = (getNotebookResponse200) & {
+  headers: Headers;
+};
+;
+
+export type getNotebookResponse = (getNotebookResponseSuccess)
+
+export const getGetNotebookUrl = () => {
+
+
+  
+
+  return `/api/me/notebook`
+}
+
+export const getNotebook = async ( options?: RequestInit): Promise<getNotebookResponse> => {
+  
+  return apiFetch<getNotebookResponse>(getGetNotebookUrl(),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getGetNotebookQueryKey = () => {
+    return [
+    `/api/me/notebook`
+    ] as const;
+    }
+
+    
+export const getGetNotebookQueryOptions = <TData = Awaited<ReturnType<typeof getNotebook>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getNotebook>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetNotebookQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getNotebook>>> = ({ signal }) => getNotebook({ signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getNotebook>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetNotebookQueryResult = NonNullable<Awaited<ReturnType<typeof getNotebook>>>
+export type GetNotebookQueryError = unknown
+
+
+export function useGetNotebook<TData = Awaited<ReturnType<typeof getNotebook>>, TError = unknown>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getNotebook>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getNotebook>>,
+          TError,
+          Awaited<ReturnType<typeof getNotebook>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetNotebook<TData = Awaited<ReturnType<typeof getNotebook>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getNotebook>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getNotebook>>,
+          TError,
+          Awaited<ReturnType<typeof getNotebook>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetNotebook<TData = Awaited<ReturnType<typeof getNotebook>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getNotebook>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useGetNotebook<TData = Awaited<ReturnType<typeof getNotebook>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getNotebook>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetNotebookQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+

@@ -40,6 +40,7 @@ public static class HighlightEndpoints
         group.MapPersonalNoteEndpoints();
         group.MapAttachmentEndpoints();
         group.MapFavoriteEndpoints();
+        group.MapNotebookEndpoints();
 
         return group;
     }

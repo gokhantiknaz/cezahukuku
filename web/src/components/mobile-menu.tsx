@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { FolderOpen, LogIn, LogOut, Menu, Settings, Star, type LucideIcon } from "lucide-react";
+import { FolderOpen, LogIn, LogOut, Menu, NotebookPen, Settings, Star, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { isAdmin, useCurrentUser } from "@/lib/auth";
@@ -29,6 +29,7 @@ export function MobileMenu() {
     ...(user && canAnnotate(user)
       ? [
           { label: "Favorilerim", icon: Star, href: "/favoriler" },
+          { label: "Vurgu ve Notlarım", icon: NotebookPen, href: "/notlarim" },
           { label: "Belgelerim", icon: FolderOpen, href: "/belgelerim" },
         ]
       : []),

@@ -101,6 +101,6 @@ public static class PersonalNoteEndpoints
         return null;
     }
 
-    private static PersonalNoteDto ToDto(PersonalNote note) =>
+    internal static PersonalNoteDto ToDto(PersonalNote note) =>
         new(note.Id, note.ArticleId, note.HighlightId, note.Text, note.CreatedAt, note.UpdatedAt);
 }
