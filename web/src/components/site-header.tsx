@@ -64,14 +64,6 @@ function NavButton({ item }: { item: NavItem }) {
     </>
   );
 
-  if (!item.href) {
-    return (
-      // Henüz açılmamış bölümler başlık satırına sığmayan genişlikte gizlenir (başlık iki satıra taşmasın).
-      <span aria-disabled title="Yakında" className={cn(className, "hidden opacity-50 2xl:flex")}>
-        {content}
-      </span>
-    );
-  }
   return (
     <Link href={item.href} className={cn(className, "hover:bg-accent", item.wide && "hidden 2xl:flex")}>
       {content}

@@ -14,7 +14,7 @@ type MenuLink = { label: string; icon: LucideIcon; href: string };
 
 /**
  * Başlıktaki menü sığmayan ekranlarda (xl altı) ☰ düğmesi: bölümler ve kullanıcının kendi sayfaları kenardan açılan
- * çekmecede. Henüz açılmamış ("Yakında") bölümler gösterilmez.
+ * çekmecede.
  */
 export function MobileMenu() {
   const [open, setOpen] = useState(false);
@@ -22,7 +22,7 @@ export function MobileMenu() {
   const signOut = useSignOut();
 
   const sections: MenuLink[] = [
-    ...navItems.filter((item): item is MenuLink => item.href !== undefined),
+    ...navItems,
     testItem,
   ];
   const personal: MenuLink[] = [
