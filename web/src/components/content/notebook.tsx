@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { CircleAlert, LogIn, NotebookPen } from "lucide-react";
+import { ChevronDown, CircleAlert, LogIn, NotebookPen } from "lucide-react";
 import { useGetNotebook } from "@/api/generated/personal/personal";
 import type { HighlightColor, NotebookArticleDto } from "@/api/generated/model";
 import { Badge } from "@/components/ui/badge";
@@ -18,10 +18,15 @@ type Sort = "library" | "recent";
 
 const formatDate = (iso: string) => new Date(iso).toLocaleDateString("tr-TR");
 
+/** Her "Daha fazla göster"te eklenen satır (vurgu ya da not) sayısı; kartlar bölünmez. */
+const PAGE_ITEMS = 30;
+const itemCount = (entry: NotebookArticleDto) => entry.highlights.length + entry.notes.length;
+
 /**
  * Bütün maddelerdeki vurgu ve notlarım: madde başına bir kart, kartta vurgular metin sırasıyla (notu altında) ve
  * maddenin geneline yazılan notlar. Süzgeçler istemcide: metin (alıntı, not, madde adı), renk, yalnız notlular,
- * kanun. Vurguya tıklayınca madde açılır ve o vurguya kaydırılır (#vurgu-<id>).
+ * kanun. Vurguya tıklayınca madde açılır ve o vurguya kaydırılır (#vurgu-<id>). Sayfa uzamasın diye kartlar ~30
+ * satırlık parçalarla gösterilir ("Daha fazla göster"); süzgeç değişince baştan başlar.
  */
 export function Notebook() {
   const hydrated = useHydrated();
@@ -48,6 +53,18 @@ export function Notebook() {
       .filter((entry) => entry.highlights.length + entry.notes.length > 0);
     return sort === "recent" ? result.sort((a, b) => b.lastChangedAt.localeCompare(a.lastChangedAt)) : result;
   }, [notebook, law, query, colors, notesOnly, sort]);
+
+  // Gösterilen satır sınırı, hangi süzgeç için verildiğiyle birlikte tutulur: süzgeç her değiştiğinde (eski hâline
+  // dönse de) ilk parçaya dönülür.
+  const filterKey = [query, colors.join(","), notesOnly, law, sort].join("|");
+  const [shown, setShown] = useState({ filterKey, items: PAGE_ITEMS });
+  if (shown.filterKey !== filterKey) setShown({ filterKey, items: PAGE_ITEMS });
+  const limit = shown.filterKey === filterKey ? shown.items : PAGE_ITEMS;
+  const visibleCount = useMemo(() => {
+    let count = 0;
+    for (let used = 0; count < filtered.length && (count === 0 || used < limit); count++) used += itemCount(filtered[count]);
+    return count;
+  }, [filtered, limit]);
 
   if (!hydrated || isPending) return null;
   if (!user)
@@ -148,10 +165,20 @@ export function Notebook() {
       </p>
 
       <ul className="mt-2 space-y-3">
-        {filtered.map((entry) => (
+        {filtered.slice(0, visibleCount).map((entry) => (
           <ArticleCard key={entry.article.articleId} entry={entry} />
         ))}
       </ul>
+      {visibleCount < filtered.length && (
+        <div className="mt-4 flex flex-col items-center gap-1">
+          <Button variant="outline" onClick={() => setShown({ filterKey, items: limit + PAGE_ITEMS })}>
+            <ChevronDown /> Daha fazla göster
+          </Button>
+          <span className="text-sm text-muted-foreground">
+            {visibleCount} / {filtered.length} madde gösteriliyor
+          </span>
+        </div>
+      )}
     </>
   );
 }
