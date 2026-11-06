@@ -212,13 +212,16 @@ function VersionGuide() {
 /**
  * Maddenin metin sürümleri. Ne yapılacağı açıkça seçilir: değişiklik gir (yeni sürüm), önceki metni ekle ya da bir
  * sürümü düzelt; seçim yapılana kadar düzenleyici açılmaz (yürürlükteki metni farkında olmadan yerinde değiştirmemek
- * için). Metni olmayan maddede doğrudan ilk metin yazılır. Okuma ekranından ?surum=onceki ile önceki metin açılır.
+ * için). Metni olmayan maddede doğrudan ilk metin yazılır. Okuma ekranından ?surum=yeni ile "Değişiklik gir", ?surum=onceki ile önceki metin açılır.
  */
 function ArticleVersions({ lawSlug, article }: { lawSlug: string; article: ArticleSummary }) {
   const searchParams = useSearchParams();
-  const [selected, setSelected] = useState<string | null>(() =>
-    searchParams.get("surum") === "onceki" && searchParams.get("madde") === article.slug ? "older" : null,
-  );
+  // Okuma ekranından: ?surum=yeni "Değişiklik gir", ?surum=onceki "Önceki metni ekle" ile açılır.
+  const [selected, setSelected] = useState<string | null>(() => {
+    if (searchParams.get("madde") !== article.slug) return null;
+    const requested = searchParams.get("surum");
+    return requested === "yeni" ? "new" : requested === "onceki" ? "older" : null;
+  });
   const detailQuery = useGetArticle(lawSlug, article.slug);
   const detail = detailQuery.data?.status === 200 ? detailQuery.data.data : undefined;
   const versions = detail?.versions ?? [];

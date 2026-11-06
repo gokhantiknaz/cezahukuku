@@ -2,7 +2,7 @@
 
 import { Fragment, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { ChevronLeft, ChevronRight, Copy, FileText, GraduationCap, Lock, Pencil, Printer } from "lucide-react";
+import { ChevronLeft, ChevronRight, Copy, FileText, GraduationCap, Lock, Pencil, Plus, Printer } from "lucide-react";
 import { toast } from "sonner";
 import type { ArticleDetailResponse, ArticleRef } from "@/api/generated/model";
 import { Badge } from "@/components/ui/badge";
@@ -24,6 +24,7 @@ import { cn } from "@/lib/utils";
 import { FavoriteButton, MobileArticleActions, PdfButton, ShareButton } from "./article-actions";
 import { ArticleDateControl } from "./article-date-control";
 import { ArticleHistory } from "./article-history";
+import { ArticleQuickAdd, type QuickAddKind } from "./article-quick-add";
 import { usePublishCurrentArticle } from "./current-article";
 import { DecisionList } from "./decision-list";
 import { OldLawCounterparts, RelatedLinks } from "./link-list";
@@ -31,15 +32,15 @@ import { NoteList } from "./note-list";
 import { paragraphsToText } from "./article-text";
 import { HighlightableText } from "./highlightable-text";
 
-// Sekmeler ve dolacakları kilometre taşı.
-const tabs = [
-  { value: "gerekce", label: "Gerekçe", milestone: "M3" },
-  { value: "degisiklikler", label: "Değişiklikler", milestone: "M3" },
-  { value: "aciklama", label: "Açıklama", milestone: "M3" },
-  { value: "ictihatlar", label: "İçtihatlar", milestone: "M3" },
-  { value: "ilgili", label: "İlgili Maddeler", milestone: "M3" },
-  { value: "norm", label: "Norm Denetimi", milestone: "M3" },
-  { value: "765", label: "765 Sayılı Kanun", milestone: "M3" },
+// Sekmeler ve yöneticinin sekmeden hızlıca ekleyebileceği kayıt.
+const tabs: { value: string; label: string; add?: QuickAddKind }[] = [
+  { value: "gerekce", label: "Gerekçe", add: { type: "note", kind: "gerekce" } },
+  { value: "degisiklikler", label: "Değişiklikler" },
+  { value: "aciklama", label: "Açıklama", add: { type: "note", kind: "aciklama" } },
+  { value: "ictihatlar", label: "İçtihatlar", add: { type: "decision", kind: "ictihat" } },
+  { value: "ilgili", label: "İlgili Maddeler", add: { type: "link", kind: "ilgili" } },
+  { value: "norm", label: "Norm Denetimi", add: { type: "decision", kind: "normDenetimi" } },
+  { value: "765", label: "765 Sayılı Kanun", add: { type: "link", kind: "eskiKanunKarsiligi" } },
 ];
 
 function articleAsText({ law, article, version }: ArticleDetailResponse) {
@@ -81,6 +82,8 @@ export function ArticleView({ detail, asOf, initialTab }: { detail: ArticleDetai
     next: toLink(detail.next),
   });
   const notesOf = (kind: string) => detail.notes.filter((n) => n.kind === kind);
+  const editHref = `/panel/kutuphane/${law.slug}?madde=${article.slug}`;
+  const articleLabel = `${law.shortName || law.number} Madde ${article.number}${article.title ? ` — ${article.title}` : ""}`;
   const openTab = tabs.some((t) => t.value === initialTab) ? initialTab! : tabs[0].value;
   const tabsRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -174,14 +177,14 @@ export function ArticleView({ detail, asOf, initialTab }: { detail: ArticleDetai
             className="md:hidden"
             articleId={article.id}
             shareTitle={`${law.shortName || law.number} Madde ${article.number} — ${article.title}`}
-            editHref={canEdit ? `/panel/kutuphane/${law.slug}?madde=${article.slug}` : null}
+            editHref={canEdit ? editHref : null}
             onCopy={copy}
             onShowDate={() => setDateOpen(true)}
           />
           <div className="hidden flex-wrap gap-2 md:flex print:hidden">
             {canEdit && (
               <Button variant="outline" asChild>
-                <Link href={`/panel/kutuphane/${law.slug}?madde=${article.slug}`}>
+                <Link href={editHref}>
                   <Pencil /> Düzenle
                 </Link>
               </Button>
@@ -274,6 +277,25 @@ export function ArticleView({ detail, asOf, initialTab }: { detail: ArticleDetai
               value={tab.value}
               className="rounded-lg border bg-card p-4 max-md:-mx-3 max-md:rounded-none max-md:border-x-0 max-md:px-3"
             >
+              {canEdit && tab.add && (
+                <ArticleQuickAdd
+                  add={tab.add}
+                  articleId={article.id}
+                  articleLabel={articleLabel}
+                  linkedDecisionIds={detail.decisions.map((d) => d.id)}
+                  editHref={editHref}
+                />
+              )}
+              {/* Metin değişikliği sürüm düzenleyicisinde girilir: düzenleme ekranı "Değişiklik gir" seçili açılır. */}
+              {canEdit && tab.value === "degisiklikler" && version && (
+                <div className="mb-3 flex justify-end print:hidden">
+                  <Button size="sm" variant="outline" asChild>
+                    <Link href={`${editHref}&surum=yeni`}>
+                      <Plus /> Değişiklik gir
+                    </Link>
+                  </Button>
+                </div>
+              )}
               {tab.value === "degisiklikler" ? (
                 <ArticleHistory
                   lawSlug={law.slug}

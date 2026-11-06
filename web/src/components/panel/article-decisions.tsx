@@ -90,7 +90,7 @@ export function ArticleDecisions({ articleId, decisions }: { articleId: string; 
   );
 }
 
-function DecisionSearch({ articleId, linkedIds }: { articleId: string; linkedIds: Set<string> }) {
+export function DecisionSearch({ articleId, linkedIds }: { articleId: string; linkedIds: Set<string> }) {
   const refresh = useLibraryRefresh();
   const link = useLinkDecision();
   const [query, setQuery] = useState("");

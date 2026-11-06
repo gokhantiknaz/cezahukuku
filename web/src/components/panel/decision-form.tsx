@@ -117,19 +117,22 @@ function LoadedDecisionForm({ decisionId, onDone }: { decisionId: string; onDone
   );
 }
 
-function DecisionForm({
+export function DecisionForm({
   decision,
   articleIds,
+  initialKind = "ictihat",
   onDone,
 }: {
   decision?: DecisionDto;
   articleIds?: string[];
+  /** Yeni kararın türü (okuma ekranında "Norm denetimi ekle" için). */
+  initialKind?: DecisionKind;
   onDone: (saved?: AdminDecisionDetail) => void;
 }) {
   const refresh = useLibraryRefresh();
   const [form, setForm] = useState({
-    kind: decision?.kind ?? ("ictihat" as DecisionKind),
-    court: decision?.court ?? ("yargitay" as Court),
+    kind: decision?.kind ?? initialKind,
+    court: decision?.court ?? ((initialKind === "normDenetimi" ? "anayasaMahkemesi" : "yargitay") as Court),
     chamber: decision?.chamber ?? "",
     caseNumber: decision?.caseNumber ?? "",
     decisionNumber: decision?.decisionNumber ?? "",

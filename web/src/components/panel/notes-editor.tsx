@@ -15,6 +15,7 @@ import { RichTextView } from "@/components/rich-text/rich-text-view";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
 import { ConfirmDelete } from "./confirm-delete";
 import { emptyToNull, Field, fieldMessages, FormMessages, OptionSelect, otherMessages, visibilityLabels } from "./form";
 import { useLibraryRefresh } from "./use-library-refresh";
@@ -26,7 +27,7 @@ export const noteKindLabels: Record<EditorialNoteKind, string> = {
   genelGerekce: "Genel gerekçe",
 };
 
-type KindOptions = Partial<Record<EditorialNoteKind, string>>;
+export type KindOptions = Partial<Record<EditorialNoteKind, string>>;
 
 // Sunucudaki kurala uygun: genel gerekçe yalnız kanuna, gerekçe ve açıklama yalnız maddeye eklenir.
 // Ders notları ayrı bölümde (Ders Notları sayfası) girilir.
@@ -120,7 +121,7 @@ function DeleteNote({ note }: { note: EditorialNoteDto }) {
   );
 }
 
-function NoteForm({
+export function NoteForm({
   target,
   kinds,
   note,
@@ -133,6 +134,7 @@ function NoteForm({
 }) {
   const refresh = useLibraryRefresh();
   const firstKind = Object.keys(kinds)[0] as EditorialNoteKind;
+  const singleKind = Object.keys(kinds).length === 1;
   const [form, setForm] = useState({
     kind: note?.kind ?? firstKind,
     title: note?.title ?? "",
@@ -158,15 +160,18 @@ function NoteForm({
 
   return (
     <form onSubmit={(e) => submit(e).catch(() => {})} className="space-y-3 rounded-md border bg-muted/30 p-3">
-      <div className="grid gap-3 sm:grid-cols-[12rem_1fr_14rem]">
-        <Field label="Tür" htmlFor="note-kind" error={error} field="kind">
-          <OptionSelect
-            id="note-kind"
-            value={form.kind}
-            options={kinds as Record<EditorialNoteKind, string>}
-            onChange={(kind) => setForm((f) => ({ ...f, kind }))}
-          />
-        </Field>
+      {/* Tek tür verilmişse (okuma ekranından "Gerekçe ekle") tür seçilmez. */}
+      <div className={cn("grid gap-3", singleKind ? "sm:grid-cols-[1fr_14rem]" : "sm:grid-cols-[12rem_1fr_14rem]")}>
+        {!singleKind && (
+          <Field label="Tür" htmlFor="note-kind" error={error} field="kind">
+            <OptionSelect
+              id="note-kind"
+              value={form.kind}
+              options={kinds as Record<EditorialNoteKind, string>}
+              onChange={(kind) => setForm((f) => ({ ...f, kind }))}
+            />
+          </Field>
+        )}
         <Field label="Başlık (isteğe bağlı)" htmlFor="note-title" error={error} field="title">
           <Input
             id="note-title"

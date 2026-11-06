@@ -86,10 +86,18 @@ function DeleteLink({ link }: { link: ArticleLinkDto }) {
   );
 }
 
-function LinkForm({ articleId, onDone }: { articleId: string; onDone: () => void }) {
+export function LinkForm({
+  articleId,
+  initialKind = "ilgili",
+  onDone,
+}: {
+  articleId: string;
+  initialKind?: ArticleLinkKind;
+  onDone: () => void;
+}) {
   const refresh = useLibraryRefresh();
   const create = useCreateArticleLink();
-  const [kind, setKind] = useState<ArticleLinkKind>("ilgili");
+  const [kind, setKind] = useState<ArticleLinkKind>(initialKind);
   const [query, setQuery] = useState("");
   const [target, setTarget] = useState<ArticleSearchHit | null>(null);
   const [externalLabel, setExternalLabel] = useState("");
