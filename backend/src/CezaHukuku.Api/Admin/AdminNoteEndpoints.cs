@@ -84,8 +84,10 @@ internal static class AdminNoteEndpoints
     {
         var errors = new ValidationErrors().MaxLength("title", request.Title, 500);
 
-        if (note.ArticleId is null && !EditorialNote.IsLawLevel(request.Kind))
-            errors.Add("kind", "Kanun düzeyinde yalnız genel gerekçe ve ders notu eklenebilir.");
+        if (request.Kind == EditorialNoteKind.DersNotu)
+            errors.Add("kind", "Ders notları Ders Notları bölümünden girilir.");
+        else if (note.ArticleId is null && !EditorialNote.IsLawLevel(request.Kind))
+            errors.Add("kind", "Kanun düzeyinde yalnız genel gerekçe eklenebilir.");
         else if (note.ArticleId is not null && !EditorialNote.IsArticleLevel(request.Kind))
             errors.Add("kind", "Genel gerekçe maddeye değil kanuna eklenir.");
 

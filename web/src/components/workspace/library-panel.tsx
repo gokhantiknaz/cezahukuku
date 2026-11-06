@@ -197,7 +197,6 @@ function LawTreeView({ tree, onBackToLibrary }: { tree: LawTreeResponse; onBackT
             <>
               {/* Kanun düzeyindeki notlar; girilmemişse soluk durur. */}
               <div className="mb-2 space-y-0.5 border-b pb-2">
-                <LawNoteLink tree={tree} kind="dersNotu" slug="ders-notlari" label="Ders Notları" />
                 <LawNoteLink tree={tree} kind="genelGerekce" slug="genel-gerekce" label="Genel Gerekçe" />
               </div>
               {isEmpty && (

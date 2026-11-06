@@ -3060,6 +3060,181 @@
         }
       }
     },
+    "/api/lecture-notes": {
+      "get": {
+        "tags": [
+          "LectureNotes"
+        ],
+        "operationId": "ListLectureNotes",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/LectureNoteSummary"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/lecture-notes/{slug}": {
+      "get": {
+        "tags": [
+          "LectureNotes"
+        ],
+        "operationId": "GetLectureNote",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LectureNoteDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/admin/lecture-notes": {
+      "post": {
+        "tags": [
+          "LectureNotes"
+        ],
+        "operationId": "CreateLectureNote",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveLectureNoteRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LectureNoteDetail"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/lecture-notes/{id}": {
+      "put": {
+        "tags": [
+          "LectureNotes"
+        ],
+        "operationId": "UpdateLectureNote",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveLectureNoteRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LectureNoteDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "LectureNotes"
+        ],
+        "operationId": "DeleteLectureNote",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
     "/api/admin/quiz": {
       "get": {
         "tags": [
@@ -3453,7 +3628,8 @@
           "links",
           "citations",
           "citedBy",
-          "changes"
+          "changes",
+          "lectureNotes"
         ],
         "type": "object",
         "properties": {
@@ -3539,6 +3715,12 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/ChangeMark"
+            }
+          },
+          "lectureNotes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LectureNoteRef"
             }
           }
         }
@@ -5102,6 +5284,26 @@
           }
         }
       },
+      "LawGroupRef": {
+        "required": [
+          "id",
+          "slug",
+          "title"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          }
+        }
+      },
       "LawGroupSummary": {
         "required": [
           "id",
@@ -5564,6 +5766,188 @@
             "items": {
               "type": "string"
             }
+          }
+        }
+      },
+      "LectureNoteDetail": {
+        "required": [
+          "id",
+          "slug",
+          "title",
+          "html",
+          "scope",
+          "visibility",
+          "createdAt",
+          "updatedAt",
+          "lawGroupId",
+          "lawId",
+          "articleId"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "html": {
+            "type": "string"
+          },
+          "scope": {
+            "$ref": "#/components/schemas/LectureNoteScope"
+          },
+          "visibility": {
+            "$ref": "#/components/schemas/Visibility"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lawGroupId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "lawId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "articleId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          }
+        }
+      },
+      "LectureNoteLawRef": {
+        "required": [
+          "id",
+          "slug",
+          "label",
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "LectureNoteRef": {
+        "required": [
+          "slug",
+          "title"
+        ],
+        "type": "object",
+        "properties": {
+          "slug": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          }
+        }
+      },
+      "LectureNoteScope": {
+        "required": [
+          "group",
+          "law",
+          "article"
+        ],
+        "type": "object",
+        "properties": {
+          "group": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/LawGroupRef"
+              }
+            ]
+          },
+          "law": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/LectureNoteLawRef"
+              }
+            ]
+          },
+          "article": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/LinkedArticleRef"
+              }
+            ]
+          }
+        }
+      },
+      "LectureNoteSummary": {
+        "required": [
+          "id",
+          "slug",
+          "title",
+          "excerpt",
+          "scope",
+          "visibility",
+          "updatedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "excerpt": {
+            "type": "string"
+          },
+          "scope": {
+            "$ref": "#/components/schemas/LectureNoteScope"
+          },
+          "visibility": {
+            "$ref": "#/components/schemas/Visibility"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
           }
         }
       },
@@ -6555,6 +6939,52 @@
           }
         }
       },
+      "SaveLectureNoteRequest": {
+        "required": [
+          "title",
+          "html",
+          "visibility",
+          "lawGroupId",
+          "lawId",
+          "articleId"
+        ],
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "html": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "visibility": {
+            "$ref": "#/components/schemas/Visibility"
+          },
+          "lawGroupId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "lawId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "articleId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          }
+        }
+      },
       "SaveNewsItemRequest": {
         "required": [
           "title",
@@ -6963,6 +7393,9 @@
     },
     {
       "name": "Personal"
+    },
+    {
+      "name": "LectureNotes"
     },
     {
       "name": "Tools"

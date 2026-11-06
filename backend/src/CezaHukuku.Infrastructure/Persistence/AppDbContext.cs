@@ -27,6 +27,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<PersonalNote> PersonalNotes => Set<PersonalNote>();
     public DbSet<Favorite> Favorites => Set<Favorite>();
     public DbSet<NewsItem> NewsItems => Set<NewsItem>();
+    public DbSet<LectureNote> LectureNotes => Set<LectureNote>();
     public DbSet<QuizQuestion> QuizQuestions => Set<QuizQuestion>();
     public DbSet<Attachment> Attachments => Set<Attachment>();
     public DbSet<AttachmentSegment> AttachmentSegments => Set<AttachmentSegment>();

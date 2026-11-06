@@ -29,13 +29,14 @@ export const noteKindLabels: Record<EditorialNoteKind, string> = {
 type KindOptions = Partial<Record<EditorialNoteKind, string>>;
 
 // Sunucudaki kurala uygun: genel gerekçe yalnız kanuna, gerekçe ve açıklama yalnız maddeye eklenir.
-const articleKinds: KindOptions = { gerekce: "Gerekçe", aciklama: "Açıklama", dersNotu: "Ders notu" };
-const lawKinds: KindOptions = { genelGerekce: "Genel gerekçe", dersNotu: "Ders notu" };
+// Ders notları ayrı bölümde (Ders Notları sayfası) girilir.
+const articleKinds: KindOptions = { gerekce: "Gerekçe", aciklama: "Açıklama" };
+const lawKinds: KindOptions = { genelGerekce: "Genel gerekçe" };
 
 export type NoteTarget = { level: "article"; id: string } | { level: "law"; id: string };
 
 /**
- * Bir maddenin (gerekçe, açıklama, ders notu) ya da kanunun (genel gerekçe, ders notu) editoryal notları:
+ * Bir maddenin (gerekçe, açıklama) ya da kanunun (genel gerekçe) editoryal notları:
  * liste, ekleme, düzenleme, silme. Notlar okuma ekranında ilgili sekmede görünür.
  */
 export function NotesEditor({ target, notes }: { target: NoteTarget; notes: EditorialNoteDto[] }) {
@@ -45,7 +46,7 @@ export function NotesEditor({ target, notes }: { target: NoteTarget; notes: Edit
   return (
     <section className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h3 className="text-lg">{target.level === "article" ? "Gerekçe, açıklama ve ders notu" : "Kanun notları"}</h3>
+        <h3 className="text-lg">{target.level === "article" ? "Gerekçe ve açıklama" : "Kanun notları"}</h3>
         {editing !== "new" && (
           <Button variant="outline" size="sm" onClick={() => setEditing("new")}>
             <Plus /> Not ekle

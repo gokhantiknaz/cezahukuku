@@ -1,0 +1,186 @@
+"use client";
+
+import { useMemo, useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
+import { GraduationCap, Lock, Pencil, Plus, Trash2 } from "lucide-react";
+import { toast } from "sonner";
+import { getListLectureNotesQueryKey, useDeleteLectureNote } from "@/api/generated/lecture-notes/lecture-notes";
+import type { LectureNoteScope, LectureNoteSummary } from "@/api/generated/model";
+import { ConfirmDelete } from "@/components/panel/confirm-delete";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { useHydrated } from "@/hooks/use-hydrated";
+import { isAdmin, useCurrentUser } from "@/lib/auth";
+import { formatDate } from "@/lib/dates";
+import { matchesTr } from "@/lib/turkish";
+
+/** "TCK m.81", "TCK", "Temel Ceza Kanunları" ya da "Genel". */
+export function scopeLabel(scope: LectureNoteScope) {
+  if (scope.article && scope.law) return `${scope.law.label} m.${scope.article.number}`;
+  if (scope.law) return scope.law.label;
+  return scope.group?.title ?? "Genel";
+}
+
+function useIsAdmin() {
+  const { data: user } = useCurrentUser();
+  return useHydrated() && isAdmin(user);
+}
+
+/** Yönetici: yeni ders notu düğmesi (liste sayfasının başlığında). */
+export function NewLectureNoteButton() {
+  if (!useIsAdmin()) return null;
+  return (
+    <Button asChild>
+      <Link href="/ders-notlari/yeni">
+        <Plus /> Yeni ders notu
+      </Link>
+    </Button>
+  );
+}
+
+type Sort = "recent" | "title";
+
+/**
+ * Ders notları listesi: metin araması (başlık ve özet, Türkçe karakter yazmadan da), kapsam süzgeci (genel, kanun
+ * grubu, kanun) ve sıralama. `initialScope` adresten gelir: "grup:temel-ceza-kanunlari", "kanun:tck", "genel".
+ */
+export function LectureNoteList({ notes, initialScope = "" }: { notes: LectureNoteSummary[]; initialScope?: string }) {
+  const [query, setQuery] = useState("");
+  const [scope, setScope] = useState(initialScope);
+  const [sort, setSort] = useState<Sort>("recent");
+
+  const groups = useMemo(
+    () => [...new Map(notes.flatMap((n) => (n.scope.group ? [[n.scope.group.slug, n.scope.group.title]] : []))).entries()],
+    [notes],
+  );
+  const laws = useMemo(
+    () => [...new Map(notes.flatMap((n) => (n.scope.law ? [[n.scope.law.slug, n.scope.law.label]] : []))).entries()],
+    [notes],
+  );
+  const filtered = useMemo(() => {
+    const [kind, slug] = scope.split(":");
+    const result = notes.filter(
+      (n) =>
+        (scope === "" ||
+          (kind === "genel" && !n.scope.group && !n.scope.law) ||
+          (kind === "grup" && n.scope.group?.slug === slug) ||
+          (kind === "kanun" && n.scope.law?.slug === slug)) &&
+        matchesTr(`${n.title} ${n.excerpt} ${scopeLabel(n.scope)}`, query),
+    );
+    return sort === "title" ? [...result].sort((a, b) => a.title.localeCompare(b.title, "tr")) : result;
+  }, [notes, scope, query, sort]);
+
+  if (notes.length === 0) return <p className="mt-6 text-muted-foreground">Henüz ders notu girilmedi.</p>;
+
+  return (
+    <>
+      <div className="mt-4 flex flex-wrap gap-2 rounded-lg border bg-card p-3">
+        <Input
+          type="search"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Ders notlarında ara…"
+          aria-label="Ders notlarında ara"
+          className="min-w-0 flex-[1_1_16rem]"
+        />
+        <select
+          value={scope}
+          onChange={(e) => setScope(e.target.value)}
+          aria-label="Kapsam"
+          className="h-9 min-w-0 flex-[1_1_10rem] rounded-md border bg-card px-2 text-sm sm:flex-none"
+        >
+          <option value="">Bütün ders notları</option>
+          <option value="genel">Genel</option>
+          {groups.length > 0 && (
+            <optgroup label="Kanun grubu">
+              {groups.map(([slug, title]) => (
+                <option key={slug} value={`grup:${slug}`}>
+                  {title}
+                </option>
+              ))}
+            </optgroup>
+          )}
+          {laws.length > 0 && (
+            <optgroup label="Kanun">
+              {laws.map(([slug, label]) => (
+                <option key={slug} value={`kanun:${slug}`}>
+                  {label}
+                </option>
+              ))}
+            </optgroup>
+          )}
+        </select>
+        <select
+          value={sort}
+          onChange={(e) => setSort(e.target.value as Sort)}
+          aria-label="Sıralama"
+          className="h-9 min-w-0 flex-[1_1_10rem] rounded-md border bg-card px-2 text-sm sm:flex-none"
+        >
+          <option value="recent">Son güncellenen önce</option>
+          <option value="title">Başlığa göre</option>
+        </select>
+      </div>
+
+      <p className="mt-3 text-sm text-muted-foreground" aria-live="polite">
+        {filtered.length === 0 ? "Süzgece uyan ders notu yok." : `${filtered.length} ders notu`}
+      </p>
+      <ul className="mt-2 space-y-3">
+        {filtered.map((note) => (
+          <li key={note.id}>
+            <Link href={`/ders-notlari/${note.slug}`} className="block rounded-lg border bg-card p-4 hover:border-primary/50">
+              <span className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                <Badge variant="secondary">{scopeLabel(note.scope)}</Badge>
+                {note.visibility === "private" && (
+                  <Badge variant="outline">
+                    <Lock /> Üyelere
+                  </Badge>
+                )}
+                <span className="ml-auto">{formatDate(note.updatedAt.slice(0, 10))}</span>
+              </span>
+              <span className="mt-1.5 flex items-center gap-2 text-xl text-primary">
+                <GraduationCap className="size-5 shrink-0" aria-hidden />
+                {note.title}
+              </span>
+              {note.excerpt && <span className="reading mt-1 block text-[16px] text-muted-foreground">{note.excerpt}</span>}
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </>
+  );
+}
+
+/** Ders notu sayfasında yönetici düğmeleri: düzenle, sil. */
+export function LectureNoteAdminActions({ id, slug }: { id: string; slug: string }) {
+  const router = useRouter();
+  const queryClient = useQueryClient();
+  const remove = useDeleteLectureNote();
+  if (!useIsAdmin()) return null;
+  return (
+    <div className="flex gap-2 print:hidden">
+      <Button variant="outline" asChild>
+        <Link href={`/ders-notlari/${slug}/duzenle`}>
+          <Pencil /> Düzenle
+        </Link>
+      </Button>
+      <ConfirmDelete
+        title="Ders notu silinsin mi?"
+        description="Ders notu okuyuculardan kaldırılır. Kayıt veritabanında saklanır."
+        onConfirm={async () => {
+          await remove.mutateAsync({ id });
+          await queryClient.invalidateQueries({ queryKey: getListLectureNotesQueryKey() });
+          toast.success("Ders notu silindi.");
+          router.push("/ders-notlari");
+          router.refresh();
+        }}
+      >
+        <Button variant="ghost">
+          <Trash2 /> Sil
+        </Button>
+      </ConfirmDelete>
+    </div>
+  );
+}

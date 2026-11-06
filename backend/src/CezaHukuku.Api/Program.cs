@@ -164,6 +164,7 @@ app.MapAdminLawEndpoints();
 app.MapHighlightEndpoints();
 app.MapSearchEndpoints();
 app.MapNewsEndpoints();
+app.MapLectureNoteEndpoints();
 app.MapQuizEndpoints();
 app.MapCitationCheckEndpoints();
 

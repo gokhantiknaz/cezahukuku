@@ -2,7 +2,7 @@
 
 import { Fragment, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { ChevronLeft, ChevronRight, Copy, FileText, Lock, Pencil, Printer } from "lucide-react";
+import { ChevronLeft, ChevronRight, Copy, FileText, GraduationCap, Lock, Pencil, Printer } from "lucide-react";
 import { toast } from "sonner";
 import type { ArticleDetailResponse, ArticleRef } from "@/api/generated/model";
 import { Badge } from "@/components/ui/badge";
@@ -108,7 +108,7 @@ export function ArticleView({ detail, asOf, initialTab }: { detail: ArticleDetai
   const tabCounts: Record<string, number> = {
     gerekce: notesOf("gerekce").length,
     degisiklikler: Math.max(detail.versions.length - 1, 0),
-    aciklama: notesOf("aciklama").length + notesOf("dersNotu").length,
+    aciklama: notesOf("aciklama").length + detail.lectureNotes.length,
     ictihatlar: detail.decisions.filter((d) => d.kind === "ictihat").length,
     norm: detail.decisions.filter((d) => d.kind === "normDenetimi").length,
     ilgili: detail.links.filter((l) => l.kind === "ilgili" || l.incoming).length + detail.citedBy.length,
@@ -301,10 +301,19 @@ export function ArticleView({ detail, asOf, initialTab }: { detail: ArticleDetai
               ) : tab.value === "aciklama" ? (
                 <div className="space-y-6">
                   <NoteList notes={notesOf("aciklama")} empty="Bu maddeye henüz açıklama girilmedi." />
-                  {notesOf("dersNotu").length > 0 && (
+                  {detail.lectureNotes.length > 0 && (
                     <section>
-                      <h3 className="mb-3 border-t pt-4 text-xl text-primary">Ders notu</h3>
-                      <NoteList notes={notesOf("dersNotu")} empty="" />
+                      <h3 className="mb-2 border-t pt-4 text-xl text-primary">Ders notları</h3>
+                      <ul className="space-y-1">
+                        {detail.lectureNotes.map((note) => (
+                          <li key={note.slug}>
+                            <Link href={`/ders-notlari/${note.slug}`} className="inline-flex items-center gap-2 text-primary hover:underline">
+                              <GraduationCap className="size-4 shrink-0" aria-hidden />
+                              {note.title}
+                            </Link>
+                          </li>
+                        ))}
+                      </ul>
                     </section>
                   )}
                 </div>

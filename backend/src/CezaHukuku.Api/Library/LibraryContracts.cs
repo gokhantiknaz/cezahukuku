@@ -1,3 +1,4 @@
+using CezaHukuku.Api.Content;
 using CezaHukuku.Domain.Decisions;
 using CezaHukuku.Domain.Laws;
 
@@ -23,7 +24,7 @@ public sealed record LawSummary(
     int SortOrder);
 
 /// <summary>Kanunun ağacı: kök düğümler ve hiçbir düğüme bağlı olmayan maddeler.</summary>
-/// <param name="NoteKinds">Kanun düzeyinde okunabilir notların türleri (sol paneldeki Genel Gerekçe / Ders Notları).</param>
+/// <param name="NoteKinds">Kanun düzeyinde okunabilir notların türleri (sol paneldeki Genel Gerekçe).</param>
 public sealed record LawTreeResponse(
     LawSummary Law,
     List<LawNodeTree> Nodes,
@@ -83,6 +84,7 @@ public sealed record ArticleRef(string Slug, string Number, string Title);
 /// <param name="Version">Gösterilen sürüm; istenen tarihte yürürlükte sürüm yoksa ya da metin girilmediyse null.</param>
 /// <param name="Versions">Tüm sürümler, en yeni önce (değişiklik tarihçesi).</param>
 /// <param name="Changes">Gösterilen metinde her fıkra/bentin en son değişikliği (okuma ekranında kırmızı).</param>
+/// <param name="LectureNotes">Maddeye bağlanmış ders notları (Ders Notları bölümündeki sayfalarına bağlantı).</param>
 public sealed record ArticleDetailResponse(
     ArticleSummary Article,
     LawSummary Law,
@@ -96,7 +98,8 @@ public sealed record ArticleDetailResponse(
     List<ArticleLinkDto> Links,
     List<CitationSpan> Citations,
     List<LinkedArticleRef> CitedBy,
-    IReadOnlyList<ChangeMark> Changes);
+    IReadOnlyList<ChangeMark> Changes,
+    List<LectureNoteRef> LectureNotes);
 
 /// <param name="Html">Kararın tam metni ya da ilgili kısmı (sunucuda temizlenmiş HTML); boş olabilir.</param>
 /// <param name="EffectiveVisibility">Maddenin altında gösterilirken maddenin görünürlüğüyle daraltılmış hâli.</param>

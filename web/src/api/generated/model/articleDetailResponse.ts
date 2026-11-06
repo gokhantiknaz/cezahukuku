@@ -17,6 +17,7 @@ import type { ArticleLinkDto } from './articleLinkDto';
 import type { CitationSpan } from './citationSpan';
 import type { LinkedArticleRef } from './linkedArticleRef';
 import type { ChangeMark } from './changeMark';
+import type { LectureNoteRef } from './lectureNoteRef';
 
 export interface ArticleDetailResponse {
   article: ArticleSummary;
@@ -32,4 +33,5 @@ export interface ArticleDetailResponse {
   citations: CitationSpan[];
   citedBy: LinkedArticleRef[];
   changes: ChangeMark[];
+  lectureNotes: LectureNoteRef[];
 }

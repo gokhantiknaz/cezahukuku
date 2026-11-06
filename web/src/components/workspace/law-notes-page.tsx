@@ -8,12 +8,11 @@ import { getLaw, getLawNotes } from "@/lib/server-api";
 
 export const lawNoteSections = {
   genelGerekce: { slug: "genel-gerekce", title: "Genel Gerekçe", empty: "Bu kanunun genel gerekçesi henüz girilmedi." },
-  dersNotu: { slug: "ders-notlari", title: "Ders Notları", empty: "Bu kanuna henüz ders notu girilmedi." },
 } as const;
 
 type LawNoteKind = keyof typeof lawNoteSections;
 
-/** Kanun düzeyindeki notlar sayfası (/tck/genel-gerekce, /tck/ders-notlari); kanun çalışma alanının içinde açılır. */
+/** Kanun düzeyindeki notlar sayfası (/tck/genel-gerekce); kanun çalışma alanının içinde açılır. */
 export function LawNotesPage({ params, kind }: { params: Promise<{ law: string }>; kind: LawNoteKind }) {
   return (
     <Suspense fallback={<ArticleSkeleton />}>

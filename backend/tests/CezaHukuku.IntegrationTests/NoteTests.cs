@@ -33,7 +33,7 @@ public class NoteTests(ApiFactory factory)
         await admin.PostJsonAsync($"/api/admin/articles/{article.Id}/notes",
             new SaveEditorialNoteRequest(EditorialNoteKind.Aciklama, null, "<p>Herkese açık.</p>", Visibility.Public, null)).ExpectAsync(201);
         await admin.PostJsonAsync($"/api/admin/articles/{article.Id}/notes",
-            new SaveEditorialNoteRequest(EditorialNoteKind.DersNotu, null, "<p>Yalnız üyelere.</p>", Visibility.Private, null)).ExpectAsync(201);
+            new SaveEditorialNoteRequest(EditorialNoteKind.Gerekce, null, "<p>Yalnız üyelere.</p>", Visibility.Private, null)).ExpectAsync(201);
 
         var url = $"/api/library/laws/{law.Slug}/articles/madde-81";
         var anonymous = await (await factory.CreateAnonymousClient().GetAsync(url)).ReadAsync<ArticleDetailResponse>();

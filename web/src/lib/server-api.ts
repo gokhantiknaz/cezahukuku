@@ -5,12 +5,15 @@
 import { cache } from "react";
 import { cookies } from "next/headers";
 import { getGetArticleUrl, getGetLawNotesUrl, getGetLawUrl, getGetLibraryUrl } from "@/api/generated/library/library";
+import { getGetLectureNoteUrl, getListLectureNotesUrl } from "@/api/generated/lecture-notes/lecture-notes";
 import { getListNewsUrl } from "@/api/generated/news/news";
 import { getSearchUrl } from "@/api/generated/search/search";
 import type {
   ArticleDetailResponse,
   EditorialNoteDto,
   LawTreeResponse,
+  LectureNoteDetail,
+  LectureNoteSummary,
   LibraryResponse,
   NewsItemDto,
   SearchParams,
@@ -48,8 +51,8 @@ export const getArticle = cache(async (lawSlug: string, articleSlug: string, asO
     : null,
 );
 
-/** Kanun düzeyindeki notlar: "genelGerekce" ya da "dersNotu". */
-export const getLawNotes = cache(async (lawSlug: string, kind: "genelGerekce" | "dersNotu") =>
+/** Kanun düzeyindeki notlar (genel gerekçe). Ders notları ayrı bölümdedir (getLectureNotes). */
+export const getLawNotes = cache(async (lawSlug: string, kind: "genelGerekce") =>
   isSlug(lawSlug) ? apiGet<EditorialNoteDto[]>(getGetLawNotesUrl(lawSlug, { kind })) : null,
 );
 
@@ -67,3 +70,10 @@ export const searchContent = cache(
 
 /** Ceza Gündemi haberleri (yeniden eskiye). */
 export const getNews = cache(async (limit = 100) => (await apiGet<NewsItemDto[]>(getListNewsUrl({ limit }))) ?? []);
+
+/** Ders notları (son güncellenen önce); giriş yapan kullanıcıya üyelere özel olanlar da gelir. */
+export const getLectureNotes = cache(async () => (await apiGet<LectureNoteSummary[]>(getListLectureNotesUrl())) ?? []);
+
+export const getLectureNote = cache(async (slug: string) =>
+  isSlug(slug) ? apiGet<LectureNoteDetail>(getGetLectureNoteUrl(slug)) : null,
+);

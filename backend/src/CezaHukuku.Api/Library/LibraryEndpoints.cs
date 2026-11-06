@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using CezaHukuku.Api.Auth;
+using CezaHukuku.Api.Content;
 using CezaHukuku.Domain.Laws;
 using CezaHukuku.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -127,12 +128,13 @@ public static class LibraryEndpoints
             links,
             citations,
             citedBy,
-            shown is null ? [] : ChangeMarks.For(versions, shown));
+            shown is null ? [] : ChangeMarks.For(versions, shown),
+            await LectureNoteEndpoints.ForArticleAsync(db, item.Article.Id, principal.CanSeePrivate()));
         return TypedResults.Ok(response);
     }
 
-    /// <summary>Kanun düzeyindeki notlar (Genel Gerekçe, Ders Notları).</summary>
-    /// <param name="kind">Verilirse yalnız o tür: "genelGerekce", "dersNotu" (büyük/küçük harf fark etmez).</param>
+    /// <summary>Kanun düzeyindeki notlar (Genel Gerekçe). Ders notları ayrı bölümdedir (LectureNoteEndpoints).</summary>
+    /// <param name="kind">Verilirse yalnız o tür: "genelGerekce" (büyük/küçük harf fark etmez).</param>
     private static async Task<Results<Ok<List<EditorialNoteDto>>, NotFound>> GetLawNotesAsync(
         string lawSlug, string? kind, ClaimsPrincipal principal, AppDbContext db)
     {

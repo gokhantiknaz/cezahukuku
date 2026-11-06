@@ -1,4 +1,5 @@
 using System.Text;
+using CezaHukuku.Domain.Content;
 using CezaHukuku.Domain.Decisions;
 using CezaHukuku.Domain.Laws;
 using CezaHukuku.Domain.Personal;
@@ -18,10 +19,11 @@ public sealed class SearchIndexChanges
     public HashSet<Guid> PersonalNotes { get; } = [];
     public HashSet<Guid> Highlights { get; } = [];
     public HashSet<Guid> Attachments { get; } = [];
+    public HashSet<Guid> LectureNotes { get; } = [];
 
     public bool IsEmpty =>
         Laws.Count == 0 && Articles.Count == 0 && Decisions.Count == 0 && PersonalNotes.Count == 0 && Highlights.Count == 0
-        && Attachments.Count == 0;
+        && Attachments.Count == 0 && LectureNotes.Count == 0;
 
     /// <summary>Kaydedilmek üzere olan (eklenen, değişen, silinen) varlıklardan etkilenen kaynakları çıkarır.</summary>
     public static SearchIndexChanges Collect(ChangeTracker tracker)
@@ -46,6 +48,7 @@ public sealed class SearchIndexChanges
                 case Highlight highlight: changes.Highlights.Add(highlight.Id); break;
                 case Attachment attachment: changes.Attachments.Add(attachment.Id); break;
                 case AttachmentSegment segment: changes.Attachments.Add(segment.AttachmentId); break;
+                case LectureNote note: changes.LectureNotes.Add(note.Id); break;
             }
         }
         return changes;
@@ -60,7 +63,7 @@ public sealed class SearchIndexChanges
 public static class SearchIndexer
 {
     private static readonly SearchKind[] LawKinds =
-        [SearchKind.Article, SearchKind.Gerekce, SearchKind.Aciklama, SearchKind.DersNotu, SearchKind.GenelGerekce];
+        [SearchKind.Article, SearchKind.Gerekce, SearchKind.Aciklama, SearchKind.GenelGerekce];
 
     private static readonly SearchKind[] DecisionKinds = [SearchKind.Ictihat, SearchKind.NormDenetimi];
 
@@ -111,6 +114,12 @@ public static class SearchIndexer
             docs.AddRange(await BuildAttachmentsAsync(db, attachmentIds, ct));
         }
 
+        if (changes.LectureNotes.Count > 0)
+        {
+            await db.SearchDocs.Where(d => d.Kind == SearchKind.DersNotu && changes.LectureNotes.Contains(d.SourceId)).ExecuteDeleteAsync(ct);
+            docs.AddRange(await BuildLectureNotesAsync(db, changes.LectureNotes, ct));
+        }
+
         if (docs.Count == 0)
             return;
         foreach (var doc in docs)
@@ -129,6 +138,7 @@ public static class SearchIndexer
         changes.PersonalNotes.UnionWith(await db.PersonalNotes.Select(n => n.Id).ToListAsync(ct));
         changes.Highlights.UnionWith(await db.Highlights.Select(h => h.Id).ToListAsync(ct));
         changes.Attachments.UnionWith(await db.Attachments.Select(a => a.Id).ToListAsync(ct));
+        changes.LectureNotes.UnionWith(await db.LectureNotes.Select(n => n.Id).ToListAsync(ct));
         await ApplyAsync(db, changes, ct);
         return await db.SearchDocs.CountAsync(ct);
     }
@@ -145,7 +155,10 @@ public static class SearchIndexer
                 .Where(v => db.Articles.Any(a => a.Id == v.ArticleId && a.LawId == lawId))
                 .ToListAsync(ct))
             .ToLookup(v => v.ArticleId);
-        var notes = await db.EditorialNotes.AsNoTracking().Where(n => n.LawId == lawId).ToListAsync(ct);
+        // Ders notları kendi tablosunda (LectureNote); eski türdeki kayıtlar indekslenmez.
+        var notes = await db.EditorialNotes.AsNoTracking()
+            .Where(n => n.LawId == lawId && n.Kind != EditorialNoteKind.DersNotu)
+            .ToListAsync(ct);
         var outline = LawOutline.Build(law, nodes, articles, includePrivate: true);
         var label = LawLabel(law);
 
@@ -176,7 +189,6 @@ public static class SearchIndexer
             {
                 EditorialNoteKind.Gerekce => SearchKind.Gerekce,
                 EditorialNoteKind.Aciklama => SearchKind.Aciklama,
-                EditorialNoteKind.DersNotu => SearchKind.DersNotu,
                 _ => SearchKind.GenelGerekce,
             };
             if (note.ArticleId is { } articleId)
@@ -207,7 +219,7 @@ public static class SearchIndexer
                     Title = note.Title ?? KindLabel(kind),
                     Context = label,
                     Body = note.PlainText,
-                    Url = $"/{law.Slug}/{(kind == SearchKind.GenelGerekce ? "genel-gerekce" : "ders-notlari")}",
+                    Url = $"/{law.Slug}/genel-gerekce",
                 });
             }
         }
@@ -292,6 +304,42 @@ public static class SearchIndexer
             .. notes.Select(n => Doc(SearchKind.Note, n.Id, n.OwnerId, n.ArticleId, n.Text)).OfType<SearchDoc>(),
             .. highlights.Select(h => Doc(SearchKind.Highlight, h.Id, h.OwnerId, h.ArticleId,
                 string.Join(" … ", h.Segments.Select(s => s.Quote)))).OfType<SearchDoc>(),
+        ];
+    }
+
+    /// <summary>Ders notları: kendi sayfalarına bağlanır; bağlı oldukları kanun (varsa) kanun süzgecinde.</summary>
+    private static async Task<List<SearchDoc>> BuildLectureNotesAsync(AppDbContext db, HashSet<Guid> ids, CancellationToken ct)
+    {
+        var notes = await db.LectureNotes.AsNoTracking().Where(n => ids.Contains(n.Id)).ToListAsync(ct);
+        var lawIds = notes.Where(n => n.LawId != null).Select(n => n.LawId!.Value).Distinct().ToList();
+        var laws = await db.Laws.AsNoTracking().Where(l => lawIds.Contains(l.Id)).ToDictionaryAsync(l => l.Id, ct);
+        var articleIds = notes.Where(n => n.ArticleId != null).Select(n => n.ArticleId!.Value).Distinct().ToList();
+        var articles = await db.Articles.AsNoTracking().Where(a => articleIds.Contains(a.Id)).ToDictionaryAsync(a => a.Id, ct);
+        var groupIds = notes.Where(n => n.LawGroupId != null).Select(n => n.LawGroupId!.Value).Distinct().ToList();
+        var groups = await db.LawGroups.AsNoTracking().Where(g => groupIds.Contains(g.Id)).ToDictionaryAsync(g => g.Id, ct);
+
+        return
+        [
+            .. notes.Select(note =>
+            {
+                var law = note.LawId is { } lawId ? laws.GetValueOrDefault(lawId) : null;
+                var article = note.ArticleId is { } articleId ? articles.GetValueOrDefault(articleId) : null;
+                var group = note.LawGroupId is { } groupId ? groups.GetValueOrDefault(groupId) : null;
+                return new SearchDoc
+                {
+                    Kind = SearchKind.DersNotu,
+                    SourceId = note.Id,
+                    Visibility = note.Visibility,
+                    LawIds = law is null ? [] : [law.Id],
+                    Title = note.Title,
+                    Context = law is not null && article is not null ? $"{LawLabel(law)} Madde {article.Number}"
+                        : law is not null ? LawLabel(law)
+                        : group?.Title ?? "Genel",
+                    Body = note.PlainText,
+                    Url = $"/ders-notlari/{note.Slug}",
+                    Date = DateOnly.FromDateTime(note.UpdatedAt.UtcDateTime),
+                };
+            }),
         ];
     }
 

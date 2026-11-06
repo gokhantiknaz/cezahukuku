@@ -10,7 +10,7 @@ public enum EditorialNoteKind
     /// <summary>Editörün maddeye açıklaması / şerhi.</summary>
     Aciklama,
 
-    /// <summary>Ders notu (madde ya da kanun düzeyinde).</summary>
+    /// <summary>Eski: ders notları artık kendi tablosunda (<see cref="Content.LectureNote"/>); yeni kayıt açılmaz.</summary>
     DersNotu,
 
     /// <summary>Kanunun genel gerekçesi (kanun düzeyinde).</summary>
@@ -18,7 +18,7 @@ public enum EditorialNoteKind
 }
 
 /// <summary>
-/// Yönetimin girdiği, herkesin (görünürlüğüne göre) okuduğu not: gerekçe, açıklama, ders notu. Maddeye ya da kanunun
+/// Yönetimin girdiği, herkesin (görünürlüğüne göre) okuduğu not: gerekçe, açıklama, genel gerekçe. Maddeye ya da kanunun
 /// tamamına bağlıdır. Kişisel vurgu ve notlar ayrı tutulur (M4). Metin temizlenmiş HTML olarak saklanır; arama için
 /// düz metni de tutulur.
 /// </summary>
@@ -48,5 +48,5 @@ public sealed class EditorialNote : Entity
     /// <summary>Not maddeye mi ait, kanun düzeyinde mi olmalı; tür bunu belirler.</summary>
     public static bool IsArticleLevel(EditorialNoteKind kind) => kind is not EditorialNoteKind.GenelGerekce;
 
-    public static bool IsLawLevel(EditorialNoteKind kind) => kind is EditorialNoteKind.GenelGerekce or EditorialNoteKind.DersNotu;
+    public static bool IsLawLevel(EditorialNoteKind kind) => kind is EditorialNoteKind.GenelGerekce;
 }

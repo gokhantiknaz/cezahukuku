@@ -31,3 +31,21 @@ internal sealed class QuizQuestionConfiguration : IEntityTypeConfiguration<QuizQ
         b.HasIndex(e => e.LawId);
     }
 }
+
+internal sealed class LectureNoteConfiguration : IEntityTypeConfiguration<LectureNote>
+{
+    public void Configure(EntityTypeBuilder<LectureNote> b)
+    {
+        b.HasQueryFilter(e => e.DeletedAt == null);
+        b.Property(e => e.Title).HasMaxLength(LectureNote.MaxTitleLength);
+        b.Property(e => e.Slug).HasMaxLength(120);
+        b.Property(e => e.Visibility).HasConversion<string>().HasMaxLength(16);
+        b.HasOne<LawGroup>().WithMany().HasForeignKey(e => e.LawGroupId).OnDelete(DeleteBehavior.Restrict);
+        b.HasOne<Law>().WithMany().HasForeignKey(e => e.LawId).OnDelete(DeleteBehavior.Restrict);
+        b.HasOne<Article>().WithMany().HasForeignKey(e => e.ArticleId).OnDelete(DeleteBehavior.Restrict);
+        b.HasIndex(e => e.Slug).IsUnique().HasFilter(SoftDelete.ActiveFilter);
+        b.HasIndex(e => e.LawGroupId);
+        b.HasIndex(e => e.LawId);
+        b.HasIndex(e => e.ArticleId);
+    }
+}
