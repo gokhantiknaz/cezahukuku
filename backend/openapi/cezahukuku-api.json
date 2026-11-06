@@ -601,7 +601,7 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/ArticleVersionDetail"
+                    "$ref": "#/components/schemas/ArticleVersionHistoryEntry"
                   }
                 }
               }
@@ -3452,7 +3452,8 @@
           "decisions",
           "links",
           "citations",
-          "citedBy"
+          "citedBy",
+          "changes"
         ],
         "type": "object",
         "properties": {
@@ -3532,6 +3533,12 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/LinkedArticleRef"
+            }
+          },
+          "changes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ChangeMark"
             }
           }
         }
@@ -3755,6 +3762,24 @@
           }
         }
       },
+      "ArticleVersionHistoryEntry": {
+        "required": [
+          "version",
+          "changes"
+        ],
+        "type": "object",
+        "properties": {
+          "version": {
+            "$ref": "#/components/schemas/ArticleVersionDetail"
+          },
+          "changes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BlockChange"
+            }
+          }
+        }
+      },
       "ArticleVersionSummary": {
         "required": [
           "id",
@@ -3956,6 +3981,72 @@
           "failed"
         ]
       },
+      "BlockChange": {
+        "required": [
+          "paragraphId",
+          "itemId",
+          "label",
+          "kind",
+          "oldText",
+          "newText",
+          "pieces",
+          "anchorParagraphId",
+          "anchorItemId"
+        ],
+        "type": "object",
+        "properties": {
+          "paragraphId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "itemId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "label": {
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/BlockChangeKind"
+          },
+          "oldText": {
+            "type": "string"
+          },
+          "newText": {
+            "type": "string"
+          },
+          "pieces": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DiffPiece"
+            }
+          },
+          "anchorParagraphId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "anchorItemId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          }
+        }
+      },
+      "BlockChangeKind": {
+        "enum": [
+          "changed",
+          "added",
+          "removed"
+        ]
+      },
       "BulkOldLawLinkResultRow": {
         "required": [
           "row",
@@ -4055,6 +4146,70 @@
           "exists",
           "error"
         ]
+      },
+      "ChangeMark": {
+        "required": [
+          "versionId",
+          "paragraphId",
+          "itemId",
+          "kind",
+          "label",
+          "inserted",
+          "deletedAt",
+          "anchorParagraphId",
+          "anchorItemId"
+        ],
+        "type": "object",
+        "properties": {
+          "versionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "paragraphId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "itemId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/BlockChangeKind"
+          },
+          "label": {
+            "type": "string"
+          },
+          "inserted": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TextRange"
+            }
+          },
+          "deletedAt": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          "anchorParagraphId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "anchorItemId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          }
+        }
       },
       "CheckedArticleCitation": {
         "required": [
@@ -4586,6 +4741,28 @@
           "ictihat",
           "normDenetimi"
         ]
+      },
+      "DiffKind": {
+        "enum": [
+          "same",
+          "inserted",
+          "deleted"
+        ]
+      },
+      "DiffPiece": {
+        "required": [
+          "kind",
+          "text"
+        ],
+        "type": "object",
+        "properties": {
+          "kind": {
+            "$ref": "#/components/schemas/DiffKind"
+          },
+          "text": {
+            "type": "string"
+          }
+        }
       },
       "DocumentCitationSpan": {
         "required": [
@@ -6626,6 +6803,23 @@
             ],
             "format": "uuid"
           },
+          "start": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "length": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "TextRange": {
+        "required": [
+          "start",
+          "length"
+        ],
+        "type": "object",
+        "properties": {
           "start": {
             "type": "integer",
             "format": "int32"

@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ExternalLink, Plus, Trash2 } from "lucide-react";
+import { useSearchParams } from "next/navigation";
+import { ExternalLink, History, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import {
   useCreateArticle,
@@ -178,17 +179,59 @@ function ArticleNotes({ lawSlug, article }: { lawSlug: string; article: ArticleS
   );
 }
 
-/** Maddenin metin sürümleri: liste, seçili sürümün düzenlenmesi ve yeni sürüm. */
+/** Sürümlerin nasıl çalıştığı: panelde açılıp kapanan kısa açıklama. */
+function VersionGuide() {
+  return (
+    <details className="rounded-md border bg-muted/30 px-3 py-2 text-sm">
+      <summary className="cursor-pointer font-medium">Sürümler nasıl çalışır?</summary>
+      <ul className="mt-2 list-disc space-y-1.5 pl-5 text-muted-foreground">
+        <li>
+          <strong className="text-foreground">Değişiklik gir:</strong> kanun maddeyi değiştirdiğinde. Yürürlükteki metin
+          kopyalanır; yalnız değişen kelimeleri düzeltir, kaldırılan fıkra ya da bendi silersiniz. Kaydedince yeni metin
+          yeni bir sürüm olur, eski metin silinmez: yürürlük başlangıcından bir gün önce kapanır. Okuma ekranında değişen
+          kelimeler kırmızı, kaldırılan fıkra/bent “Mülga” görünür; tıklayınca Değişiklikler sekmesinde önceki hâli açılır.
+          Suç tarihi seçen okuyucu o tarihteki metni görür.
+        </li>
+        <li>
+          <strong className="text-foreground">Düzelt:</strong> yazım hatası, yanlış tarih gibi düzeltmeler için bir sürümü
+          seçin. Sürüm yerinde değişir; Değişiklikler sekmesine yeni kayıt düşmez.
+        </li>
+        <li>
+          <strong className="text-foreground">Önceki metni ekle:</strong> madde değişmiş hâliyle girildiyse (ör. içe
+          aktarılan güncel metin), değişiklikten önceki metni sonradan eklemek için.
+        </li>
+        <li>
+          Madde tümüyle yürürlükten kalktıysa yeni sürümde <strong className="text-foreground">Mülga</strong> kutusunu
+          işaretleyin.
+        </li>
+      </ul>
+    </details>
+  );
+}
+
+/**
+ * Maddenin metin sürümleri. Ne yapılacağı açıkça seçilir: değişiklik gir (yeni sürüm), önceki metni ekle ya da bir
+ * sürümü düzelt; seçim yapılana kadar düzenleyici açılmaz (yürürlükteki metni farkında olmadan yerinde değiştirmemek
+ * için). Metni olmayan maddede doğrudan ilk metin yazılır. Okuma ekranından ?surum=onceki ile önceki metin açılır.
+ */
 function ArticleVersions({ lawSlug, article }: { lawSlug: string; article: ArticleSummary }) {
-  const [selected, setSelected] = useState<string | "new" | null>(null);
+  const searchParams = useSearchParams();
+  const [selected, setSelected] = useState<string | null>(() =>
+    searchParams.get("surum") === "onceki" && searchParams.get("madde") === article.slug ? "older" : null,
+  );
   const detailQuery = useGetArticle(lawSlug, article.slug);
   const detail = detailQuery.data?.status === 200 ? detailQuery.data.data : undefined;
   const versions = detail?.versions ?? [];
+  const oldest = versions.at(-1);
 
-  // Varsayılan: metin yoksa yeni sürüm, varsa yürürlükteki sürüm.
-  const current = selected ?? (versions.length === 0 ? "new" : (detail?.version?.id ?? versions[0].id));
-  // Yeni sürüm yürürlükteki metinden başlar (değişikliği yazmak için); fıkra kimlikleri oradan taşınır.
-  const baseId = current === "new" ? (detail?.version?.id ?? versions[0]?.id ?? null) : current;
+  const current = versions.length === 0 ? "new" : selected === "older" && !oldest?.validFrom ? null : selected;
+  // Değişiklik yürürlükteki metinden, önceki metin ilk kayıtlı metinden başlar; fıkra kimlikleri oradan taşınır.
+  const baseId =
+    current === "new"
+      ? (detail?.version?.id ?? versions[0]?.id ?? null)
+      : current === "older"
+        ? (oldest?.id ?? null)
+        : current;
   const baseQuery = useGetArticleVersion(baseId ?? "", { query: { enabled: baseId !== null } });
   const base = baseQuery.data?.status === 200 ? baseQuery.data.data : undefined;
 
@@ -196,19 +239,44 @@ function ArticleVersions({ lawSlug, article }: { lawSlug: string; article: Artic
     return <p className="text-muted-foreground">Metin yükleniyor…</p>;
   }
 
+  const banner =
+    versions.length === 0
+      ? null
+      : current === "new"
+        ? "Değişiklik giriyorsunuz. Metin yürürlükteki sürümden kopyalandı: değişen kelimeleri düzeltin, kaldırılan fıkra ya da bendi silin; yürürlük başlangıcını ve değiştiren düzenlemeyi girin. Kaydedince önceki metin Değişiklikler sekmesinde kalır."
+        : current === "older"
+          ? "Değişiklikten önceki metni giriyorsunuz. Metin ilk kayıtlı sürümden kopyalandı: değişiklikten önceki hâline getirin ve yürürlük başlangıcını girin."
+          : current
+            ? "Seçili sürümü düzeltiyorsunuz: kaydedince bu sürümün metni yerinde değişir, Değişiklikler sekmesine yeni kayıt düşmez. Kanun maddeyi değiştirdiyse bunun yerine “Değişiklik gir”i kullanın."
+            : null;
+
   return (
     <section className="space-y-4 border-t pt-5">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h3 className="text-lg">Madde metni ve sürümleri</h3>
         {versions.length > 0 && (
-          <Button variant={current === "new" ? "default" : "outline"} size="sm" onClick={() => setSelected("new")}>
-            <Plus /> Yeni sürüm (değişiklik)
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button variant={current === "new" ? "default" : "outline"} size="sm" onClick={() => setSelected("new")}>
+              <Plus /> Değişiklik gir
+            </Button>
+            {oldest?.validFrom && (
+              <Button
+                variant={current === "older" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setSelected("older")}
+              >
+                <History /> Önceki metni ekle
+              </Button>
+            )}
+          </div>
         )}
       </div>
+      {versions.length > 0 && <VersionGuide />}
 
       {versions.length > 0 && (
-        <ul className="flex flex-wrap gap-2">
+        <div className="space-y-1.5">
+          <p className="text-sm text-muted-foreground">Kayıtlı sürümler — düzeltmek için seçin:</p>
+          <ul className="flex flex-wrap gap-2">
           {versions.map((v) => (
             <li key={v.id}>
               <button
@@ -233,24 +301,25 @@ function ArticleVersions({ lawSlug, article }: { lawSlug: string; article: Artic
               </button>
             </li>
           ))}
-        </ul>
+          </ul>
+        </div>
       )}
 
-      {current === "new" && versions.length > 0 && (
-        <p className="text-sm text-muted-foreground">
-          Metin yürürlükteki sürümden kopyalandı. Değişikliği yazıp yürürlük başlangıcını girin; yürürlükteki sürüm
-          bir gün önce kapatılır.
-        </p>
+      {banner && (
+        <p className="rounded-md border-l-4 border-primary bg-accent px-3 py-2 text-sm text-accent-foreground">{banner}</p>
       )}
 
-      <VersionEditor
-        key={`${current}:${baseId}`}
-        articleId={article.id}
-        mode={current === "new" ? "new" : "edit"}
-        base={base}
-        onSaved={(id) => setSelected(id)}
-        onDeleted={() => setSelected(null)}
-      />
+      {current && (
+        <VersionEditor
+          key={`${current}:${baseId}`}
+          articleId={article.id}
+          mode={current === "new" || current === "older" ? current : "edit"}
+          base={base}
+          // Değişiklik ya da önceki metin kaydedilince seçim ekranına dönülür; düzeltmede sürüm açık kalır.
+          onSaved={(id) => setSelected(current === "new" || current === "older" ? null : id)}
+          onDeleted={() => setSelected(null)}
+        />
+      )}
     </section>
   );
 }

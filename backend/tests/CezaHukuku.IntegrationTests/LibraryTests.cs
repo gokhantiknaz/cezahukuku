@@ -71,7 +71,7 @@ public class LibraryTests(ApiFactory factory)
         var (law, node) = await CreateLawAsync(admin);
         var article = await CreateArticleAsync(admin, law, node, "81", "Kasten öldürme");
         var first = await CreateVersionAsync(admin, article, new DateOnly(2005, 6, 1), "İlk metin.");
-        await CreateVersionAsync(admin, article, new DateOnly(2014, 7, 2), "Değişen metin.");
+        var second = await CreateVersionAsync(admin, article, new DateOnly(2014, 7, 2), "Değişen metin.");
 
         var url = $"/api/library/laws/{law.Slug}/articles/madde-81";
         var current = await (await admin.GetAsync(url)).ReadAsync<ArticleDetailResponse>();
@@ -84,8 +84,39 @@ public class LibraryTests(ApiFactory factory)
         var beforeLaw = await (await admin.GetAsync(url + "?asOf=2000-01-01")).ReadAsync<ArticleDetailResponse>();
         Assert.Null(beforeLaw.Version);
 
-        var history = await (await admin.GetAsync(url + "/history")).ReadAsync<List<ArticleVersionDetail>>();
-        Assert.Equal(["Değişen metin.", "İlk metin."], history.Select(v => v.Paragraphs.Single().Text));
+        var history = await (await admin.GetAsync(url + "/history")).ReadAsync<List<ArticleVersionHistoryEntry>>();
+        Assert.Equal(["Değişen metin.", "İlk metin."], history.Select(v => v.Version.Paragraphs.Single().Text));
+        // Değişiklikler sekmesi: yalnız değişen fıkra, kelime düzeyinde; ilk sürümde değişiklik yok.
+        var change = Assert.Single(history[0].Changes);
+        Assert.Equal(("(1)", BlockChangeKind.Changed, "İlk metin.", "Değişen metin."), (change.Label, change.Kind, change.OldText, change.NewText));
+        Assert.Equal([(DiffKind.Deleted, "İlk"), (DiffKind.Inserted, "Değişen"), (DiffKind.Same, " metin.")],
+            change.Pieces.Select(p => (p.Kind, p.Text)));
+        Assert.Empty(history[1].Changes);
+
+        // Okuma ekranı: değişen kelime, onu getiren sürümle.
+        var mark = Assert.Single(current.Changes);
+        Assert.Equal((second.Id, BlockChangeKind.Changed), (mark.VersionId, mark.Kind));
+        Assert.Equal([new TextRange(0, "Değişen".Length)], mark.Inserted);
+        Assert.Empty(atCrimeDate.Changes);
+    }
+
+    [Fact]
+    public async Task OlderText_CanBeAddedBeforeTheOnlyVersion()
+    {
+        var admin = await factory.CreateAdminClientAsync();
+        var (law, node) = await CreateLawAsync(admin);
+        var article = await CreateArticleAsync(admin, law, node, "81", "Kasten öldürme");
+        var current = await CreateVersionAsync(admin, article, new DateOnly(2014, 7, 2), "Değişen metin.");
+
+        // Değişiklikten önceki metin: bitişi, yürürlükteki metnin başlangıcından bir gün önce.
+        await admin.PostJsonAsync($"/api/admin/articles/{article.Id}/versions",
+                VersionRequest(new DateOnly(2005, 6, 1), "İlk metin.") with { ValidTo = new DateOnly(2014, 7, 1) })
+            .ExpectAsync(201);
+
+        var detail = await (await admin.GetAsync($"/api/library/laws/{law.Slug}/articles/madde-81")).ReadAsync<ArticleDetailResponse>();
+        Assert.Equal(current.Id, detail.Version?.Id);
+        Assert.Equal(2, detail.Versions.Count);
+        Assert.Equal(current.Id, Assert.Single(detail.Changes).VersionId);
     }
 
     [Fact]

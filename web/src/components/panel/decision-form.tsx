@@ -229,10 +229,10 @@ function DecisionForm({
               onChange={(outcome) => setForm((f) => ({ ...f, outcome }))}
             />
           </Field>
-          <Field label="RG tarihi" htmlFor="decision-gazette-date">
+          <Field label="Resmî Gazete tarihi" hint="Kararın yayımlandığı Resmî Gazete (RG); AYM kararlarında." htmlFor="decision-gazette-date">
             <Input id="decision-gazette-date" type="date" value={form.gazetteDate} onChange={set("gazetteDate")} />
           </Field>
-          <Field label="RG sayısı" htmlFor="decision-gazette-number" error={error} field="gazetteNumber">
+          <Field label="Resmî Gazete sayısı" htmlFor="decision-gazette-number" error={error} field="gazetteNumber">
             <Input id="decision-gazette-number" value={form.gazetteNumber} onChange={set("gazetteNumber")} />
           </Field>
         </div>

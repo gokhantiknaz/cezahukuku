@@ -12,7 +12,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { Check, NotebookPen, Trash2 } from "lucide-react";
-import type { CitationSpan, HighlightColor, ParagraphDto, PersonalNoteDto, TextPosition } from "@/api/generated/model";
+import type { ChangeMark, CitationSpan, HighlightColor, ParagraphDto, PersonalNoteDto, TextPosition } from "@/api/generated/model";
 import { Button } from "@/components/ui/button";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { highlightClassName, highlightColors } from "@/lib/highlights";
@@ -81,11 +81,13 @@ export function HighlightableText({
   versionId,
   paragraphs,
   citations,
+  changes,
 }: {
   articleId: string;
   versionId: string;
   paragraphs: ParagraphDto[];
   citations: CitationSpan[];
+  changes?: ChangeMark[];
 }) {
   const layer = usePersonalLayer(articleId, versionId);
   const { enabled, highlights, noteOf, busy } = layer;
@@ -238,7 +240,7 @@ export function HighlightableText({
         onClickCapture={(e) => e.target instanceof Element && e.target.closest("[data-note-for]") && e.preventDefault()}
         className={cn(enabled && "[&_mark[data-highlight-id]]:cursor-pointer")}
       >
-        <ParagraphList paragraphs={paragraphs} citations={citations} marks={marks} />
+        <ParagraphList paragraphs={paragraphs} citations={citations} marks={marks} changes={changes} />
       </div>
       {staleCount > 0 && (
         <p className="mt-3 text-sm text-muted-foreground">

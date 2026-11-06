@@ -21,7 +21,7 @@ import type {
 
 import type {
   ArticleDetailResponse,
-  ArticleVersionDetail,
+  ArticleVersionHistoryEntry,
   EditorialNoteDto,
   GetArticleParams,
   GetLawNotesParams,
@@ -389,7 +389,7 @@ export function useGetArticle<TData = Awaited<ReturnType<typeof getArticle>>, TE
 
 
 export type getArticleHistoryResponse200 = {
-  data: ArticleVersionDetail[]
+  data: ArticleVersionHistoryEntry[]
   status: 200
 }
 

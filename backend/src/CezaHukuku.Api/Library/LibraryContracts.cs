@@ -82,6 +82,7 @@ public sealed record ArticleRef(string Slug, string Number, string Title);
 /// <param name="Path">Kökten maddenin bağlı olduğu düğüme kadar (breadcrumb).</param>
 /// <param name="Version">Gösterilen sürüm; istenen tarihte yürürlükte sürüm yoksa ya da metin girilmediyse null.</param>
 /// <param name="Versions">Tüm sürümler, en yeni önce (değişiklik tarihçesi).</param>
+/// <param name="Changes">Gösterilen metinde her fıkra/bentin en son değişikliği (okuma ekranında kırmızı).</param>
 public sealed record ArticleDetailResponse(
     ArticleSummary Article,
     LawSummary Law,
@@ -94,7 +95,8 @@ public sealed record ArticleDetailResponse(
     List<DecisionDto> Decisions,
     List<ArticleLinkDto> Links,
     List<CitationSpan> Citations,
-    List<LinkedArticleRef> CitedBy);
+    List<LinkedArticleRef> CitedBy,
+    IReadOnlyList<ChangeMark> Changes);
 
 /// <param name="Html">Kararın tam metni ya da ilgili kısmı (sunucuda temizlenmiş HTML); boş olabilir.</param>
 /// <param name="EffectiveVisibility">Maddenin altında gösterilirken maddenin görünürlüğüyle daraltılmış hâli.</param>
@@ -114,6 +116,9 @@ public sealed record DecisionDto(
     string? SourceUrl,
     Visibility Visibility,
     Visibility EffectiveVisibility);
+
+/// <summary>Değişiklikler sekmesinde bir sürüm: metni ve bir önceki sürüme göre değişen fıkra/bentler (ilk sürümde boş).</summary>
+public sealed record ArticleVersionHistoryEntry(ArticleVersionDetail Version, IReadOnlyList<BlockChange> Changes);
 
 public sealed record ArticleVersionSummary(Guid Id, DateOnly? ValidFrom, DateOnly? ValidTo, string? AmendedBy, bool IsRepealed);
 

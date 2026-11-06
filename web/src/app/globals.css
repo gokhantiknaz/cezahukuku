@@ -43,6 +43,9 @@
   --highlight-green: #c8f0c4;
   --highlight-blue: #c9e3ff;
   --highlight-orange: #ffd9a8;
+
+  /* Maddede son değişiklikle gelen kelimeler (okuma ekranı ve Değişiklikler sekmesi). */
+  --change: #d01f1f;
 }
 
 /* Gece modu hazır; <html class="dark"> ile açılır (anahtar ileride eklenecek). */
@@ -78,6 +81,8 @@
   --highlight-green: #234a22;
   --highlight-blue: #1d3a5c;
   --highlight-orange: #5c3a12;
+
+  --change: #ff6b6b;
 }
 
 @theme inline {
@@ -117,6 +122,7 @@
   --color-highlight-green: var(--highlight-green);
   --color-highlight-blue: var(--highlight-blue);
   --color-highlight-orange: var(--highlight-orange);
+  --color-change: var(--change);
 
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);

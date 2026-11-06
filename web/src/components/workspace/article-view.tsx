@@ -90,9 +90,24 @@ export function ArticleView({ detail, asOf, initialTab }: { detail: ArticleDetai
       tabsRef.current?.querySelector("[role=tab][data-state=active]")?.scrollIntoView({ block: "nearest", inline: "nearest" });
     }
   }, [article.id, openTab, initialTab]);
+  // Açık sekme, hangi madde/istenen sekme için seçildiğiyle tutulur: başka maddeye geçince istenen sekmeye döner.
+  const tabKey = `${article.id}-${openTab}`;
+  const [tabState, setTabState] = useState({ key: tabKey, value: openTab });
+  const tab = tabState.key === tabKey ? tabState.value : openTab;
+  // Metindeki kırmızı (değişen) yere tıklanınca Değişiklikler sekmesinde açılacak kayıt; n her tıklamada artar.
+  const [focusChange, setFocusChange] = useState<{ key: string; n: number } | null>(null);
+
+  function openChange(event: React.MouseEvent) {
+    const clicked = event.target instanceof Element ? event.target : null;
+    const target = clicked?.closest("[data-change-key]");
+    // Vurgunun üstündeyse vurgu araçları açılır; metin seçilirken de tıklama sayılmaz.
+    if (!target || clicked?.closest("mark[data-highlight-id]") || window.getSelection()?.isCollapsed === false) return;
+    setTabState({ key: tabKey, value: "degisiklikler" });
+    setFocusChange((f) => ({ key: target.getAttribute("data-change-key")!, n: (f?.n ?? 0) + 1 }));
+  }
   const tabCounts: Record<string, number> = {
     gerekce: notesOf("gerekce").length,
-    degisiklikler: detail.versions.length > 1 ? detail.versions.length : 0,
+    degisiklikler: Math.max(detail.versions.length - 1, 0),
     aciklama: notesOf("aciklama").length + notesOf("dersNotu").length,
     ictihatlar: detail.decisions.filter((d) => d.kind === "ictihat").length,
     norm: detail.decisions.filter((d) => d.kind === "normDenetimi").length,
@@ -194,7 +209,7 @@ export function ArticleView({ detail, asOf, initialTab }: { detail: ArticleDetai
             Kanun Metni
             {asOf && <span className="text-base">— {formatDate(asOf)} tarihinde yürürlükte olan metin</span>}
           </h3>
-          <div className="px-3 py-3 md:px-4 md:py-4">
+          <div className="px-3 py-3 md:px-4 md:py-4" onClick={openChange}>
             {asOf && !version ? (
               <p className="text-muted-foreground">
                 {formatDate(asOf)} tarihinde yürürlükte olan bir metin kayıtlı değil: madde o tarihte henüz yürürlükte
@@ -210,6 +225,7 @@ export function ArticleView({ detail, asOf, initialTab }: { detail: ArticleDetai
                 versionId={version!.id}
                 paragraphs={paragraphs}
                 citations={detail.citations}
+                changes={detail.changes}
               />
             )}
             {note && <p className="mt-4 border-t pt-3 text-sm text-muted-foreground">{note}</p>}
@@ -219,7 +235,7 @@ export function ArticleView({ detail, asOf, initialTab }: { detail: ArticleDetai
         <ArticlePager lawSlug={law.slug} previous={detail.previous} next={detail.next} asOf={asOf} />
 
         {/* Başka maddeye ya da sekmeye gelince sekmeler yeniden kurulsun (defaultValue yalnız ilk açılışta geçer). */}
-        <Tabs key={`${article.id}-${openTab}`} ref={tabsRef} defaultValue={openTab} className="mt-6 scroll-mt-4 max-lg:scroll-mt-16 print:hidden">
+        <Tabs key={tabKey} ref={tabsRef} value={tab} onValueChange={(value) => setTabState({ key: tabKey, value })} className="mt-6 scroll-mt-4 max-lg:scroll-mt-16 print:hidden">
           {/* Dar ekranda tek satır, yatay kaydırılır (alt alta kayıp içeriğin üstüne binmesin); sağdaki solgunluk
               devamı olduğunu gösterir, sona gelince kalkar. */}
           <div className="relative">
@@ -259,7 +275,13 @@ export function ArticleView({ detail, asOf, initialTab }: { detail: ArticleDetai
               className="rounded-lg border bg-card p-4 max-md:-mx-3 max-md:rounded-none max-md:border-x-0 max-md:px-3"
             >
               {tab.value === "degisiklikler" ? (
-                <ArticleHistory lawSlug={law.slug} articleSlug={article.slug} shownVersionId={version?.id} />
+                <ArticleHistory
+                  lawSlug={law.slug}
+                  articleSlug={article.slug}
+                  shownVersionId={version?.id}
+                  focus={focusChange}
+                  canEdit={canEdit}
+                />
               ) : tab.value === "ictihatlar" ? (
                 <DecisionList
                   decisions={detail.decisions.filter((d) => d.kind === "ictihat")}

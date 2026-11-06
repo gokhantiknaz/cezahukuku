@@ -26,8 +26,11 @@ public static class LibraryEndpoints
         return group;
     }
 
-    /// <summary>Maddenin tüm sürümleri metinleriyle, en yeni önce (Değişiklikler sekmesi ve zaman tüneli).</summary>
-    private static async Task<Results<Ok<List<ArticleVersionDetail>>, NotFound>> GetArticleHistoryAsync(
+    /// <summary>
+    /// Maddenin tüm sürümleri metinleriyle, en yeni önce (Değişiklikler sekmesi ve zaman tüneli); her sürümde bir
+    /// önceki sürüme göre değişen fıkra ve bentler.
+    /// </summary>
+    private static async Task<Results<Ok<List<ArticleVersionHistoryEntry>>, NotFound>> GetArticleHistoryAsync(
         string lawSlug, string articleSlug, ClaimsPrincipal principal, AppDbContext db)
     {
         var loaded = await LoadOutlineAsync(db, lawSlug, principal.CanSeePrivate());
@@ -42,9 +45,11 @@ public static class LibraryEndpoints
         var versions = await db.ArticleVersions.AsNoTracking()
             .Where(v => v.ArticleId == item.Article.Id)
             .ToListAsync();
-        return TypedResults.Ok(versions
-            .OrderByDescending(v => v.ValidFrom ?? DateOnly.MinValue)
-            .Select(v => v.ToDetail())
+        var newestFirst = versions.OrderByDescending(v => v.ValidFrom ?? DateOnly.MinValue).ToList();
+        return TypedResults.Ok(newestFirst
+            .Select((v, i) => new ArticleVersionHistoryEntry(
+                v.ToDetail(),
+                i + 1 < newestFirst.Count ? VersionComparison.Compare(newestFirst[i + 1].Paragraphs, v.Paragraphs) : []))
             .ToList());
     }
 
@@ -121,7 +126,8 @@ public static class LibraryEndpoints
             decisions,
             links,
             citations,
-            citedBy);
+            citedBy,
+            shown is null ? [] : ChangeMarks.For(versions, shown));
         return TypedResults.Ok(response);
     }
 

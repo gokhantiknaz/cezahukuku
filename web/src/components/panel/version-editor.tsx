@@ -58,9 +58,17 @@ async function parse(text: string, baseVersionId: string | null): Promise<Paragr
   return response.status === 200 ? response.data : [];
 }
 
+/** "2014-07-02" → "2014-07-01" */
+function dayBefore(isoDate: string) {
+  const date = new Date(`${isoDate}T00:00:00Z`);
+  date.setUTCDate(date.getUTCDate() - 1);
+  return date.toISOString().slice(0, 10);
+}
+
 /**
- * Madde metninin bir sürümü. "Düzenle" sürümü yerinde düzeltir (yazım hatası, eksik tarih); "Yeni sürüm" bir
- * değişikliği kaydeder ve yürürlükteki sürümü yeni sürümün başlangıcından bir gün önce kapatır.
+ * Madde metninin bir sürümü. "edit" sürümü yerinde düzeltir (yazım hatası, eksik tarih); "new" bir değişikliği
+ * kaydeder ve yürürlükteki sürümü yeni sürümün başlangıcından bir gün önce kapatır; "older" ilk kayıtlı sürümden
+ * önceki metni ekler (bitişi o sürümün başlangıcından bir gün önce).
  * Metin mevzuattaki gibi yazılır/yapıştırılır; fıkra ve bentlere ayırma sunucuda yapılır, önizlemede görünür.
  */
 export function VersionEditor({
@@ -71,7 +79,7 @@ export function VersionEditor({
   onDeleted,
 }: {
   articleId: string;
-  mode: "edit" | "new";
+  mode: "edit" | "new" | "older";
   /** Düzenlenen sürüm ya da yeni sürümün metninin alınacağı sürüm (fıkra kimlikleri buradan taşınır). */
   base?: ArticleVersionDetail;
   onSaved: (versionId: string) => void;
@@ -81,7 +89,7 @@ export function VersionEditor({
   const editing = mode === "edit" && base;
   const [form, setForm] = useState({
     validFrom: editing ? (base.validFrom ?? "") : "",
-    validTo: editing ? (base.validTo ?? "") : "",
+    validTo: editing ? (base.validTo ?? "") : mode === "older" && base?.validFrom ? dayBefore(base.validFrom) : "",
     amendedBy: editing ? (base.amendedBy ?? "") : "",
     gazetteDate: editing ? (base.gazetteDate ?? "") : "",
     gazetteNumber: editing ? (base.gazetteNumber ?? "") : "",
@@ -122,7 +130,7 @@ export function VersionEditor({
       ? await update.mutateAsync({ id: base.id, data })
       : await create.mutateAsync({ articleId, data });
     await refresh();
-    toast.success(editing ? "Sürüm güncellendi." : "Sürüm kaydedildi.");
+    toast.success(editing ? "Sürüm düzeltildi." : mode === "older" ? "Önceki metin kaydedildi." : base ? "Değişiklik kaydedildi." : "Metin kaydedildi.");
     if (saved.status === 200 || saved.status === 201) onSaved(saved.data.id);
   }
 
@@ -136,7 +144,13 @@ export function VersionEditor({
           htmlFor="version-from"
           error={error}
           field="validFrom"
-          hint={mode === "new" ? "Değişikliğin yürürlüğe girdiği gün." : undefined}
+          hint={
+            mode === "new"
+              ? "Değişikliğin yürürlüğe girdiği gün."
+              : mode === "older"
+                ? "Bu metnin yürürlüğe girdiği gün (kanunun ilk metniyse kanunun yürürlük tarihi)."
+                : undefined
+          }
         >
           <Input id="version-from" type="date" value={form.validFrom} onChange={set("validFrom")} />
         </Field>
@@ -145,7 +159,11 @@ export function VersionEditor({
           htmlFor="version-to"
           error={error}
           field="validTo"
-          hint="Hâlen yürürlükteyse boş bırakın."
+          hint={
+            mode === "older"
+              ? "Sonraki metnin başlangıcından bir gün önce olarak dolduruldu."
+              : "Hâlen yürürlükteyse boş bırakın."
+          }
         >
           <Input id="version-to" type="date" value={form.validTo} onChange={set("validTo")} />
         </Field>
@@ -155,18 +173,35 @@ export function VersionEditor({
         htmlFor="version-amended"
         error={error}
         field="amendedBy"
-        hint="Örn. 29/6/2005 tarihli 5377 s.K. m.12"
+        hint={
+          mode === "older"
+            ? "Bu metni getiren düzenleme; kanunun ilk metniyse boş bırakın."
+            : "Örn. 29/6/2005 tarihli 5377 s.K. m.12"
+        }
       >
         <Input id="version-amended" value={form.amendedBy} onChange={set("amendedBy")} />
       </Field>
-      <div className="grid gap-4 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
-        <Field label="RG tarihi" htmlFor="version-gazette-date">
+      <div className="grid gap-4 sm:grid-cols-[1fr_1fr_auto] sm:items-start">
+        <Field
+          label="Resmî Gazete tarihi"
+          htmlFor="version-gazette-date"
+          hint="Değiştiren düzenlemenin yayımlandığı Resmî Gazete (RG)."
+        >
           <Input id="version-gazette-date" type="date" value={form.gazetteDate} onChange={set("gazetteDate")} />
         </Field>
-        <Field label="RG sayısı" htmlFor="version-gazette-number" error={error} field="gazetteNumber">
+        <Field
+          label="Resmî Gazete sayısı"
+          htmlFor="version-gazette-number"
+          error={error}
+          field="gazetteNumber"
+          hint="Örn. 25869"
+        >
           <Input id="version-gazette-number" value={form.gazetteNumber} onChange={set("gazetteNumber")} />
         </Field>
-        <div className="flex h-9 items-center gap-2">
+        <div
+          className="flex h-9 items-center gap-2 sm:mt-6"
+          title="Madde tümüyle yürürlükten kaldırıldıysa işaretleyin; yalnız bir fıkra ya da bent kaldırıldıysa onu metinden silin."
+        >
           <Checkbox
             id="version-repealed"
             checked={form.isRepealed}
@@ -216,7 +251,7 @@ export function VersionEditor({
       <FormMessages messages={generalMessages} />
       <div className="flex justify-between gap-2">
         <Button type="submit" disabled={pending}>
-          {editing ? "Sürümü kaydet" : "Yeni sürümü kaydet"}
+          {editing ? "Düzeltmeyi kaydet" : mode === "older" ? "Önceki metni kaydet" : base ? "Değişikliği kaydet" : "Metni kaydet"}
         </Button>
         {editing && (
           <ConfirmDelete

@@ -16,6 +16,7 @@ import type { DecisionDto } from './decisionDto';
 import type { ArticleLinkDto } from './articleLinkDto';
 import type { CitationSpan } from './citationSpan';
 import type { LinkedArticleRef } from './linkedArticleRef';
+import type { ChangeMark } from './changeMark';
 
 export interface ArticleDetailResponse {
   article: ArticleSummary;
@@ -30,4 +31,5 @@ export interface ArticleDetailResponse {
   links: ArticleLinkDto[];
   citations: CitationSpan[];
   citedBy: LinkedArticleRef[];
+  changes: ChangeMark[];
 }

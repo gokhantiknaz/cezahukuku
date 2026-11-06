@@ -213,10 +213,10 @@ function LawForm({
         <Field label="Kabul tarihi" htmlFor="law-accepted">
           <Input id="law-accepted" type="date" value={form.acceptedOn} onChange={set("acceptedOn")} />
         </Field>
-        <Field label="RG tarihi" htmlFor="law-gazette-date">
+        <Field label="Resmî Gazete tarihi" hint="Kanunun yayımlandığı Resmî Gazete (RG)." htmlFor="law-gazette-date">
           <Input id="law-gazette-date" type="date" value={form.gazetteDate} onChange={set("gazetteDate")} />
         </Field>
-        <Field label="RG sayısı" htmlFor="law-gazette-number" error={error} field="gazetteNumber">
+        <Field label="Resmî Gazete sayısı" htmlFor="law-gazette-number" error={error} field="gazetteNumber">
           <Input id="law-gazette-number" value={form.gazetteNumber} onChange={set("gazetteNumber")} />
         </Field>
       </div>
