@@ -15,4 +15,5 @@ export interface LectureNoteSummary {
   scope: LectureNoteScope;
   visibility: Visibility;
   updatedAt: string;
+  fileCount: number;
 }

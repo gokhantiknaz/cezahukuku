@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
-import { GraduationCap, Lock, Pencil, Plus, Trash2 } from "lucide-react";
+import { GraduationCap, Lock, Paperclip, Pencil, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { getListLectureNotesQueryKey, useDeleteLectureNote } from "@/api/generated/lecture-notes/lecture-notes";
 import type { LectureNoteScope, LectureNoteSummary } from "@/api/generated/model";
@@ -137,6 +137,11 @@ export function LectureNoteList({ notes, initialScope = "" }: { notes: LectureNo
                   <Badge variant="outline">
                     <Lock /> Üyelere
                   </Badge>
+                )}
+                {note.fileCount > 0 && (
+                  <span className="inline-flex items-center gap-1">
+                    <Paperclip className="size-3.5" aria-hidden /> {note.fileCount} belge
+                  </span>
                 )}
                 <span className="ml-auto">{formatDate(note.updatedAt.slice(0, 10))}</span>
               </span>

@@ -102,6 +102,79 @@ namespace CezaHukuku.Infrastructure.Persistence.Migrations
                     b.ToTable("lecture_notes", (string)null);
                 });
 
+            modelBuilder.Entity("CezaHukuku.Domain.Content.LectureNoteFile", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)")
+                        .HasColumnName("content_type");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)")
+                        .HasColumnName("file_name");
+
+                    b.Property<Guid>("LectureNoteId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("lecture_note_id");
+
+                    b.Property<int?>("PageCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("page_count");
+
+                    b.Property<long>("SizeBytes")
+                        .HasColumnType("bigint")
+                        .HasColumnName("size_bytes");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer")
+                        .HasColumnName("sort_order");
+
+                    b.Property<string>("StorageKey")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)")
+                        .HasColumnName("storage_key");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("text");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)")
+                        .HasColumnName("title");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_lecture_note_files");
+
+                    b.HasIndex("LectureNoteId")
+                        .HasDatabaseName("ix_lecture_note_files_lecture_note_id");
+
+                    b.ToTable("lecture_note_files", (string)null);
+                });
+
             modelBuilder.Entity("CezaHukuku.Domain.Content.NewsItem", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1538,6 +1611,16 @@ namespace CezaHukuku.Infrastructure.Persistence.Migrations
                         .HasForeignKey("LawId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .HasConstraintName("fk_lecture_notes_laws_law_id");
+                });
+
+            modelBuilder.Entity("CezaHukuku.Domain.Content.LectureNoteFile", b =>
+                {
+                    b.HasOne("CezaHukuku.Domain.Content.LectureNote", null)
+                        .WithMany()
+                        .HasForeignKey("LectureNoteId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_lecture_note_files_lecture_notes_lecture_note_id");
                 });
 
             modelBuilder.Entity("CezaHukuku.Domain.Content.QuizQuestion", b =>

@@ -24,10 +24,15 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  GetLectureNoteFileParams,
   HttpValidationProblemDetails,
   LectureNoteDetail,
+  LectureNoteFileDto,
   LectureNoteSummary,
-  SaveLectureNoteRequest
+  ReorderLectureNoteFilesRequest,
+  SaveLectureNoteRequest,
+  UpdateLectureNoteFileRequest,
+  UploadLectureNoteFileBody
 } from '.././model';
 
 import { apiFetch } from '../../fetcher';
@@ -244,6 +249,134 @@ export function useGetLectureNote<TData = Awaited<ReturnType<typeof getLectureNo
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
   const queryOptions = getGetLectureNoteQueryOptions(slug,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export type getLectureNoteFileResponse404 = {
+  data: void
+  status: 404
+}
+    
+;
+export type getLectureNoteFileResponseError = (getLectureNoteFileResponse404) & {
+  headers: Headers;
+};
+
+export type getLectureNoteFileResponse = (getLectureNoteFileResponseError)
+
+export const getGetLectureNoteFileUrl = (slug: string,
+    fileId: string,
+    params?: GetLectureNoteFileParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/lecture-notes/${slug}/files/${fileId}?${stringifiedParams}` : `/api/lecture-notes/${slug}/files/${fileId}`
+}
+
+export const getLectureNoteFile = async (slug: string,
+    fileId: string,
+    params?: GetLectureNoteFileParams, options?: RequestInit): Promise<getLectureNoteFileResponse> => {
+  
+  return apiFetch<getLectureNoteFileResponse>(getGetLectureNoteFileUrl(slug,fileId,params),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getGetLectureNoteFileQueryKey = (slug?: string,
+    fileId?: string,
+    params?: GetLectureNoteFileParams,) => {
+    return [
+    `/api/lecture-notes/${slug}/files/${fileId}`, ...(params ? [params]: [])
+    ] as const;
+    }
+
+    
+export const getGetLectureNoteFileQueryOptions = <TData = Awaited<ReturnType<typeof getLectureNoteFile>>, TError = void>(slug: string,
+    fileId: string,
+    params?: GetLectureNoteFileParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getLectureNoteFile>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetLectureNoteFileQueryKey(slug,fileId,params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getLectureNoteFile>>> = ({ signal }) => getLectureNoteFile(slug,fileId,params, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(slug && fileId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getLectureNoteFile>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetLectureNoteFileQueryResult = NonNullable<Awaited<ReturnType<typeof getLectureNoteFile>>>
+export type GetLectureNoteFileQueryError = void
+
+
+export function useGetLectureNoteFile<TData = Awaited<ReturnType<typeof getLectureNoteFile>>, TError = void>(
+ slug: string,
+    fileId: string,
+    params: undefined |  GetLectureNoteFileParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getLectureNoteFile>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getLectureNoteFile>>,
+          TError,
+          Awaited<ReturnType<typeof getLectureNoteFile>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetLectureNoteFile<TData = Awaited<ReturnType<typeof getLectureNoteFile>>, TError = void>(
+ slug: string,
+    fileId: string,
+    params?: GetLectureNoteFileParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getLectureNoteFile>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getLectureNoteFile>>,
+          TError,
+          Awaited<ReturnType<typeof getLectureNoteFile>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetLectureNoteFile<TData = Awaited<ReturnType<typeof getLectureNoteFile>>, TError = void>(
+ slug: string,
+    fileId: string,
+    params?: GetLectureNoteFileParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getLectureNoteFile>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useGetLectureNoteFile<TData = Awaited<ReturnType<typeof getLectureNoteFile>>, TError = void>(
+ slug: string,
+    fileId: string,
+    params?: GetLectureNoteFileParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getLectureNoteFile>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetLectureNoteFileQueryOptions(slug,fileId,params,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
@@ -508,6 +641,371 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       > => {
 
       const mutationOptions = getDeleteLectureNoteMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    export type uploadLectureNoteFileResponse201 = {
+  data: LectureNoteFileDto
+  status: 201
+}
+
+export type uploadLectureNoteFileResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type uploadLectureNoteFileResponse404 = {
+  data: void
+  status: 404
+}
+    
+export type uploadLectureNoteFileResponseSuccess = (uploadLectureNoteFileResponse201) & {
+  headers: Headers;
+};
+export type uploadLectureNoteFileResponseError = (uploadLectureNoteFileResponse400 | uploadLectureNoteFileResponse404) & {
+  headers: Headers;
+};
+
+export type uploadLectureNoteFileResponse = (uploadLectureNoteFileResponseSuccess | uploadLectureNoteFileResponseError)
+
+export const getUploadLectureNoteFileUrl = (id: string,) => {
+
+
+  
+
+  return `/api/admin/lecture-notes/${id}/files`
+}
+
+export const uploadLectureNoteFile = async (id: string,
+    uploadLectureNoteFileBody: UploadLectureNoteFileBody, options?: RequestInit): Promise<uploadLectureNoteFileResponse> => {
+    const formData = new FormData();
+if(uploadLectureNoteFileBody.file !== undefined) {
+ formData.append(`file`, uploadLectureNoteFileBody.file)
+ }
+
+if(uploadLectureNoteFileBody.title !== undefined) {
+ formData.append(`title`, uploadLectureNoteFileBody.title)
+ }
+
+  return apiFetch<uploadLectureNoteFileResponse>(getUploadLectureNoteFileUrl(id),
+  {      
+    ...options,
+    method: 'POST'
+    ,
+    body: 
+      formData,
+  }
+);}
+
+
+
+
+export const getUploadLectureNoteFileMutationOptions = <TError = HttpValidationProblemDetails | void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof uploadLectureNoteFile>>, TError,{id: string;data: UploadLectureNoteFileBody}, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof uploadLectureNoteFile>>, TError,{id: string;data: UploadLectureNoteFileBody}, TContext> => {
+
+const mutationKey = ['uploadLectureNoteFile'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof uploadLectureNoteFile>>, {id: string;data: UploadLectureNoteFileBody}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  uploadLectureNoteFile(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UploadLectureNoteFileMutationResult = NonNullable<Awaited<ReturnType<typeof uploadLectureNoteFile>>>
+    export type UploadLectureNoteFileMutationBody = UploadLectureNoteFileBody
+    export type UploadLectureNoteFileMutationError = HttpValidationProblemDetails | void
+
+    export const useUploadLectureNoteFile = <TError = HttpValidationProblemDetails | void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof uploadLectureNoteFile>>, TError,{id: string;data: UploadLectureNoteFileBody}, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof uploadLectureNoteFile>>,
+        TError,
+        {id: string;data: UploadLectureNoteFileBody},
+        TContext
+      > => {
+
+      const mutationOptions = getUploadLectureNoteFileMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    export type reorderLectureNoteFilesResponse204 = {
+  data: void
+  status: 204
+}
+
+export type reorderLectureNoteFilesResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type reorderLectureNoteFilesResponse404 = {
+  data: void
+  status: 404
+}
+    
+export type reorderLectureNoteFilesResponseSuccess = (reorderLectureNoteFilesResponse204) & {
+  headers: Headers;
+};
+export type reorderLectureNoteFilesResponseError = (reorderLectureNoteFilesResponse400 | reorderLectureNoteFilesResponse404) & {
+  headers: Headers;
+};
+
+export type reorderLectureNoteFilesResponse = (reorderLectureNoteFilesResponseSuccess | reorderLectureNoteFilesResponseError)
+
+export const getReorderLectureNoteFilesUrl = (id: string,) => {
+
+
+  
+
+  return `/api/admin/lecture-notes/${id}/files/order`
+}
+
+export const reorderLectureNoteFiles = async (id: string,
+    reorderLectureNoteFilesRequest: ReorderLectureNoteFilesRequest, options?: RequestInit): Promise<reorderLectureNoteFilesResponse> => {
+  
+  return apiFetch<reorderLectureNoteFilesResponse>(getReorderLectureNoteFilesUrl(id),
+  {      
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      reorderLectureNoteFilesRequest,)
+  }
+);}
+
+
+
+
+export const getReorderLectureNoteFilesMutationOptions = <TError = HttpValidationProblemDetails | void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reorderLectureNoteFiles>>, TError,{id: string;data: ReorderLectureNoteFilesRequest}, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof reorderLectureNoteFiles>>, TError,{id: string;data: ReorderLectureNoteFilesRequest}, TContext> => {
+
+const mutationKey = ['reorderLectureNoteFiles'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof reorderLectureNoteFiles>>, {id: string;data: ReorderLectureNoteFilesRequest}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  reorderLectureNoteFiles(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ReorderLectureNoteFilesMutationResult = NonNullable<Awaited<ReturnType<typeof reorderLectureNoteFiles>>>
+    export type ReorderLectureNoteFilesMutationBody = ReorderLectureNoteFilesRequest
+    export type ReorderLectureNoteFilesMutationError = HttpValidationProblemDetails | void
+
+    export const useReorderLectureNoteFiles = <TError = HttpValidationProblemDetails | void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reorderLectureNoteFiles>>, TError,{id: string;data: ReorderLectureNoteFilesRequest}, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof reorderLectureNoteFiles>>,
+        TError,
+        {id: string;data: ReorderLectureNoteFilesRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getReorderLectureNoteFilesMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    export type updateLectureNoteFileResponse200 = {
+  data: LectureNoteFileDto
+  status: 200
+}
+
+export type updateLectureNoteFileResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type updateLectureNoteFileResponse404 = {
+  data: void
+  status: 404
+}
+    
+export type updateLectureNoteFileResponseSuccess = (updateLectureNoteFileResponse200) & {
+  headers: Headers;
+};
+export type updateLectureNoteFileResponseError = (updateLectureNoteFileResponse400 | updateLectureNoteFileResponse404) & {
+  headers: Headers;
+};
+
+export type updateLectureNoteFileResponse = (updateLectureNoteFileResponseSuccess | updateLectureNoteFileResponseError)
+
+export const getUpdateLectureNoteFileUrl = (id: string,
+    fileId: string,) => {
+
+
+  
+
+  return `/api/admin/lecture-notes/${id}/files/${fileId}`
+}
+
+export const updateLectureNoteFile = async (id: string,
+    fileId: string,
+    updateLectureNoteFileRequest: UpdateLectureNoteFileRequest, options?: RequestInit): Promise<updateLectureNoteFileResponse> => {
+  
+  return apiFetch<updateLectureNoteFileResponse>(getUpdateLectureNoteFileUrl(id,fileId),
+  {      
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      updateLectureNoteFileRequest,)
+  }
+);}
+
+
+
+
+export const getUpdateLectureNoteFileMutationOptions = <TError = HttpValidationProblemDetails | void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateLectureNoteFile>>, TError,{id: string;fileId: string;data: UpdateLectureNoteFileRequest}, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateLectureNoteFile>>, TError,{id: string;fileId: string;data: UpdateLectureNoteFileRequest}, TContext> => {
+
+const mutationKey = ['updateLectureNoteFile'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateLectureNoteFile>>, {id: string;fileId: string;data: UpdateLectureNoteFileRequest}> = (props) => {
+          const {id,fileId,data} = props ?? {};
+
+          return  updateLectureNoteFile(id,fileId,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateLectureNoteFileMutationResult = NonNullable<Awaited<ReturnType<typeof updateLectureNoteFile>>>
+    export type UpdateLectureNoteFileMutationBody = UpdateLectureNoteFileRequest
+    export type UpdateLectureNoteFileMutationError = HttpValidationProblemDetails | void
+
+    export const useUpdateLectureNoteFile = <TError = HttpValidationProblemDetails | void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateLectureNoteFile>>, TError,{id: string;fileId: string;data: UpdateLectureNoteFileRequest}, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof updateLectureNoteFile>>,
+        TError,
+        {id: string;fileId: string;data: UpdateLectureNoteFileRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getUpdateLectureNoteFileMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    export type deleteLectureNoteFileResponse204 = {
+  data: void
+  status: 204
+}
+
+export type deleteLectureNoteFileResponse404 = {
+  data: void
+  status: 404
+}
+    
+export type deleteLectureNoteFileResponseSuccess = (deleteLectureNoteFileResponse204) & {
+  headers: Headers;
+};
+export type deleteLectureNoteFileResponseError = (deleteLectureNoteFileResponse404) & {
+  headers: Headers;
+};
+
+export type deleteLectureNoteFileResponse = (deleteLectureNoteFileResponseSuccess | deleteLectureNoteFileResponseError)
+
+export const getDeleteLectureNoteFileUrl = (id: string,
+    fileId: string,) => {
+
+
+  
+
+  return `/api/admin/lecture-notes/${id}/files/${fileId}`
+}
+
+export const deleteLectureNoteFile = async (id: string,
+    fileId: string, options?: RequestInit): Promise<deleteLectureNoteFileResponse> => {
+  
+  return apiFetch<deleteLectureNoteFileResponse>(getDeleteLectureNoteFileUrl(id,fileId),
+  {      
+    ...options,
+    method: 'DELETE'
+    
+    
+  }
+);}
+
+
+
+
+export const getDeleteLectureNoteFileMutationOptions = <TError = void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteLectureNoteFile>>, TError,{id: string;fileId: string}, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteLectureNoteFile>>, TError,{id: string;fileId: string}, TContext> => {
+
+const mutationKey = ['deleteLectureNoteFile'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteLectureNoteFile>>, {id: string;fileId: string}> = (props) => {
+          const {id,fileId} = props ?? {};
+
+          return  deleteLectureNoteFile(id,fileId,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteLectureNoteFileMutationResult = NonNullable<Awaited<ReturnType<typeof deleteLectureNoteFile>>>
+    
+    export type DeleteLectureNoteFileMutationError = void
+
+    export const useDeleteLectureNoteFile = <TError = void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteLectureNoteFile>>, TError,{id: string;fileId: string}, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof deleteLectureNoteFile>>,
+        TError,
+        {id: string;fileId: string},
+        TContext
+      > => {
+
+      const mutationOptions = getDeleteLectureNoteFileMutationOptions(options);
 
       return useMutation(mutationOptions, queryClient);
     }

@@ -9,6 +9,7 @@ import type { Visibility } from './visibility';
 import type { LectureNoteDetailLawGroupId } from './lectureNoteDetailLawGroupId';
 import type { LectureNoteDetailLawId } from './lectureNoteDetailLawId';
 import type { LectureNoteDetailArticleId } from './lectureNoteDetailArticleId';
+import type { LectureNoteFileDto } from './lectureNoteFileDto';
 
 export interface LectureNoteDetail {
   id: string;
@@ -22,4 +23,5 @@ export interface LectureNoteDetail {
   lawGroupId: LectureNoteDetailLawGroupId;
   lawId: LectureNoteDetailLawId;
   articleId: LectureNoteDetailArticleId;
+  files: LectureNoteFileDto[];
 }

@@ -75,7 +75,9 @@ public class LectureNoteTests(ApiFactory factory)
         var (_, _, article) = await CreateLawWithArticleAsync(admin);
 
         await admin.PostJsonAsync("/api/admin/lecture-notes", new SaveLectureNoteRequest(" ", "<p>x</p>", Visibility.Public, null, null, null)).ExpectAsync(400);
-        await admin.PostJsonAsync("/api/admin/lecture-notes", new SaveLectureNoteRequest("Başlık", "<script>x</script>", Visibility.Public, null, null, null)).ExpectAsync(400);
+        // Metin boş olabilir (ders notu yalnız belgelerden oluşabilir); temizlenen betik kalmaz.
+        var empty = await CreateAsync(admin, new SaveLectureNoteRequest("Başlık", "<script>x</script>", Visibility.Public, null, null, null));
+        Assert.Equal("", empty.Html);
         await admin.PostJsonAsync("/api/admin/lecture-notes", new SaveLectureNoteRequest("Başlık", "<p>x</p>", Visibility.Public, null, Guid.NewGuid(), null)).ExpectAsync(400);
         // Ders notu artık madde/kanun notu olarak girilmez.
         await admin.PostJsonAsync($"/api/admin/articles/{article.Id}/notes",

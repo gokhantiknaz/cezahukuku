@@ -49,3 +49,17 @@ internal sealed class LectureNoteConfiguration : IEntityTypeConfiguration<Lectur
         b.HasIndex(e => e.ArticleId);
     }
 }
+
+internal sealed class LectureNoteFileConfiguration : IEntityTypeConfiguration<LectureNoteFile>
+{
+    public void Configure(EntityTypeBuilder<LectureNoteFile> b)
+    {
+        b.HasQueryFilter(e => e.DeletedAt == null);
+        b.Property(e => e.Title).HasMaxLength(LectureNoteFile.MaxTitleLength);
+        b.Property(e => e.FileName).HasMaxLength(300);
+        b.Property(e => e.ContentType).HasMaxLength(150);
+        b.Property(e => e.StorageKey).HasMaxLength(300);
+        b.HasOne<LectureNote>().WithMany().HasForeignKey(e => e.LectureNoteId).OnDelete(DeleteBehavior.Restrict);
+        b.HasIndex(e => e.LectureNoteId);
+    }
+}

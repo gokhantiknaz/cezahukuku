@@ -49,6 +49,7 @@ public sealed class SearchIndexChanges
                 case Attachment attachment: changes.Attachments.Add(attachment.Id); break;
                 case AttachmentSegment segment: changes.Attachments.Add(segment.AttachmentId); break;
                 case LectureNote note: changes.LectureNotes.Add(note.Id); break;
+                case LectureNoteFile file: changes.LectureNotes.Add(file.LectureNoteId); break;
             }
         }
         return changes;
@@ -116,7 +117,11 @@ public static class SearchIndexer
 
         if (changes.LectureNotes.Count > 0)
         {
-            await db.SearchDocs.Where(d => d.Kind == SearchKind.DersNotu && changes.LectureNotes.Contains(d.SourceId)).ExecuteDeleteAsync(ct);
+            // Notun kendisi (SourceId) ve ekli belgeleri (ParentId).
+            await db.SearchDocs
+                .Where(d => d.Kind == SearchKind.DersNotu
+                    && (changes.LectureNotes.Contains(d.SourceId) || (d.ParentId != null && changes.LectureNotes.Contains(d.ParentId.Value))))
+                .ExecuteDeleteAsync(ct);
             docs.AddRange(await BuildLectureNotesAsync(db, changes.LectureNotes, ct));
         }
 
@@ -307,10 +312,16 @@ public static class SearchIndexer
         ];
     }
 
-    /// <summary>Ders notları: kendi sayfalarına bağlanır; bağlı oldukları kanun (varsa) kanun süzgecinde.</summary>
+    /// <summary>
+    /// Ders notları: kendi sayfalarına bağlanır; bağlı oldukları kanun (varsa) kanun süzgecinde. Ekli her belge ayrı
+    /// sonuçtur (notun sayfasındaki belgeye bağlanır).
+    /// </summary>
     private static async Task<List<SearchDoc>> BuildLectureNotesAsync(AppDbContext db, HashSet<Guid> ids, CancellationToken ct)
     {
         var notes = await db.LectureNotes.AsNoTracking().Where(n => ids.Contains(n.Id)).ToListAsync(ct);
+        var noteIds = notes.Select(n => n.Id).ToList();
+        var files = (await db.LectureNoteFiles.AsNoTracking().Where(f => noteIds.Contains(f.LectureNoteId)).ToListAsync(ct))
+            .ToLookup(f => f.LectureNoteId);
         var lawIds = notes.Where(n => n.LawId != null).Select(n => n.LawId!.Value).Distinct().ToList();
         var laws = await db.Laws.AsNoTracking().Where(l => lawIds.Contains(l.Id)).ToDictionaryAsync(l => l.Id, ct);
         var articleIds = notes.Where(n => n.ArticleId != null).Select(n => n.ArticleId!.Value).Distinct().ToList();
@@ -320,25 +331,43 @@ public static class SearchIndexer
 
         return
         [
-            .. notes.Select(note =>
+            .. notes.SelectMany(note =>
             {
                 var law = note.LawId is { } lawId ? laws.GetValueOrDefault(lawId) : null;
                 var article = note.ArticleId is { } articleId ? articles.GetValueOrDefault(articleId) : null;
                 var group = note.LawGroupId is { } groupId ? groups.GetValueOrDefault(groupId) : null;
-                return new SearchDoc
+                var context = law is not null && article is not null ? $"{LawLabel(law)} Madde {article.Number}"
+                    : law is not null ? LawLabel(law)
+                    : group?.Title ?? "Genel";
+                IEnumerable<SearchDoc> own =
+                [
+                    new SearchDoc
+                    {
+                        Kind = SearchKind.DersNotu,
+                        SourceId = note.Id,
+                        Visibility = note.Visibility,
+                        LawIds = law is null ? [] : [law.Id],
+                        Title = note.Title,
+                        Context = context,
+                        Body = note.PlainText,
+                        Url = $"/ders-notlari/{note.Slug}",
+                        Date = DateOnly.FromDateTime(note.UpdatedAt.UtcDateTime),
+                    },
+                ];
+                return own.Concat(files[note.Id].Select(file => new SearchDoc
                 {
                     Kind = SearchKind.DersNotu,
-                    SourceId = note.Id,
+                    SourceId = file.Id,
+                    ParentId = note.Id,
                     Visibility = note.Visibility,
                     LawIds = law is null ? [] : [law.Id],
-                    Title = note.Title,
-                    Context = law is not null && article is not null ? $"{LawLabel(law)} Madde {article.Number}"
-                        : law is not null ? LawLabel(law)
-                        : group?.Title ?? "Genel",
-                    Body = note.PlainText,
-                    Url = $"/ders-notlari/{note.Slug}",
-                    Date = DateOnly.FromDateTime(note.UpdatedAt.UtcDateTime),
-                };
+                    Title = $"{file.Title} ({note.Title})",
+                    Context = $"{context} · ekli belge",
+                    // tsvector sınırı (1 MB) aşılmasın: çok uzun belgenin başı aranır.
+                    Body = file.Text.Length > MaxFileBodyLength ? file.Text[..MaxFileBodyLength] : file.Text,
+                    Url = $"/ders-notlari/{note.Slug}#belge-{file.Id}",
+                    Date = DateOnly.FromDateTime(file.CreatedAt.UtcDateTime),
+                }));
             }),
         ];
     }
@@ -396,6 +425,8 @@ public static class SearchIndexer
         doc.TitleFold = TurkishText.Fold(doc.Title);
         doc.BodyFold = TurkishText.Fold(doc.Body);
     }
+
+    private const int MaxFileBodyLength = 200_000;
 
     private static string LawLabel(Law law) => law.ShortName ?? law.Number;
 

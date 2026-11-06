@@ -30,3 +30,29 @@ public sealed class LectureNote : Entity
     public Guid? LawId { get; set; }
     public Guid? ArticleId { get; set; }
 }
+
+/// <summary>
+/// Ders notuna eklenen belge (PDF, Word, PowerPoint, Excel, resim). Dosya depoda (<see cref="StorageKey"/>);
+/// okunabilen metni (<see cref="Text"/>) aranır. Görünürlüğü ders notununkidir.
+/// </summary>
+public sealed class LectureNoteFile : Entity
+{
+    public const long MaxBytes = 50 * 1024 * 1024;
+    public const int MaxTitleLength = 300;
+
+    public Guid LectureNoteId { get; set; }
+    public string Title { get; set; } = "";
+    public string FileName { get; set; } = "";
+    public string ContentType { get; set; } = "";
+    public long SizeBytes { get; set; }
+    public string StorageKey { get; set; } = "";
+
+    /// <summary>Ders notu sayfasındaki sıra (küçük önce).</summary>
+    public int SortOrder { get; set; }
+
+    /// <summary>PDF sayfa sayısı.</summary>
+    public int? PageCount { get; set; }
+
+    /// <summary>Belgeden çıkarılan düz metin (arama için); taranmış PDF ve resimde boş.</summary>
+    public string Text { get; set; } = "";
+}

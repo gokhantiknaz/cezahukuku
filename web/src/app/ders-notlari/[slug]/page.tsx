@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ChevronLeft, Lock } from "lucide-react";
+import { LectureNoteFileList } from "@/components/content/lecture-note-files";
 import { LectureNoteAdminActions } from "@/components/content/lecture-notes";
 import { RichTextView } from "@/components/rich-text/rich-text-view";
 import { Badge } from "@/components/ui/badge";
@@ -69,7 +70,8 @@ async function Note({ params }: { params: Promise<{ slug: string }> }) {
         </div>
         <LectureNoteAdminActions id={note.id} slug={note.slug} />
       </header>
-      <RichTextView html={note.html} className="mt-6 rounded-lg border bg-card p-4 md:p-6" />
+      {note.html && <RichTextView html={note.html} className="mt-6 rounded-lg border bg-card p-4 md:p-6" />}
+      <LectureNoteFileList files={note.files} />
     </article>
   );
 }

@@ -6,7 +6,12 @@ import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
+  deleteLectureNoteFile,
+  getGetLectureNoteQueryKey,
   getListLectureNotesQueryKey,
+  reorderLectureNoteFiles,
+  updateLectureNoteFile,
+  uploadLectureNoteFile,
   useCreateLectureNote,
   useGetLectureNote,
   useUpdateLectureNote,
@@ -15,6 +20,8 @@ import { useGetLaw, useGetLibrary } from "@/api/generated/library/library";
 import type { LectureNoteDetail, Visibility } from "@/api/generated/model";
 import { Field, fieldMessages, FormMessages, OptionSelect, otherMessages, visibilityLabels } from "@/components/panel/form";
 import { allArticles } from "@/components/panel/tree-utils";
+import { type FileItem, fileItemsOf, LectureNoteFilesEditor } from "@/components/content/lecture-note-files";
+import { ApiError } from "@/api/fetcher";
 import { RichTextEditor } from "@/components/rich-text/rich-text-editor";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,6 +39,48 @@ const scopeKinds: Record<ScopeKind, string> = {
 
 const selectClass = "h-9 w-full rounded-md border bg-card px-2 text-sm";
 
+/**
+ * Formdaki belge değişikliklerini kaydedilmiş nota uygular: kaldırılanları siler, adları günceller, yenileri sırayla
+ * yükler, sıra değiştiyse sıralar. Yüklenemeyen dosyaların iletilerini döndürür (not ve diğer belgeler kaydedilmiş olur).
+ */
+async function syncFiles(noteId: string, original: FileItem[], items: FileItem[], onProgress: (text: string) => void) {
+  const failures: string[] = [];
+  for (const item of items) {
+    if (item.kind !== "existing") continue;
+    if (item.removed) await deleteLectureNoteFile(noteId, item.file.id);
+    else if (item.title.trim() && item.title.trim() !== item.file.title)
+      await updateLectureNoteFile(noteId, item.file.id, { title: item.title.trim() });
+  }
+
+  const fresh = items.filter((i) => i.kind === "new");
+  const ids: string[] = [];
+  const uploaded: string[] = [];
+  for (const item of items) {
+    if (item.kind === "existing") {
+      if (!item.removed) ids.push(item.file.id);
+      continue;
+    }
+    onProgress(`Belgeler yükleniyor (${uploaded.length + failures.length + 1}/${fresh.length})…`);
+    try {
+      const result = await uploadLectureNoteFile(noteId, { file: item.file, title: item.title.trim() || undefined });
+      if (result.status === 201) {
+        ids.push(result.data.id);
+        uploaded.push(result.data.id);
+      }
+    } catch (error) {
+      failures.push(`${item.file.name}: ${error instanceof ApiError ? error.messages.join(" ") : "yüklenemedi."}`);
+    }
+  }
+
+  // Sunucu yeni belgeleri sona ekler; formdaki sıra farklıysa sıralanır.
+  const removed = new Set(items.filter((i) => i.kind === "existing" && i.removed).map((i) => i.key));
+  const serverOrder = [...original.filter((i) => !removed.has(i.key)).map((i) => i.key), ...uploaded];
+  if (ids.length > 1 && ids.join() !== serverOrder.join()) await reorderLectureNoteFiles(noteId, { fileIds: ids });
+  return failures;
+}
+
+const hasText = (html: string) => html.replace(/<[^>]*>/g, "").replace(/&nbsp;/g, " ").trim().length > 0 || /<img|<table/i.test(html);
+
 /** Yönetici değilse form yerine açıklama. */
 function AdminOnly({ children }: { children: React.ReactNode }) {
   const hydrated = useHydrated();
@@ -42,9 +91,11 @@ function AdminOnly({ children }: { children: React.ReactNode }) {
 }
 
 export function NewLectureNote() {
+  // Next.js ziyaret edilen sayfayı gizli tutup geri gelince aynen gösterir: kayıttan sonra form boşaltılır.
+  const [round, setRound] = useState(0);
   return (
     <AdminOnly>
-      <LectureNoteForm />
+      <LectureNoteForm key={round} onSaved={() => setRound((r) => r + 1)} />
     </AdminOnly>
   );
 }
@@ -56,7 +107,11 @@ export function EditLectureNote({ slug }: { slug: string }) {
       {isPending ? (
         <p className="mt-6 text-muted-foreground">Yükleniyor…</p>
       ) : data?.status === 200 ? (
-        <LectureNoteForm note={data.data} />
+        // Kayıtlı veri değişince (başka sekmede ya da kaydettikten sonra) form yeniden kurulur.
+        <LectureNoteForm
+          key={`${data.data.updatedAt}|${data.data.files.map((f) => `${f.id}:${f.title}`).join()}`}
+          note={data.data}
+        />
       ) : (
         <p className="mt-6 text-muted-foreground">Ders notu bulunamadı.</p>
       )}
@@ -68,7 +123,7 @@ export function EditLectureNote({ slug }: { slug: string }) {
  * Ders notu formu: başlık, görünürlük, isteğe bağlı bağlantı (genel / kanun grubu / kanun / madde) ve metin.
  * Maddeye bağlanan not o maddenin kanununa ve grubuna da bağlı sayılır (sunucu tamamlar).
  */
-function LectureNoteForm({ note }: { note?: LectureNoteDetail }) {
+function LectureNoteForm({ note, onSaved }: { note?: LectureNoteDetail; onSaved?: () => void }) {
   const router = useRouter();
   const queryClient = useQueryClient();
   const [form, setForm] = useState({
@@ -81,6 +136,10 @@ function LectureNoteForm({ note }: { note?: LectureNoteDetail }) {
     html: note?.html ?? "",
   });
   const set = <K extends keyof typeof form>(key: K, value: (typeof form)[K]) => setForm((f) => ({ ...f, [key]: value }));
+  const [originalFiles] = useState(() => fileItemsOf(note?.files ?? []));
+  const [files, setFiles] = useState<FileItem[]>(originalFiles);
+  const [progress, setProgress] = useState<string | null>(null);
+  const [emptyError, setEmptyError] = useState(false);
 
   const library = useGetLibrary();
   const groups = library.data?.status === 200 ? library.data.data.groups : [];
@@ -92,10 +151,16 @@ function LectureNoteForm({ note }: { note?: LectureNoteDetail }) {
   const create = useCreateLectureNote();
   const update = useUpdateLectureNote();
   const error = create.error ?? update.error;
-  const pending = create.isPending || update.isPending;
+  const pending = create.isPending || update.isPending || progress !== null;
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
+    const liveFiles = files.filter((f) => !(f.kind === "existing" && f.removed));
+    if (!hasText(form.html) && liveFiles.length === 0) {
+      setEmptyError(true);
+      return;
+    }
+    setEmptyError(false);
     const data = {
       title: form.title,
       html: form.html,
@@ -105,12 +170,22 @@ function LectureNoteForm({ note }: { note?: LectureNoteDetail }) {
       articleId: form.scope === "madde" && form.articleId ? form.articleId : null,
     };
     const saved = note ? await update.mutateAsync({ id: note.id, data }) : await create.mutateAsync({ data });
-    await queryClient.invalidateQueries({ queryKey: getListLectureNotesQueryKey() });
-    toast.success(note ? "Ders notu kaydedildi." : "Ders notu eklendi.");
-    if (saved.status === 200 || saved.status === 201) {
-      router.push(`/ders-notlari/${saved.data.slug}`);
-      router.refresh();
+    if (saved.status !== 200 && saved.status !== 201) return;
+    let failures: string[] = [];
+    try {
+      failures = await syncFiles(saved.data.id, originalFiles, files, setProgress);
+    } catch (error) {
+      failures = [error instanceof ApiError ? error.messages.join(" ") : "Belgeler kaydedilemedi."];
+    } finally {
+      setProgress(null);
     }
+    await queryClient.invalidateQueries({ queryKey: getListLectureNotesQueryKey() });
+    await queryClient.invalidateQueries({ queryKey: getGetLectureNoteQueryKey(saved.data.slug) });
+    if (failures.length > 0) toast.error(`Ders notu kaydedildi; eklenemeyen belgeler: ${failures.join(" · ")}`, { duration: 10000 });
+    else toast.success(note ? "Ders notu kaydedildi." : "Ders notu eklendi.");
+    onSaved?.();
+    router.push(`/ders-notlari/${saved.data.slug}`);
+    router.refresh();
   }
 
   return (
@@ -222,10 +297,13 @@ function LectureNoteForm({ note }: { note?: LectureNoteDetail }) {
           </p>
         ))}
       </div>
+
+      <LectureNoteFilesEditor items={files} onChange={setFiles} />
+      {emptyError && <p className="text-sm text-destructive">Ders notuna metin yazın ya da en az bir belge ekleyin.</p>}
       <FormMessages messages={otherMessages(error, ["title", "html", "lawGroupId", "lawId", "articleId"])} />
       <div className="flex gap-2">
         <Button type="submit" disabled={pending}>
-          {note ? "Kaydet" : "Ders notunu ekle"}
+          {progress ?? (note ? "Kaydet" : "Ders notunu ekle")}
         </Button>
         <Button type="button" variant="ghost" asChild>
           <Link href={note ? `/ders-notlari/${note.slug}` : "/ders-notlari"}>Vazgeç</Link>
