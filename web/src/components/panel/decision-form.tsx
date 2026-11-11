@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import { useCreateDecision, useGetDecision, useUpdateDecision } from "@/api/generated/admin-laws/admin-laws";
 import type { AdminDecisionDetail, Court, DecisionDto, DecisionKind, NormReviewOutcome, Visibility } from "@/api/generated/model";
@@ -18,6 +18,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { courtLabels, outcomeLabels } from "@/lib/decisions";
+import { goneMessage, isGone } from "./confirm-delete";
 import { DecisionArticleSuggestions } from "./decision-article-suggestions";
 import { emptyToNull, Field, FormMessages, OptionSelect, otherMessages, visibilityLabels } from "./form";
 import { useLibraryRefresh } from "./use-library-refresh";
@@ -102,15 +103,29 @@ export function DecisionDialog({
 }
 
 function LoadedDecisionForm({ decisionId, onDone }: { decisionId: string; onDone: (saved?: AdminDecisionDetail) => void }) {
-  const query = useGetDecision(decisionId);
+  const refresh = useLibraryRefresh();
+  const query = useGetDecision(decisionId, { query: { retry: false } });
+  const loadError: unknown = query.error;
+  const gone = isGone(loadError);
+  // Karar bu arada silinmişse açık sayfa da güncel hâline gelsin.
+  useEffect(() => {
+    if (gone) void refresh();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- yalnız silinmiş olduğu anlaşılınca bir kez
+  }, [gone]);
+  if (loadError) {
+    return <FormMessages messages={gone ? [goneMessage] : otherMessages(loadError, [])} />;
+  }
   if (query.data?.status !== 200) return <p className="text-muted-foreground">Yükleniyor…</p>;
   const { decision, articles } = query.data.data;
+  const linked = articles.map((a) => `${a.lawLabel} ${a.number}`).join(", ");
   return (
     <>
-      {articles.length > 0 && (
-        <p className="text-sm text-muted-foreground">
-          Bağlı maddeler: {articles.map((a) => `${a.lawLabel} ${a.number}`).join(", ")}
+      {articles.length > 1 ? (
+        <p className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-100">
+          Bu karar {articles.length} maddeye bağlı: {linked}. Yaptığınız değişiklik hepsinde görünür.
         </p>
+      ) : (
+        articles.length === 1 && <p className="text-sm text-muted-foreground">Bağlı madde: {linked}</p>
       )}
       <DecisionForm decision={decision} onDone={onDone} />
     </>
@@ -181,7 +196,8 @@ export function DecisionForm({
   }
 
   return (
-    <form onSubmit={(e) => submit(e).catch(() => {})} className="space-y-4">
+    // Hata form içinde gösterilir, pencere açık kalır; karar bu arada silinmişse liste tazelenir.
+    <form onSubmit={(e) => submit(e).catch((err) => (isGone(err) ? refresh() : undefined))} className="space-y-4">
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label="Tür" htmlFor="decision-kind">
           <OptionSelect
@@ -272,7 +288,7 @@ export function DecisionForm({
           />
         </Field>
       </div>
-      <FormMessages messages={otherMessages(error, decisionFields)} />
+      <FormMessages messages={isGone(error) ? [goneMessage] : otherMessages(error, decisionFields)} />
       <DialogFooter>
         <Button type="submit" disabled={create.isPending || update.isPending}>
           {decision ? "Kaydet" : "Kararı ekle"}

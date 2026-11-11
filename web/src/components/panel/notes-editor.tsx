@@ -16,7 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { ConfirmDelete } from "./confirm-delete";
+import { ConfirmDelete, goneMessage, isGone } from "./confirm-delete";
 import { emptyToNull, Field, fieldMessages, FormMessages, OptionSelect, otherMessages, visibilityLabels } from "./form";
 import { useLibraryRefresh } from "./use-library-refresh";
 
@@ -159,7 +159,11 @@ export function NoteForm({
   }
 
   return (
-    <form onSubmit={(e) => submit(e).catch(() => {})} className="space-y-3 rounded-md border bg-muted/30 p-3">
+    // Hata form içinde gösterilir, pencere açık kalır; kayıt bu arada silinmişse liste tazelenir.
+    <form
+      onSubmit={(e) => submit(e).catch((err) => (isGone(err) ? refresh() : undefined))}
+      className="space-y-3 rounded-md border bg-muted/30 p-3"
+    >
       {/* Tek tür verilmişse (okuma ekranından "Gerekçe ekle") tür seçilmez. */}
       <div className={cn("grid gap-3", singleKind ? "sm:grid-cols-[1fr_14rem]" : "sm:grid-cols-[12rem_1fr_14rem]")}>
         {!singleKind && (
@@ -197,7 +201,7 @@ export function NoteForm({
           </p>
         ))}
       </div>
-      <FormMessages messages={otherMessages(error, ["kind", "title", "html"])} />
+      <FormMessages messages={isGone(error) ? [goneMessage] : otherMessages(error, ["kind", "title", "html"])} />
       <div className="flex gap-2">
         <Button type="submit" disabled={pending}>
           {note ? "Kaydet" : "Notu ekle"}
