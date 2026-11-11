@@ -488,3 +488,6 @@ $RECYCLE.BIN/
 
 # Yüklenen dosyalar (yerel depo)
 App_Data/
+
+# Claude Code kişisel ayarları (paylaşılan .claude/settings.json depoya girer)
+.claude/settings.local.json

@@ -4,3 +4,5 @@
 *.jpg binary
 *.ico binary
 *.pdf binary
+scripts/* text eol=lf
+*.sh text eol=lf

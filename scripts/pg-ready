@@ -1,0 +1,10 @@
+#!/bin/sh
+# check.conf "requires integration": PostgreSQL bu makinede bağlantı kabul ediyor mu? Yan etkisiz, en çok 3 sn.
+# Windows'ta pg_isready PATH'te olmayabilir; kurulum klasörüne de bakılır. Sunucu/port: PGHOST, PGPORT (varsayılan localhost:5432).
+for bin in pg_isready "/c/Program Files/PostgreSQL/17/bin/pg_isready.exe" /usr/lib/postgresql/17/bin/pg_isready; do
+  if command -v "$bin" >/dev/null 2>&1; then
+    exec "$bin" -q -h "${PGHOST:-localhost}" -p "${PGPORT:-5432}" -t 3
+  fi
+done
+echo "pg-ready: pg_isready bulunamadı (PostgreSQL istemci araçları kurulu değil)" >&2
+exit 1
