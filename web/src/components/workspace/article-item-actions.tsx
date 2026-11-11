@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Pencil, Trash2, Unlink } from "lucide-react";
 import { toast } from "sonner";
 import { useDeleteEditorialNote, useUnlinkDecision } from "@/api/generated/admin-laws/admin-laws";
 import type { DecisionDto, EditorialNoteDto } from "@/api/generated/model";
-import { ConfirmDelete } from "@/components/panel/confirm-delete";
+import { ConfirmDelete, goneMessage } from "@/components/panel/confirm-delete";
 import { DecisionDialog } from "@/components/panel/decision-form";
 import { NoteForm } from "@/components/panel/notes-editor";
 import { useLibraryRefresh } from "@/components/panel/use-library-refresh";
@@ -36,13 +36,23 @@ export function NoteActions({
   const [open, setOpen] = useState(false);
   const refresh = useLibraryRefresh();
   const remove = useDeleteEditorialNote();
+  // Not bu arada silinmişse sekme pencere kapanınca tazelenir; hemen tazelenirse pencere (bu notun içinde) girilenlerle
+  // birlikte kaybolur (spec 0001, AC-9).
+  const stale = useRef(false);
+  function changeOpen(next: boolean) {
+    setOpen(next);
+    if (!next && stale.current) {
+      stale.current = false;
+      void refresh();
+    }
+  }
   if (note.kind !== "gerekce" && note.kind !== "aciklama") return null;
   const words = noteWords[note.kind];
   const name = note.title || `${index + 1}. ${words.ordinal}`;
 
   return (
     <span className="ml-auto flex shrink-0 gap-0.5 print:hidden">
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog open={open} onOpenChange={changeOpen}>
         <DialogTrigger asChild>
           <Button variant="ghost" size="icon-sm" aria-label={`${words.accusative} düzenle: ${name}`} title="Düzenle">
             <Pencil />
@@ -59,6 +69,11 @@ export function NoteActions({
               kinds={{ [note.kind]: words.label }}
               note={note}
               onDone={() => setOpen(false)}
+              onGone={() => {
+                if (stale.current) return;
+                stale.current = true;
+                toast.error(`${goneMessage} Pencereyi kapatınca sekme yenilenir.`);
+              }}
             />
           )}
         </DialogContent>

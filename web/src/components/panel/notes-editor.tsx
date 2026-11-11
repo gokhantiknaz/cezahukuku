@@ -126,11 +126,17 @@ export function NoteForm({
   kinds,
   note,
   onDone,
+  onGone,
 }: {
   target: NoteTarget;
   kinds: KindOptions;
   note?: EditorialNoteDto;
   onDone: () => void;
+  /**
+   * Not bu arada silinmiş (404). Verilirse liste hemen tazelenmez: pencerede açılan form, tazelenen listeyle birlikte
+   * kaybolmasın; çağıran pencere kapanınca tazeler. Verilmezse liste hemen tazelenir.
+   */
+  onGone?: () => void;
 }) {
   const refresh = useLibraryRefresh();
   const firstKind = Object.keys(kinds)[0] as EditorialNoteKind;
@@ -161,7 +167,7 @@ export function NoteForm({
   return (
     // Hata form içinde gösterilir, pencere açık kalır; kayıt bu arada silinmişse liste tazelenir.
     <form
-      onSubmit={(e) => submit(e).catch((err) => (isGone(err) ? refresh() : undefined))}
+      onSubmit={(e) => submit(e).catch((err) => (isGone(err) ? (onGone ? onGone() : refresh()) : undefined))}
       className="space-y-3 rounded-md border bg-muted/30 p-3"
     >
       {/* Tek tür verilmişse (okuma ekranından "Gerekçe ekle") tür seçilmez. */}
@@ -201,7 +207,13 @@ export function NoteForm({
           </p>
         ))}
       </div>
-      <FormMessages messages={isGone(error) ? [`${goneMessage} Liste yenilendi.`] : otherMessages(error, ["kind", "title", "html"])} />
+      <FormMessages
+        messages={
+          isGone(error)
+            ? [onGone ? `${goneMessage} Pencereyi kapatınca sekme yenilenir.` : `${goneMessage} Liste yenilendi.`]
+            : otherMessages(error, ["kind", "title", "html"])
+        }
+      />
       <div className="flex gap-2">
         <Button type="submit" disabled={pending}>
           {note ? "Kaydet" : "Notu ekle"}
