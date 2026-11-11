@@ -201,7 +201,7 @@ export function NoteForm({
           </p>
         ))}
       </div>
-      <FormMessages messages={isGone(error) ? [goneMessage] : otherMessages(error, ["kind", "title", "html"])} />
+      <FormMessages messages={isGone(error) ? [`${goneMessage} Liste yenilendi.`] : otherMessages(error, ["kind", "title", "html"])} />
       <div className="flex gap-2">
         <Button type="submit" disabled={pending}>
           {note ? "Kaydet" : "Notu ekle"}

@@ -18,7 +18,7 @@ import { otherMessages } from "./form";
 
 /** Kayıt bu arada (başka bir sekmede ya da kullanıcı tarafından) silinmiş: API 404 döndü. */
 export const isGone = (error: unknown) => error instanceof ApiError && error.status === 404;
-export const goneMessage = "Kayıt bulunamadı; başka bir yerde silinmiş olabilir. Liste yenilendi.";
+export const goneMessage = "Kayıt bulunamadı; başka bir yerde silinmiş olabilir.";
 
 /**
  * Silme onayı. API'nin reddettiği silmede (ör. "düğüm boş değil") gerekçe bildirim olarak gösterilir; kayıt zaten
@@ -47,7 +47,8 @@ export function ConfirmDelete({
       await onConfirm();
     } catch (error) {
       if (isGone(error)) {
-        toast.error(goneMessage);
+        // "Liste yenilendi" yalnız gerçekten yenilenen yerde söylenir.
+        toast.error(onGone ? `${goneMessage} Liste yenilendi.` : goneMessage);
         await onGone?.();
         return;
       }

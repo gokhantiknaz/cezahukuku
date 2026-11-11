@@ -113,7 +113,7 @@ function LoadedDecisionForm({ decisionId, onDone }: { decisionId: string; onDone
     // eslint-disable-next-line react-hooks/exhaustive-deps -- yalnız silinmiş olduğu anlaşılınca bir kez
   }, [gone]);
   if (loadError) {
-    return <FormMessages messages={gone ? [goneMessage] : otherMessages(loadError, [])} />;
+    return <FormMessages messages={gone ? [`${goneMessage} Liste yenilendi.`] : otherMessages(loadError, [])} />;
   }
   if (query.data?.status !== 200) return <p className="text-muted-foreground">Yükleniyor…</p>;
   const { decision, articles } = query.data.data;
@@ -288,7 +288,7 @@ export function DecisionForm({
           />
         </Field>
       </div>
-      <FormMessages messages={isGone(error) ? [goneMessage] : otherMessages(error, decisionFields)} />
+      <FormMessages messages={isGone(error) ? [`${goneMessage} Liste yenilendi.`] : otherMessages(error, decisionFields)} />
       <DialogFooter>
         <Button type="submit" disabled={create.isPending || update.isPending}>
           {decision ? "Kaydet" : "Kararı ekle"}
