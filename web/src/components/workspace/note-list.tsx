@@ -24,14 +24,17 @@ export function NoteList({
         <article key={note.id} className="py-4 first:pt-0 last:pb-0">
           {(note.title || note.effectiveVisibility === "private" || actions) && (
             <div className="mb-2 flex items-start gap-2">
-              <h4 className="flex flex-wrap items-center gap-2 text-lg">
-                {note.title}
-                {note.effectiveVisibility === "private" && (
-                  <Badge variant="outline" className="font-normal" title="Yalnız giriş yapan kullanıcılar görür">
-                    <Lock /> Özel
-                  </Badge>
-                )}
-              </h4>
+              {/* Başlıksız notta boş başlık çizilmez (ekran okuyucunun başlık listesi); satır yalnız düğmeler için kalır. */}
+              {(note.title || note.effectiveVisibility === "private") && (
+                <h4 className="flex flex-wrap items-center gap-2 text-lg">
+                  {note.title}
+                  {note.effectiveVisibility === "private" && (
+                    <Badge variant="outline" className="font-normal" title="Yalnız giriş yapan kullanıcılar görür">
+                      <Lock /> Özel
+                    </Badge>
+                  )}
+                </h4>
+              )}
               {actions?.(note, index)}
             </div>
           )}
