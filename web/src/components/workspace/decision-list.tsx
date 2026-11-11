@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { ExternalLink, Lock } from "lucide-react";
 import type { DecisionDto } from "@/api/generated/model";
 import { RichTextView } from "@/components/rich-text/rich-text-view";
@@ -7,23 +8,34 @@ import { decisionCitation, outcomeBadgeVariant, outcomeLabels } from "@/lib/deci
 
 /**
  * Maddeye bağlı kararlar (İçtihatlar / Norm Denetimi sekmeleri): künye, özet; tam metin açılır kapanır
- * (<details>: JavaScript gerekmez, sunucuda çizilir).
+ * (<details>: JavaScript gerekmez, sunucuda çizilir). `actions` verilirse (yönetici) künye satırının sağında gösterilir.
  */
-export function DecisionList({ decisions, empty }: { decisions: DecisionDto[]; empty: string }) {
+export function DecisionList({
+  decisions,
+  empty,
+  actions,
+}: {
+  decisions: DecisionDto[];
+  empty: string;
+  actions?: (decision: DecisionDto) => ReactNode;
+}) {
   if (decisions.length === 0) return <p className="text-muted-foreground">{empty}</p>;
   return (
     <ol className="divide-y">
       {decisions.map((d) => (
         <li key={d.id} className="py-4 first:pt-0 last:pb-0">
-          <h4 className="flex flex-wrap items-center gap-2 font-medium">
-            {decisionCitation(d)}
-            {d.outcome && <Badge variant={outcomeBadgeVariant(d.outcome)}>{outcomeLabels[d.outcome]}</Badge>}
-            {d.effectiveVisibility === "private" && (
-              <Badge variant="outline" className="font-normal" title="Yalnız giriş yapan kullanıcılar görür">
-                <Lock /> Özel
-              </Badge>
-            )}
-          </h4>
+          <div className="flex items-start gap-2">
+            <h4 className="flex flex-wrap items-center gap-2 font-medium">
+              {decisionCitation(d)}
+              {d.outcome && <Badge variant={outcomeBadgeVariant(d.outcome)}>{outcomeLabels[d.outcome]}</Badge>}
+              {d.effectiveVisibility === "private" && (
+                <Badge variant="outline" className="font-normal" title="Yalnız giriş yapan kullanıcılar görür">
+                  <Lock /> Özel
+                </Badge>
+              )}
+            </h4>
+            {actions?.(d)}
+          </div>
           {d.gazetteDate && (
             <p className="text-sm text-muted-foreground">
               Resmî Gazete: {formatDate(d.gazetteDate)}
