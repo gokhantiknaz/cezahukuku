@@ -1,6 +1,6 @@
 # Spec 0002 — Ders notlarında ders ve başlık ağacı
 
-- Status: In progress
+- Status: Shipped
 - Mode: lite
 - Plan: `specs/plans/0002-plan.md`
 - Self-critique: done
@@ -67,42 +67,42 @@ ağaca taşıma (spec 0004).
   yerel ortamda 1 saniyenin altında açılır.
 
 ## Acceptance criteria
-- [ ] AC-1 — Yönetici ders oluşturur; Ders Notları sayfası dersleri sırasıyla listeler; mevcut düz ders notları "Diğer ders
+- [x] AC-1 — Yönetici ders oluşturur; Ders Notları sayfası dersleri sırasıyla listeler; mevcut düz ders notları "Diğer ders
   notları" bölümünde görünür ve eski adresleriyle açılır.
-- [ ] AC-2 — Yönetici kök düzeyde ve seçilen başlığın altına başlık ekler (en az 6 düzey); numaralar sıradan kendiliğinden
+- [x] AC-2 — Yönetici kök düzeyde ve seçilen başlığın altına başlık ekler (en az 6 düzey); numaralar sıradan kendiliğinden
   gösterilir (ör. altıncı düzeyde "1.5.1.1.3.1"; birinci düzey "1. Bölüm"); aynı ders içinde aynı adlı başlıklar ayrı
   adreslerle açılır.
-- [ ] AC-3 — Yönetici bir başlığı aynı düzeyde yukarı/aşağı ve başka bir başlığın altına taşır; kendisinin ve alt
+- [x] AC-3 — Yönetici bir başlığı aynı düzeyde yukarı/aşağı ve başka bir başlığın altına taşır; kendisinin ve alt
   başlıklarının numaraları güncellenir, adresleri değişmez; kendi alt başlığının altına taşıma reddedilir ve ağaç değişmez.
-- [ ] AC-4 — Başlığa metin, belge ve madde bağlantısı eklenip düzenlenebilir; içeriği olmayan başlık "Bu başlığa henüz
+- [x] AC-4 — Başlığa metin, belge ve madde bağlantısı eklenip düzenlenebilir; içeriği olmayan başlık "Bu başlığa henüz
   içerik girilmedi." ve alt başlıklarını gösterir.
-- [ ] AC-5 — Okuma ekranında içindekiler açık başlığın üst başlıklarını açık ve açık başlığı vurgulu gösterir; ders yolu,
+- [x] AC-5 — Okuma ekranında içindekiler açık başlığın üst başlıklarını açık ve açık başlığı vurgulu gösterir; ders yolu,
   önceki/sonraki başlık içindekilerdeki sırayla çalışır; telefonda içindekiler çekmecede açılır ve 390 px'te yatay taşma yok.
-- [ ] AC-6 — Üyelere özel ders ya da başlık ve tüm altı giriş yapmamış okuyucu için "bulunamadı" döner, içindekilerde ve
+- [x] AC-6 — Üyelere özel ders ya da başlık ve tüm altı giriş yapmamış okuyucu için "bulunamadı" döner, içindekilerde ve
   aramada görünmez, önceki/sonraki geçişinde atlanır; giriş yapmış üye "Özel" rozetiyle görür; üstü özel olan başlık
   kendi ayarı açık olsa da özel sayılır.
-- [ ] AC-7 — Ders ve başlık ekleme, düzenleme, taşıma ve silme yalnız yöneticiye açıktır: giriş yok → 401, `standard` ve
+- [x] AC-7 — Ders ve başlık ekleme, düzenleme, taşıma ve silme yalnız yöneticiye açıktır: giriş yok → 401, `standard` ve
   `reader` → 403, kayıt değişmez; okuyucu ve üyeler yönetim düğmelerini görmez.
-- [ ] AC-8 — Alt başlığı olmayan başlık ve başlığı olmayan ders onayla silinir ve belgeleriyle birlikte okuyucudan kalkar
+- [x] AC-8 — Alt başlığı olmayan başlık ve başlığı olmayan ders onayla silinir ve belgeleriyle birlikte okuyucudan kalkar
   (kayıt ve dosyalar saklanır); alt başlığı olan başlık
   ya da başlığı olan ders silinemez, gerekçeli mesaj gösterilir.
-- [ ] AC-9 — Arama başlık adında, metninde ve belge metninde bulur; sonuç numaralı başlığı ve ders yolunu gösterir,
+- [x] AC-9 — Arama başlık adında, metninde ve belge metninde bulur; sonuç numaralı başlığı ve ders yolunu gösterir,
   tıklayınca başlığa gider; silinen başlık aramada çıkmaz.
-- [ ] AC-10 — Bir maddeye bağlı başlık, maddenin Açıklama sekmesindeki ders notları listesinde numarası ve adıyla görünür ve
+- [x] AC-10 — Bir maddeye bağlı başlık, maddenin Açıklama sekmesindeki ders notları listesinde numarası ve adıyla görünür ve
   başlığa gider.
 
 ## Definition of Done
-- [ ] Every acceptance criterion mapped to proof (test or reproducible observation)
-- [ ] `scripts/check` green
-- [ ] Independent review done; real findings fixed, noise rejected with written rationale, deferred ones in `specs/backlog.md`
-- [ ] Docs / ADRs updated if behavior or architecture changed
-- [ ] Spec moved to `specs/done/` (it becomes immutable there)
+- [x] Every acceptance criterion mapped to proof (test or reproducible observation)
+- [x] `scripts/check` green
+- [x] Independent review done; real findings fixed, noise rejected with written rationale, deferred ones in `specs/backlog.md`
+- [x] Docs / ADRs updated if behavior or architecture changed
+- [x] Spec moved to `specs/done/` (it becomes immutable there)
 
 ## Scorecard (fill at ship — honest numbers make the process improvable)
 | Metric | Value |
 |---|---|
-| Spec revisions | |
-| Fix rounds | |
-| Review findings: real / noise / deferred | |
-| Regressions introduced | |
-| Bugs escaped to production | |
+| Spec revisions | 0 onay sonrası (plan değişiklikleri A-1…A-7; BR-1 istisnası ADR 0001) |
+| Fix rounds | 2 (fix-2 yalnız docs) |
+| Review findings: real / noise / deferred | 9 / 1 / 1 (B-6) — VERIFY notları: N-2 kabul, N-4 noise, N-1 → B-7, N-3 → B-8 |
+| Regressions introduced | 0 |
+| Bugs escaped to production | 0 (henüz canlıya alınmadı) |
