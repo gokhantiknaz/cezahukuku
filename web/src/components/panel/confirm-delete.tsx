@@ -2,6 +2,7 @@
 
 import { useState, type ReactNode } from "react";
 import { toast } from "sonner";
+import { ApiError } from "@/api/fetcher";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -15,16 +16,27 @@ import {
 } from "@/components/ui/alert-dialog";
 import { otherMessages } from "./form";
 
-/** Silme onayı. API'nin reddettiği silmede (ör. "düğüm boş değil") gerekçe bildirim olarak gösterilir. */
+/** Kayıt bu arada (başka bir sekmede ya da kullanıcı tarafından) silinmiş: API 404 döndü. */
+export const isGone = (error: unknown) => error instanceof ApiError && error.status === 404;
+export const goneMessage = "Kayıt bulunamadı; başka bir yerde silinmiş olabilir.";
+
+/**
+ * Silme onayı. API'nin reddettiği silmede (ör. "düğüm boş değil") gerekçe bildirim olarak gösterilir; kayıt zaten
+ * silinmişse (404) `onGone` ile liste tazelenir.
+ */
 export function ConfirmDelete({
   title,
   description,
+  confirmLabel = "Sil",
   onConfirm,
+  onGone,
   children,
 }: {
   title: string;
   description: string;
+  confirmLabel?: string;
   onConfirm: () => Promise<unknown>;
+  onGone?: () => Promise<unknown> | void;
   children: ReactNode;
 }) {
   const [pending, setPending] = useState(false);
@@ -34,6 +46,12 @@ export function ConfirmDelete({
     try {
       await onConfirm();
     } catch (error) {
+      if (isGone(error)) {
+        // "Liste yenilendi" yalnız gerçekten yenilenen yerde söylenir.
+        toast.error(onGone ? `${goneMessage} Liste yenilendi.` : goneMessage);
+        await onGone?.();
+        return;
+      }
       toast.error(otherMessages(error, []).join(" ") || "Silinemedi.");
     } finally {
       setPending(false);
@@ -51,7 +69,7 @@ export function ConfirmDelete({
         <AlertDialogFooter>
           <AlertDialogCancel>Vazgeç</AlertDialogCancel>
           <AlertDialogAction variant="destructive" disabled={pending} onClick={confirm}>
-            Sil
+            {confirmLabel}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

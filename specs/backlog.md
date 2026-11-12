@@ -22,3 +22,5 @@ step 7). Nothing lands here without that decision; noise is rejected in the tria
   — Recommendation: arayüz mantığı ağırlaşan ilk feature'ın planında kurulum adımı olarak ele al — Deferred by: Gokhan, 2026-11-11, şimdilik UI ölçütleri entegrasyon testi + VERIFY ekran görüntüleriyle kanıtlanıyor (seçenek A)
 - **B-4** — Çıkıştan sonra kopyalanmış oturum çerezi süresi dolana kadar geçerli kalıyor — Source: bootstrap 2026-11-11 (2026-10-31 güvenlik testi bulgusu, 9ea95f2) — Severity: medium
   — Recommendation: çıkışta security stamp yenileme (tüm cihazlar ≤1 dk) ya da sunucu tarafı oturum tablosu (ITicketStore; cihaz bazında anında kapatma + "aktif oturumlar") — Deferred by: Gokhan, 2026-10-31, "çıkış şu an kalsın"
+- **B-5** — Ortak pencere bileşeninin kapatma (X) düğmesinin ekran okuyucu adı İngilizce ("Close", `web/src/components/ui/dialog.tsx`) — Source: spec 0001, review round 2 (R2-2, `web/src/components/ui/dialog.tsx:78`) — Severity: low
+  — Recommendation: sr-only metni "Kapat" yap (bütün pencereleri etkiler) — Deferred by: Gokhan, 2026-11-12, spec 0001'in kapsamı dışında, ortak bileşen

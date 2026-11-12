@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import { useCreateDecision, useGetDecision, useUpdateDecision } from "@/api/generated/admin-laws/admin-laws";
 import type { AdminDecisionDetail, Court, DecisionDto, DecisionKind, NormReviewOutcome, Visibility } from "@/api/generated/model";
@@ -8,6 +8,7 @@ import { RichTextEditor } from "@/components/rich-text/rich-text-editor";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -18,6 +19,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { courtLabels, outcomeLabels } from "@/lib/decisions";
+import { goneMessage, isGone } from "./confirm-delete";
 import { DecisionArticleSuggestions } from "./decision-article-suggestions";
 import { emptyToNull, Field, FormMessages, OptionSelect, otherMessages, visibilityLabels } from "./form";
 import { useLibraryRefresh } from "./use-library-refresh";
@@ -68,8 +70,24 @@ export function DecisionDialog({
   onSaved?: (decision: AdminDecisionDetail) => void;
 }) {
   const [open, setOpen] = useState(false);
+  const refresh = useLibraryRefresh();
+  // Karar bu arada silinmişse liste pencere kapanınca tazelenir: hemen tazelenirse pencere (listedeki kararın
+  // içindeyse) form ve mesajıyla birlikte kaybolur.
+  const stale = useRef(false);
+  const onGone = () => {
+    if (stale.current) return;
+    stale.current = true;
+    toast.error(`${goneMessage} Pencereyi kapatınca liste yenilenir.`);
+  };
+  function changeOpen(next: boolean) {
+    setOpen(next);
+    if (!next && stale.current) {
+      stale.current = false;
+      void refresh();
+    }
+  }
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={changeOpen}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
       <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-3xl">
         <DialogHeader>
@@ -82,6 +100,7 @@ export function DecisionDialog({
           (decisionId ? (
             <LoadedDecisionForm
               decisionId={decisionId}
+              onGone={onGone}
               onDone={(saved) => {
                 setOpen(false);
                 if (saved) onSaved?.(saved);
@@ -101,18 +120,41 @@ export function DecisionDialog({
   );
 }
 
-function LoadedDecisionForm({ decisionId, onDone }: { decisionId: string; onDone: (saved?: AdminDecisionDetail) => void }) {
-  const query = useGetDecision(decisionId);
+function LoadedDecisionForm({
+  decisionId,
+  onDone,
+  onGone,
+}: {
+  decisionId: string;
+  onDone: (saved?: AdminDecisionDetail) => void;
+  onGone: () => void;
+}) {
+  const query = useGetDecision(decisionId, { query: { retry: false } });
+  const loadError: unknown = query.error;
+  const gone = isGone(loadError);
+  // Karar bu arada silinmiş: pencere kapanınca sekme tazelenir (DecisionDialog).
+  useEffect(() => {
+    if (gone) onGone();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- yalnız silinmiş olduğu anlaşılınca bir kez
+  }, [gone]);
+  if (loadError) {
+    return (
+      <FormMessages messages={gone ? [`${goneMessage} Pencereyi kapatınca liste yenilenir.`] : otherMessages(loadError, [])} />
+    );
+  }
   if (query.data?.status !== 200) return <p className="text-muted-foreground">Yükleniyor…</p>;
   const { decision, articles } = query.data.data;
+  const linked = articles.map((a) => `${a.lawLabel} ${a.number}`).join(", ");
   return (
     <>
-      {articles.length > 0 && (
-        <p className="text-sm text-muted-foreground">
-          Bağlı maddeler: {articles.map((a) => `${a.lawLabel} ${a.number}`).join(", ")}
+      {articles.length > 1 ? (
+        <p className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-100">
+          Bu karar {articles.length} maddeye bağlı: {linked}. Yaptığınız değişiklik hepsinde görünür.
         </p>
+      ) : (
+        articles.length === 1 && <p className="text-sm text-muted-foreground">Bağlı madde: {linked}</p>
       )}
-      <DecisionForm decision={decision} onDone={onDone} />
+      <DecisionForm decision={decision} onDone={onDone} onGone={onGone} />
     </>
   );
 }
@@ -122,12 +164,15 @@ export function DecisionForm({
   articleIds,
   initialKind = "ictihat",
   onDone,
+  onGone,
 }: {
   decision?: DecisionDto;
   articleIds?: string[];
   /** Yeni kararın türü (okuma ekranında "Norm denetimi ekle" için). */
   initialKind?: DecisionKind;
   onDone: (saved?: AdminDecisionDetail) => void;
+  /** Karar bu arada silinmiş (404); verilirse liste hemen tazelenmez, çağıran pencere kapanınca tazeler. */
+  onGone?: () => void;
 }) {
   const refresh = useLibraryRefresh();
   const [form, setForm] = useState({
@@ -181,7 +226,8 @@ export function DecisionForm({
   }
 
   return (
-    <form onSubmit={(e) => submit(e).catch(() => {})} className="space-y-4">
+    // Hata form içinde gösterilir, pencere açık kalır; karar bu arada silinmişse liste tazelenir.
+    <form onSubmit={(e) => submit(e).catch((err) => (isGone(err) ? (onGone ? onGone() : refresh()) : undefined))} className="space-y-4">
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label="Tür" htmlFor="decision-kind">
           <OptionSelect
@@ -272,11 +318,23 @@ export function DecisionForm({
           />
         </Field>
       </div>
-      <FormMessages messages={otherMessages(error, decisionFields)} />
+      <FormMessages
+        messages={
+          isGone(error)
+            ? [onGone ? `${goneMessage} Pencereyi kapatınca liste yenilenir.` : `${goneMessage} Liste yenilendi.`]
+            : otherMessages(error, decisionFields)
+        }
+      />
       <DialogFooter>
         <Button type="submit" disabled={create.isPending || update.isPending}>
           {decision ? "Kaydet" : "Kararı ekle"}
         </Button>
+        {/* Pencerenin kendi kapatma yolu: Esc/X gibi, kapanınca bekleyen tazeleme de yapılır (DecisionDialog). */}
+        <DialogClose asChild>
+          <Button type="button" variant="ghost">
+            Vazgeç
+          </Button>
+        </DialogClose>
       </DialogFooter>
     </form>
   );

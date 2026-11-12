@@ -4,7 +4,7 @@ import { Fragment, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight, Copy, FileText, GraduationCap, Lock, Pencil, Plus, Printer } from "lucide-react";
 import { toast } from "sonner";
-import type { ArticleDetailResponse, ArticleRef } from "@/api/generated/model";
+import type { ArticleDetailResponse, ArticleRef, DecisionDto, EditorialNoteDto } from "@/api/generated/model";
 import { Badge } from "@/components/ui/badge";
 import {
   Breadcrumb,
@@ -24,6 +24,7 @@ import { cn } from "@/lib/utils";
 import { FavoriteButton, MobileArticleActions, PdfButton, ShareButton } from "./article-actions";
 import { ArticleDateControl } from "./article-date-control";
 import { ArticleHistory } from "./article-history";
+import { DecisionActions, NoteActions } from "./article-item-actions";
 import { ArticleQuickAdd, type QuickAddKind } from "./article-quick-add";
 import { usePublishCurrentArticle } from "./current-article";
 import { DecisionList } from "./decision-list";
@@ -82,6 +83,13 @@ export function ArticleView({ detail, asOf, initialTab }: { detail: ArticleDetai
     next: toLink(detail.next),
   });
   const notesOf = (kind: string) => detail.notes.filter((n) => n.kind === kind);
+  // Yönetici: sekmelerdeki her notun ve kararın yanında Düzenle / Kaldır (spec 0001).
+  const noteActions = canEdit
+    ? (note: EditorialNoteDto, index: number) => <NoteActions note={note} articleId={article.id} index={index} />
+    : undefined;
+  const decisionActions = canEdit
+    ? (decision: DecisionDto) => <DecisionActions decision={decision} articleId={article.id} />
+    : undefined;
   const editHref = `/panel/kutuphane/${law.slug}?madde=${article.slug}`;
   const articleLabel = `${law.shortName || law.number} Madde ${article.number}${article.title ? ` — ${article.title}` : ""}`;
   const openTab = tabs.some((t) => t.value === initialTab) ? initialTab! : tabs[0].value;
@@ -308,21 +316,23 @@ export function ArticleView({ detail, asOf, initialTab }: { detail: ArticleDetai
                 <DecisionList
                   decisions={detail.decisions.filter((d) => d.kind === "ictihat")}
                   empty="Bu maddeye henüz içtihat bağlanmadı."
+                  actions={decisionActions}
                 />
               ) : tab.value === "norm" ? (
                 <DecisionList
                   decisions={detail.decisions.filter((d) => d.kind === "normDenetimi")}
                   empty="Bu madde hakkında kayıtlı norm denetimi kararı yok."
+                  actions={decisionActions}
                 />
               ) : tab.value === "ilgili" ? (
                 <RelatedLinks links={detail.links} citedBy={detail.citedBy} />
               ) : tab.value === "765" ? (
                 <OldLawCounterparts links={detail.links} />
               ) : tab.value === "gerekce" ? (
-                <NoteList notes={notesOf("gerekce")} empty="Bu maddenin gerekçesi henüz girilmedi." />
+                <NoteList notes={notesOf("gerekce")} empty="Bu maddenin gerekçesi henüz girilmedi." actions={noteActions} />
               ) : tab.value === "aciklama" ? (
                 <div className="space-y-6">
-                  <NoteList notes={notesOf("aciklama")} empty="Bu maddeye henüz açıklama girilmedi." />
+                  <NoteList notes={notesOf("aciklama")} empty="Bu maddeye henüz açıklama girilmedi." actions={noteActions} />
                   {detail.lectureNotes.length > 0 && (
                     <section>
                       <h3 className="mb-2 border-t pt-4 text-xl text-primary">Ders notları</h3>
