@@ -1,6 +1,8 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 import { EditLectureNote } from "@/components/content/lecture-note-form";
+import { getLectureNote } from "@/lib/server-api";
 
 export const metadata: Metadata = { title: "Başlığı düzenle", robots: { index: false } };
 
@@ -17,7 +19,10 @@ export default function Page({ params }: PageProps<"/ders-notlari/[slug]/[node]/
   );
 }
 
-async function Editor({ params }: { params: Promise<{ node: string }> }) {
-  const { node } = await params;
+async function Editor({ params }: { params: Promise<{ slug: string; node: string }> }) {
+  const { slug, node } = await params;
+  // Başlık adresteki dersin başlığı değilse (yanlış ders adresi, düz not, silinmiş) okuma sayfası gibi bulunamadı.
+  const note = await getLectureNote(node);
+  if (!note?.node || note.node.course.slug !== slug) notFound();
   return <EditLectureNote slug={node} />;
 }
