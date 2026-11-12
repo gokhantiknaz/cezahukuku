@@ -463,6 +463,88 @@ public class LectureCourseTests(ApiFactory factory, ITestOutputHelper output)
             detail.LectureNotes);
     }
 
+    /// <summary>Spec 0003 AC-3: taşımadan sonra madde ekranı ve arama yeni numarayı gösterir, adres aynı kalır.</summary>
+    [Fact]
+    public async Task MovedNode_ShowsNewNumberOnArticleAndSearch()
+    {
+        var admin = await factory.CreateAdminClientAsync();
+        var (_, law, article) = await CreateLawWithArticleAsync(admin);
+        var course = await CreateCourseAsync(admin, $"Taşınan ders {tag}");
+        var a = await AddNodeAsync(admin, course.Id, $"Birinci {tag}");
+        var b = await AddNodeAsync(admin, course.Id, $"İkinci {tag}");
+        var word = Word("tasinan");
+        var node = await AddNodeAsync(admin, course.Id, $"Kast {word}", a.Id);
+        await LinkToArticleAsync(admin, node, article.Id);
+        var url = $"/ders-notlari/{course.Slug}/{node.Slug}";
+
+        var anonymous = factory.CreateAnonymousClient();
+        Assert.Equal("1.1", (await ArticleRefAsync(anonymous, law.Slug, node.Slug)).Label);
+
+        // B'nin içine (sona) taşı: 1.1 → 2.1; madde ekranı ve arama yeni numarayla, adres aynı.
+        await MoveAsync(admin, node.Id, b.Id, 0).ExpectAsync(200);
+        var moved = await ArticleRefAsync(anonymous, law.Slug, node.Slug);
+        Assert.Equal(("2.1", url), (moved.Label, moved.Url));
+        var hit = Assert.Single(await SearchAsync(anonymous, word));
+        Assert.Equal(($"2.1 Kast {word}", url, $"Taşınan ders {tag} › İkinci {tag}"), (hit.Title, hit.Url, hit.Context));
+
+        // Birinci düzeye, en başa: "1. Bölüm"; eski birinci düzeyler kayar.
+        await MoveAsync(admin, node.Id, null, 0).ExpectAsync(200);
+        Assert.Equal("1. Bölüm", (await ArticleRefAsync(anonymous, law.Slug, node.Slug)).Label);
+        Assert.Equal($"1. Bölüm Kast {word}", Assert.Single(await SearchAsync(anonymous, word)).Title);
+        var toc = await TocAsync(anonymous, course.Slug);
+        Assert.Equal([(node.Id, "1. Bölüm"), (a.Id, "2. Bölüm"), (b.Id, "3. Bölüm")],
+            toc.Toc.Where(e => e.Depth == 1).Select(e => (e.Id, e.Label)));
+    }
+
+    /// <summary>
+    /// Spec 0003 AC-5: özel üst başlığın altına taşınan açık başlık (ve altı) anonimden kalkar; geri taşınınca yeniden
+    /// görünür — okuma, belge, içindekiler, madde ekranı, arama.
+    /// </summary>
+    [Fact]
+    public async Task MoveUnderPrivateParent_HidesFromAnonymous_AndBack()
+    {
+        var admin = await factory.CreateAdminClientAsync();
+        var (_, law, article) = await CreateLawWithArticleAsync(admin);
+        var course = await CreateCourseAsync(admin, $"Görünürlük taşıma {tag}");
+        var open = await AddNodeAsync(admin, course.Id, $"Açık {tag}");
+        var secret = await AddNodeAsync(admin, course.Id, $"Özel {tag}", visibility: Visibility.Private);
+        var word = Word("gorunurtasi");
+        var node = await AddNodeAsync(admin, course.Id, $"Taşınan {word}", open.Id);
+        var child = await AddNodeAsync(admin, course.Id, $"Alt {word}", node.Id);
+        await LinkToArticleAsync(admin, node, article.Id);
+        var file = await (await admin.PostAsync($"/api/admin/lecture-notes/{child.Id}/files", Form(Png, "alt.png"))).ReadAsync<LectureNoteFileDto>(201);
+
+        var anonymous = factory.CreateAnonymousClient();
+        async Task AssertVisibleAsync(bool visible)
+        {
+            var status = visible ? 200 : 404;
+            await anonymous.GetAsync($"/api/lecture-notes/{node.Slug}").ExpectAsync(status);
+            await anonymous.GetAsync($"/api/lecture-notes/{child.Slug}").ExpectAsync(status);
+            await anonymous.GetAsync(file.Url).ExpectAsync(status);
+            var tocIds = (await TocAsync(anonymous, course.Slug)).Toc.Select(e => e.Id).ToList();
+            Assert.Equal(visible, tocIds.Contains(node.Id));
+            Assert.Equal(visible, tocIds.Contains(child.Id));
+            var refs = (await (await anonymous.GetAsync($"/api/library/laws/{law.Slug}/articles/madde-81")).ReadAsync<ArticleDetailResponse>()).LectureNotes;
+            Assert.Equal(visible, refs.Any(r => r.Slug == node.Slug));
+            Assert.Equal(visible ? 3 : 0, (await SearchAsync(anonymous, word)).Count); // iki başlık + belge
+        }
+
+        await AssertVisibleAsync(true);
+        await MoveAsync(admin, node.Id, secret.Id, 0).ExpectAsync(200);
+        await AssertVisibleAsync(false);
+        // Üye görür, etkin görünürlük özel.
+        var member = await CreateUserClientAsync(admin, Roles.Standard);
+        var memberToc = (await TocAsync(member, course.Slug)).Toc;
+        Assert.Equal(Visibility.Private, memberToc.Single(e => e.Id == child.Id).EffectiveVisibility);
+        // Geri birinci düzeye: yeniden açık.
+        await MoveAsync(admin, node.Id, null, 1).ExpectAsync(200);
+        await AssertVisibleAsync(true);
+    }
+
+    private static async Task<LectureNoteRef> ArticleRefAsync(HttpClient client, string lawSlug, string nodeSlug) =>
+        (await (await client.GetAsync($"/api/library/laws/{lawSlug}/articles/madde-81")).ReadAsync<ArticleDetailResponse>())
+            .LectureNotes.Single(r => r.Slug == nodeSlug);
+
     private static async Task<LectureCourseDetail> CreateCourseAsync(
         HttpClient admin, string title, Visibility visibility = Visibility.Public, string? description = null) =>
         await (await admin.PostJsonAsync("/api/admin/lecture-courses", new SaveLectureCourseRequest(title, description, visibility)))
