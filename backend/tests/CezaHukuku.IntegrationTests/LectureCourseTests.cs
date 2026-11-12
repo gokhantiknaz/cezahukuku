@@ -7,8 +7,10 @@ using CezaHukuku.Api.Search;
 using CezaHukuku.Domain.Content;
 using CezaHukuku.Domain.Laws;
 using CezaHukuku.Domain.Users;
+using CezaHukuku.Infrastructure.Files;
 using CezaHukuku.Infrastructure.Persistence;
 using CezaHukuku.Infrastructure.Search;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using UglyToad.PdfPig.Content;
 using UglyToad.PdfPig.Fonts.Standard14Fonts;
@@ -424,6 +426,18 @@ public class LectureCourseTests(ApiFactory factory, ITestOutputHelper output)
         await admin.GetAsync($"/api/lecture-courses/{course.Slug}").ExpectAsync(404);
         Assert.DoesNotContain(await (await admin.GetAsync("/api/lecture-courses")).ReadAsync<List<LectureCourseSummary>>(), c => c.Id == course.Id);
         await admin.DeleteAsync($"/api/admin/lecture-courses/{course.Id}").ExpectAsync(404);
+
+        // Kayıtlar ve belge saklanır: yalnız silindi işareti konur, belge satırı ve depodaki dosya yerinde kalır.
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var kept = await db.LectureNotes.IgnoreQueryFilters().Where(n => n.Id == leaf.Id || n.Id == parent.Id).ToListAsync();
+        Assert.Equal(2, kept.Count);
+        Assert.All(kept, n => Assert.NotNull(n.DeletedAt));
+        Assert.NotNull((await db.LectureCourses.IgnoreQueryFilters().SingleAsync(c => c.Id == course.Id)).DeletedAt);
+        var keptFile = await db.LectureNoteFiles.IgnoreQueryFilters().SingleAsync(f => f.Id == file.Id);
+        Assert.Null(keptFile.DeletedAt);
+        await using var stored = await scope.ServiceProvider.GetRequiredService<IFileStorage>().OpenReadAsync(keptFile.StorageKey);
+        Assert.NotNull(stored);
     }
 
     [Fact]
