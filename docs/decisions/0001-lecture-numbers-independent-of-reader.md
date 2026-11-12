@@ -19,8 +19,8 @@ yazdırır.
 
 ## Decision
 Başlık numarası ağacın tamamından, okuyucudan bağımsız hesaplanır; aynı numara herkes için aynı başlıktır. Gizli
-başlığın bıraktığı numara boşluğu BR-1 anlamında "varlık sızıntısı" sayılmaz: adı, içeriği, belgeleri, adresi ve
-sayısı dışında hiçbir bilgisi okuyucuya verilmez. BR-1 bu istisnayla açıklanmıştır (`docs/domain.md`).
+başlığın bıraktığı numara boşluğu BR-1 anlamında "varlık sızıntısı" sayılmaz: okuyucu yalnız boşluğu görür; başlığın
+adı, içeriği, belgeleri ve adresi verilmez. BR-1 bu istisnayla açıklanmıştır (`docs/domain.md`).
 
 ## Consequences
 - Kazanç: numaralar kalıcıdır; giriş yapmış ve yapmamış okuyucu aynı numarayla aynı başlığı anlar, atıflar kaymaz;
