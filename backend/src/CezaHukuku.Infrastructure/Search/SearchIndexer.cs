@@ -316,10 +316,6 @@ public static class SearchIndexer
     }
 
     /// <summary>
-    /// Ders notları: kendi sayfalarına bağlanır; bağlı oldukları kanun (varsa) kanun süzgecinde. Ekli her belge ayrı
-    /// sonuçtur (notun sayfasındaki belgeye bağlanır).
-    /// </summary>
-    /// <summary>
     /// Yeniden indekslenecek ders notları. Bir dersin başlığı ya da dersin kendisi değişince o dersin bütün başlıkları
     /// yeniden indekslenir: ad, görünürlük ve sıra değişikliği alt başlıkların numarasını, ders yolunu ve etkin
     /// görünürlüğünü değiştirebilir (ders ≤ 300 başlık).
@@ -344,9 +340,10 @@ public static class SearchIndexer
     }
 
     /// <summary>
-    /// Ders notu ve belgeleri. Bir dersin başlığı numarasıyla ("1.5.1 Genel olarak"), ders yolu bağlamıyla
-    /// ("Ceza Hukuku › Genel Hükümler"), dersteki adresiyle ve etkin görünürlüğüyle (özel ders ya da üst başlığın altı
-    /// özel) indekslenir; ağaçta yeri olmayan başlık (dersi silinmiş) indekslenmez.
+    /// Ders notları: kendi sayfalarına bağlanır; bağlı oldukları kanun (varsa) kanun süzgecinde. Ekli her belge ayrı
+    /// sonuçtur (notun sayfasındaki belgeye bağlanır). Bir dersin başlığı numarasıyla ("1.5.1 Genel olarak"), ders
+    /// yolu bağlamıyla ("Ceza Hukuku › Genel Hükümler"), dersteki adresiyle ve etkin görünürlüğüyle (özel ders ya da
+    /// üst başlığın altı özel) indekslenir; ağaçta yeri olmayan başlık (dersi silinmiş) indekslenmez.
     /// </summary>
     private static async Task<List<SearchDoc>> BuildLectureNotesAsync(AppDbContext db, HashSet<Guid> ids, CancellationToken ct)
     {
