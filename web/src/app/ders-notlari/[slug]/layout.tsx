@@ -1,4 +1,5 @@
 import { Suspense, type ReactNode } from "react";
+import { AddNodeButton } from "@/components/content/course-admin";
 import { CourseShell } from "@/components/content/course-toc";
 import { getLectureCourse } from "@/lib/server-api";
 
@@ -18,5 +19,11 @@ export default function LectureSlugLayout({ children, params }: LayoutProps<"/de
 async function CourseFrame({ params, children }: { params: Promise<{ slug: string }>; children: ReactNode }) {
   const { slug } = await params;
   const course = await getLectureCourse(slug);
-  return course ? <CourseShell course={course}>{children}</CourseShell> : children;
+  return course ? (
+    <CourseShell course={course} tocFooter={<AddNodeButton courseId={course.id} variant="ghost" />}>
+      {children}
+    </CourseShell>
+  ) : (
+    children
+  );
 }

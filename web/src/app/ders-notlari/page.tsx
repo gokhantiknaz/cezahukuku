@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
+import { NewCourseButton } from "@/components/content/course-admin";
 import { CourseList, LectureNoteList, NewLectureNoteButton } from "@/components/content/lecture-notes";
 import { getLectureCourses, getLectureNotes } from "@/lib/server-api";
 
@@ -19,9 +20,12 @@ export default function LectureNotesPage({ searchParams }: PageProps<"/ders-notl
       </div>
       {/* Giriş yapan kullanıcı üyelere özel ders ve notları da görür (oturum çerezi çalışma anında okunur). */}
       <section className="mt-6" aria-labelledby="dersler">
-        <h2 id="dersler" className="text-2xl">
-          Dersler
-        </h2>
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <h2 id="dersler" className="text-2xl">
+            Dersler
+          </h2>
+          <NewCourseButton />
+        </div>
         <Suspense fallback={<p className="mt-2 text-muted-foreground">Yükleniyor…</p>}>
           <Courses />
         </Suspense>

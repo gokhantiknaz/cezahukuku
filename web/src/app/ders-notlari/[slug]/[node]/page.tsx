@@ -2,13 +2,13 @@ import { Suspense } from "react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { NodeView } from "@/components/content/course-view";
-import { getLectureNote } from "@/lib/server-api";
+import { getLectureCourse, getLectureNote } from "@/lib/server-api";
 
 /** Başlık bu dersin başlığı değilse (yanlış ders adresi, düz not, gizli ya da silinmiş) yok sayılır. */
 async function loadNode(params: Promise<{ slug: string; node: string }>) {
   const { slug, node } = await params;
-  const note = await getLectureNote(node);
-  return note?.node && note.node.course.slug === slug ? { note, context: note.node } : null;
+  const [course, note] = await Promise.all([getLectureCourse(slug), getLectureNote(node)]);
+  return course && note?.node && note.node.course.slug === slug ? { note, context: note.node, toc: course.toc } : null;
 }
 
 export async function generateMetadata({ params }: PageProps<"/ders-notlari/[slug]/[node]">): Promise<Metadata> {
@@ -32,5 +32,5 @@ export default function LectureNodePage({ params }: PageProps<"/ders-notlari/[sl
 async function Node({ params }: { params: Promise<{ slug: string; node: string }> }) {
   const found = await loadNode(params);
   if (!found) notFound();
-  return <NodeView note={found.note} context={found.context} />;
+  return <NodeView note={found.note} context={found.context} toc={found.toc} />;
 }

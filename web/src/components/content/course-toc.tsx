@@ -51,12 +51,15 @@ export function CourseToc({ course, footer }: { course: LectureCourseDetail; foo
   const selectedSlug = useSelectedSlug(course.slug);
   const selected = selectedSlug ? course.toc.find((e) => e.slug === selectedSlug) : undefined;
 
-  const [expanded, setExpanded] = useState(() => new Set(ancestorsOf(selected?.id, byId)));
-  // Başka bir başlığa geçilince (önceki/sonraki, arama) onun üst başlıkları da açılır; kullanıcının açtıkları kalır.
-  const [lastSelected, setLastSelected] = useState(selected?.id);
-  if (selected?.id !== lastSelected) {
-    setLastSelected(selected?.id);
-    const missing = ancestorsOf(selected?.id, byId).filter((id) => !expanded.has(id));
+  const ancestors = ancestorsOf(selected?.id, byId);
+  const [expanded, setExpanded] = useState(() => new Set(ancestors));
+  // Başka bir başlığa geçilince (önceki/sonraki, arama) ya da açık başlık başka yere taşınınca yeni üst başlıkları da
+  // açılır; kullanıcının açtıkları kalır.
+  const ancestorKey = `${selected?.id}|${ancestors.join()}`;
+  const [lastAncestorKey, setLastAncestorKey] = useState(ancestorKey);
+  if (ancestorKey !== lastAncestorKey) {
+    setLastAncestorKey(ancestorKey);
+    const missing = ancestors.filter((id) => !expanded.has(id));
     if (missing.length > 0) setExpanded(new Set([...expanded, ...missing]));
   }
 
@@ -99,7 +102,7 @@ export function CourseToc({ course, footer }: { course: LectureCourseDetail; foo
             selectedRef={revealSelected}
           />
         )}
-        {footer && <div className="mt-2 border-t pt-2">{footer}</div>}
+        {footer && <div className="mt-2">{footer}</div>}
       </div>
     </nav>
   );
