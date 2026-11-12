@@ -125,7 +125,7 @@ public static class LectureCourseEndpoints
         ReorderLectureCoursesRequest request, AppDbContext db, CancellationToken ct)
     {
         var courses = await db.LectureCourses.ToListAsync(ct);
-        if (request.CourseIds.Count != courses.Count || request.CourseIds.Distinct().Count() != courses.Count
+        if (request.CourseIds is null || request.CourseIds.Count != courses.Count || request.CourseIds.Distinct().Count() != courses.Count
             || !courses.All(c => request.CourseIds.Contains(c.Id)))
             return ValidationErrors.Single("courseIds", "Sıra, bütün dersleri birer kez içermeli.");
         foreach (var course in courses)

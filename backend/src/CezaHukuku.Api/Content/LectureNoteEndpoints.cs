@@ -421,7 +421,7 @@ public static class LectureNoteEndpoints
         if (!await db.LectureNotes.AnyAsync(n => n.Id == id, ct))
             return TypedResults.NotFound();
         var files = await db.LectureNoteFiles.Where(f => f.LectureNoteId == id).ToListAsync(ct);
-        if (request.FileIds.Count != files.Count || request.FileIds.Distinct().Count() != files.Count
+        if (request.FileIds is null || request.FileIds.Count != files.Count || request.FileIds.Distinct().Count() != files.Count
             || !files.All(f => request.FileIds.Contains(f.Id)))
             return ValidationErrors.Single("fileIds", "Sıra, ders notunun bütün belgelerini birer kez içermeli.");
         foreach (var file in files)

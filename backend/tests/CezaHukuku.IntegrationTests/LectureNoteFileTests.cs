@@ -75,6 +75,7 @@ public class LectureNoteFileTests(ApiFactory factory)
             new ReorderLectureNoteFilesRequest([png.Id, pptx.Id, docx.Id, pdf.Id])).ExpectAsync(204);
         await admin.PutJsonAsync($"/api/admin/lecture-notes/{note.Id}/files/order",
             new ReorderLectureNoteFilesRequest([png.Id, pptx.Id])).ExpectAsync(400);
+        await admin.PutJsonAsync($"/api/admin/lecture-notes/{note.Id}/files/order", new { }).ExpectAsync(400);
         await admin.DeleteAsync($"/api/admin/lecture-notes/{note.Id}/files/{pdf.Id}").ExpectAsync(204);
         detail = await (await anonymous.GetAsync($"/api/lecture-notes/{note.Slug}")).ReadAsync<LectureNoteDetail>();
         Assert.Equal([png.Id, pptx.Id, docx.Id], detail.Files.Select(f => f.Id));

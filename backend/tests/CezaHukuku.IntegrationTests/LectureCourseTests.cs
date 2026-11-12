@@ -59,6 +59,8 @@ public class LectureCourseTests(ApiFactory factory, ITestOutputHelper output)
         list = await (await anonymous.GetAsync("/api/lecture-courses")).ReadAsync<List<LectureCourseSummary>>();
         Assert.Equal([second.Id, first.Id, sameAsFlat.Id], list.Where(c => c.Title.EndsWith(tag)).Select(c => c.Id));
         await admin.PutJsonAsync("/api/admin/lecture-courses/order", new ReorderLectureCoursesRequest([second.Id])).ExpectAsync(400);
+        // Liste alanı eksik gövde: doğrulama hatası (500 değil).
+        await admin.PutJsonAsync("/api/admin/lecture-courses/order", new { }).ExpectAsync(400);
 
         // Düz notlar eski adresleriyle açılır ve düz not listesinde kalır; başlıklar o listede yok.
         var flatDetail = await (await anonymous.GetAsync($"/api/lecture-notes/{flat.Slug}")).ReadAsync<LectureNoteDetail>();
