@@ -20,10 +20,11 @@ public sealed class SearchIndexChanges
     public HashSet<Guid> Highlights { get; } = [];
     public HashSet<Guid> Attachments { get; } = [];
     public HashSet<Guid> LectureNotes { get; } = [];
+    public HashSet<Guid> LectureCourses { get; } = [];
 
     public bool IsEmpty =>
         Laws.Count == 0 && Articles.Count == 0 && Decisions.Count == 0 && PersonalNotes.Count == 0 && Highlights.Count == 0
-        && Attachments.Count == 0 && LectureNotes.Count == 0;
+        && Attachments.Count == 0 && LectureNotes.Count == 0 && LectureCourses.Count == 0;
 
     /// <summary>Kaydedilmek üzere olan (eklenen, değişen, silinen) varlıklardan etkilenen kaynakları çıkarır.</summary>
     public static SearchIndexChanges Collect(ChangeTracker tracker)
@@ -50,6 +51,7 @@ public sealed class SearchIndexChanges
                 case AttachmentSegment segment: changes.Attachments.Add(segment.AttachmentId); break;
                 case LectureNote note: changes.LectureNotes.Add(note.Id); break;
                 case LectureNoteFile file: changes.LectureNotes.Add(file.LectureNoteId); break;
+                case LectureCourse course: changes.LectureCourses.Add(course.Id); break;
             }
         }
         return changes;
@@ -115,14 +117,15 @@ public static class SearchIndexer
             docs.AddRange(await BuildAttachmentsAsync(db, attachmentIds, ct));
         }
 
-        if (changes.LectureNotes.Count > 0)
+        var lectureNoteIds = await LectureNotesToIndexAsync(db, changes, ct);
+        if (lectureNoteIds.Count > 0)
         {
             // Notun kendisi (SourceId) ve ekli belgeleri (ParentId).
             await db.SearchDocs
                 .Where(d => d.Kind == SearchKind.DersNotu
-                    && (changes.LectureNotes.Contains(d.SourceId) || (d.ParentId != null && changes.LectureNotes.Contains(d.ParentId.Value))))
+                    && (lectureNoteIds.Contains(d.SourceId) || (d.ParentId != null && lectureNoteIds.Contains(d.ParentId.Value))))
                 .ExecuteDeleteAsync(ct);
-            docs.AddRange(await BuildLectureNotesAsync(db, changes.LectureNotes, ct));
+            docs.AddRange(await BuildLectureNotesAsync(db, lectureNoteIds, ct));
         }
 
         if (docs.Count == 0)
@@ -316,9 +319,50 @@ public static class SearchIndexer
     /// Ders notları: kendi sayfalarına bağlanır; bağlı oldukları kanun (varsa) kanun süzgecinde. Ekli her belge ayrı
     /// sonuçtur (notun sayfasındaki belgeye bağlanır).
     /// </summary>
+    /// <summary>
+    /// Yeniden indekslenecek ders notları. Bir dersin başlığı ya da dersin kendisi değişince o dersin bütün başlıkları
+    /// yeniden indekslenir: ad, görünürlük ve sıra değişikliği alt başlıkların numarasını, ders yolunu ve etkin
+    /// görünürlüğünü değiştirebilir (ders ≤ 300 başlık).
+    /// </summary>
+    private static async Task<HashSet<Guid>> LectureNotesToIndexAsync(AppDbContext db, SearchIndexChanges changes, CancellationToken ct)
+    {
+        var ids = new HashSet<Guid>(changes.LectureNotes);
+        var courseIds = new HashSet<Guid>(changes.LectureCourses);
+        if (ids.Count > 0)
+        {
+            // Silinen başlık da dersini yeniden indeksletir (sonraki kardeşlerinin numarası kayar); IgnoreQueryFilters
+            // silinmişleri de getirir.
+            courseIds.UnionWith(await db.LectureNotes.IgnoreQueryFilters()
+                .Where(n => ids.Contains(n.Id) && n.CourseId != null)
+                .Select(n => n.CourseId!.Value)
+                .ToListAsync(ct));
+        }
+        if (courseIds.Count > 0)
+            ids.UnionWith(await db.LectureNotes.Where(n => n.CourseId != null && courseIds.Contains(n.CourseId.Value))
+                .Select(n => n.Id).ToListAsync(ct));
+        return ids;
+    }
+
+    /// <summary>
+    /// Ders notu ve belgeleri. Bir dersin başlığı numarasıyla ("1.5.1 Genel olarak"), ders yolu bağlamıyla
+    /// ("Ceza Hukuku › Genel Hükümler"), dersteki adresiyle ve etkin görünürlüğüyle (özel ders ya da üst başlığın altı
+    /// özel) indekslenir; ağaçta yeri olmayan başlık (dersi silinmiş) indekslenmez.
+    /// </summary>
     private static async Task<List<SearchDoc>> BuildLectureNotesAsync(AppDbContext db, HashSet<Guid> ids, CancellationToken ct)
     {
         var notes = await db.LectureNotes.AsNoTracking().Where(n => ids.Contains(n.Id)).ToListAsync(ct);
+        var courseIds = notes.Where(n => n.CourseId != null).Select(n => n.CourseId!.Value).Distinct().ToList();
+        var courses = await db.LectureCourses.AsNoTracking().Where(c => courseIds.Contains(c.Id)).ToListAsync(ct);
+        var courseNodes = (await db.LectureNotes.AsNoTracking()
+                .Where(n => n.CourseId != null && courseIds.Contains(n.CourseId.Value))
+                .Select(n => new LectureNote
+                {
+                    Id = n.Id, Title = n.Title, Slug = n.Slug, Visibility = n.Visibility, CourseId = n.CourseId,
+                    ParentId = n.ParentId, SortOrder = n.SortOrder, CreatedAt = n.CreatedAt,
+                })
+                .ToListAsync(ct))
+            .ToLookup(n => n.CourseId!.Value);
+        var outlines = courses.ToDictionary(c => c.Id, c => LectureOutline.Build(c, courseNodes[c.Id], includePrivate: true));
         var noteIds = notes.Select(n => n.Id).ToList();
         var files = (await db.LectureNoteFiles.AsNoTracking().Where(f => noteIds.Contains(f.LectureNoteId)).ToListAsync(ct))
             .ToLookup(f => f.LectureNoteId);
@@ -339,18 +383,30 @@ public static class SearchIndexer
                 var context = law is not null && article is not null ? $"{LawLabel(law)} Madde {article.Number}"
                     : law is not null ? LawLabel(law)
                     : group?.Title ?? "Genel";
+                var title = note.Title;
+                var url = $"/ders-notlari/{note.Slug}";
+                var visibility = note.Visibility;
+                if (note.CourseId is { } courseId)
+                {
+                    if (!outlines.TryGetValue(courseId, out var outline) || outline.Find(note.Id) is not { } node)
+                        return [];
+                    title = $"{node.Label} {note.Title}";
+                    url = $"/ders-notlari/{outline.Course.Slug}/{note.Slug}";
+                    visibility = node.EffectiveVisibility;
+                    context = string.Join(" › ", [outline.Course.Title, .. outline.PathOf(note.Id).Select(p => p.Note.Title)]);
+                }
                 IEnumerable<SearchDoc> own =
                 [
                     new SearchDoc
                     {
                         Kind = SearchKind.DersNotu,
                         SourceId = note.Id,
-                        Visibility = note.Visibility,
+                        Visibility = visibility,
                         LawIds = law is null ? [] : [law.Id],
-                        Title = note.Title,
+                        Title = title,
                         Context = context,
                         Body = note.PlainText,
-                        Url = $"/ders-notlari/{note.Slug}",
+                        Url = url,
                         Date = DateOnly.FromDateTime(note.UpdatedAt.UtcDateTime),
                     },
                 ];
@@ -359,13 +415,13 @@ public static class SearchIndexer
                     Kind = SearchKind.DersNotu,
                     SourceId = file.Id,
                     ParentId = note.Id,
-                    Visibility = note.Visibility,
+                    Visibility = visibility,
                     LawIds = law is null ? [] : [law.Id],
-                    Title = $"{file.Title} ({note.Title})",
+                    Title = $"{file.Title} ({title})",
                     Context = $"{context} · ekli belge",
                     // tsvector sınırı (1 MB) aşılmasın: çok uzun belgenin başı aranır.
                     Body = file.Text.Length > MaxFileBodyLength ? file.Text[..MaxFileBodyLength] : file.Text,
-                    Url = $"/ders-notlari/{note.Slug}#belge-{file.Id}",
+                    Url = $"{url}#belge-{file.Id}",
                     Date = DateOnly.FromDateTime(file.CreatedAt.UtcDateTime),
                 }));
             }),

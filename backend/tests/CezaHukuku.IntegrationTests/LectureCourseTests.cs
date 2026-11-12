@@ -1,18 +1,31 @@
+using System.Diagnostics;
 using System.Net.Http.Headers;
 using CezaHukuku.Api.Admin;
 using CezaHukuku.Api.Content;
 using CezaHukuku.Api.Library;
+using CezaHukuku.Api.Search;
+using CezaHukuku.Domain.Content;
 using CezaHukuku.Domain.Laws;
 using CezaHukuku.Domain.Users;
+using CezaHukuku.Infrastructure.Persistence;
+using CezaHukuku.Infrastructure.Search;
+using Microsoft.Extensions.DependencyInjection;
+using UglyToad.PdfPig.Content;
+using UglyToad.PdfPig.Fonts.Standard14Fonts;
+using UglyToad.PdfPig.Writer;
+using Xunit.Abstractions;
 
 namespace CezaHukuku.IntegrationTests;
 
 /// <summary>Spec 0002: dersler, başlık ağacı, numaralar, taşıma, etkin görünürlük ve yönetim yetkisi.</summary>
 [Collection(ApiCollection.Name)]
-public class LectureCourseTests(ApiFactory factory)
+public class LectureCourseTests(ApiFactory factory, ITestOutputHelper output)
 {
     private static readonly byte[] Png = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0, 0];
     private readonly string tag = Guid.NewGuid().ToString("N")[..8];
+
+    /// <summary>Aramada tek parça bulunan, bu teste özgü sözcük (yalnız harf).</summary>
+    private string Word(string prefix) => prefix + new string([.. tag.Select(ch => (char)('k' + ch % 16))]);
 
     [Fact]
     public async Task Courses_AreListed_AndFlatNotesKeepTheirAddresses()
@@ -199,19 +212,20 @@ public class LectureCourseTests(ApiFactory factory)
     {
         var admin = await factory.CreateAdminClientAsync();
         var (_, law, article) = await CreateLawWithArticleAsync(admin);
+        var vis = Word("gorunur");
 
         // Açık derste özel üst başlık: kendi ayarı açık olan alt başlık da özel sayılır.
         var course = await CreateCourseAsync(admin, $"Görünürlük dersi {tag}");
-        var a = await AddNodeAsync(admin, course.Id, $"Açık A {tag}");
-        var secret = await AddNodeAsync(admin, course.Id, $"Özel üst {tag}", visibility: Visibility.Private);
-        var inner = await AddNodeAsync(admin, course.Id, $"Açık iç {tag}", secret.Id);
-        var c = await AddNodeAsync(admin, course.Id, $"Açık C {tag}");
+        var a = await AddNodeAsync(admin, course.Id, $"Açık A {vis}");
+        var secret = await AddNodeAsync(admin, course.Id, $"Özel üst {vis}", visibility: Visibility.Private);
+        var inner = await AddNodeAsync(admin, course.Id, $"Açık iç {vis}", secret.Id);
+        var c = await AddNodeAsync(admin, course.Id, $"Açık C {vis}");
         await LinkToArticleAsync(admin, inner, article.Id);
         var innerFile = await (await admin.PostAsync($"/api/admin/lecture-notes/{inner.Id}/files", Form(Png, "ic.png"))).ReadAsync<LectureNoteFileDto>(201);
 
         // Özel ders: başlığın kendi ayarı açık.
         var privateCourse = await CreateCourseAsync(admin, $"Özel ders {tag}", Visibility.Private);
-        var underPrivate = await AddNodeAsync(admin, privateCourse.Id, $"Özel dersin başlığı {tag}");
+        var underPrivate = await AddNodeAsync(admin, privateCourse.Id, $"Özel dersin başlığı {vis}");
         await LinkToArticleAsync(admin, underPrivate, article.Id);
         var underPrivateFile = await (await admin.PostAsync($"/api/admin/lecture-notes/{underPrivate.Id}/files", Form(Png, "o.png"))).ReadAsync<LectureNoteFileDto>(201);
 
@@ -233,6 +247,14 @@ public class LectureCourseTests(ApiFactory factory)
 
         var articleDetail = await (await anonymous.GetAsync($"/api/library/laws/{law.Slug}/articles/madde-81")).ReadAsync<ArticleDetailResponse>();
         Assert.Empty(articleDetail.LectureNotes);
+
+        // Aramada yalnız açık başlıklar (başlık adında ve belge adında geçen sözcükle).
+        var anonymousHits = await SearchAsync(anonymous, vis);
+        Assert.Equal([$"/ders-notlari/{course.Slug}/{a.Slug}", $"/ders-notlari/{course.Slug}/{c.Slug}"], anonymousHits.Select(h => h.Url).Order());
+        var adminHits = await SearchAsync(admin, vis);
+        Assert.Contains(adminHits, h => h.Url == $"/ders-notlari/{course.Slug}/{inner.Slug}");
+        Assert.Contains(adminHits, h => h.Url == $"/ders-notlari/{privateCourse.Slug}/{underPrivate.Slug}");
+        Assert.Contains(adminHits, h => h.Url.StartsWith($"/ders-notlari/{course.Slug}/{inner.Slug}#belge-"));
 
         // Giriş yapmış üye görür; etkin görünürlük "özel" (rozet için).
         foreach (var role in new[] { Roles.Standard, Roles.Reader })
@@ -259,6 +281,83 @@ public class LectureCourseTests(ApiFactory factory)
         await admin.PutJsonAsync($"/api/admin/lecture-notes/{secret.Id}",
             new SaveLectureNoteRequest(secret.Title, "", Visibility.Public, null, null, null)).ExpectAsync(200);
         await anonymous.GetAsync($"/api/lecture-notes/{inner.Slug}").ExpectAsync(200);
+        // Arama indeksi de ders/üst başlık değişikliğiyle alt başlıkları yeniden yazar.
+        anonymousHits = await SearchAsync(anonymous, vis);
+        Assert.Contains(anonymousHits, h => h.Url == $"/ders-notlari/{course.Slug}/{inner.Slug}");
+        Assert.Contains(anonymousHits, h => h.Url == $"/ders-notlari/{privateCourse.Slug}/{underPrivate.Slug}");
+    }
+
+    [Fact]
+    public async Task Search_FindsNodeTitleTextAndFile_WithNumberAndPath()
+    {
+        var admin = await factory.CreateAdminClientAsync();
+        var course = await CreateCourseAsync(admin, $"Arama dersi {tag}");
+        var root = await AddNodeAsync(admin, course.Id, $"Genel hükümler {tag}");
+        await AddNodeAsync(admin, course.Id, $"Önce gelen {tag}", root.Id);
+        var (titleWord, textWord, fileWord) = (Word("baslik"), Word("metin"), Word("belge"));
+        var node = await AddNodeAsync(admin, course.Id, $"Kast {titleWord}", root.Id);
+        await admin.PutJsonAsync($"/api/admin/lecture-notes/{node.Id}",
+            new SaveLectureNoteRequest(node.Title, $"<p>Olası kast {textWord} anlatımı.</p>", Visibility.Public, null, null, null)).ExpectAsync(200);
+        var file = await (await admin.PostAsync($"/api/admin/lecture-notes/{node.Id}/files", Form(BuildPdf($"Sunum {fileWord}"), "sunum.pdf")))
+            .ReadAsync<LectureNoteFileDto>(201);
+
+        var anonymous = factory.CreateAnonymousClient();
+        var url = $"/ders-notlari/{course.Slug}/{node.Slug}";
+        var context = $"Arama dersi {tag} › Genel hükümler {tag}";
+        var byTitle = Assert.Single(await SearchAsync(anonymous, titleWord), h => !h.Url.Contains('#'));
+        Assert.Equal(($"1.2 Kast {titleWord}", context, url), (byTitle.Title, byTitle.Context, byTitle.Url));
+        var byText = Assert.Single(await SearchAsync(anonymous, textWord));
+        Assert.Equal(url, byText.Url);
+        var byFile = Assert.Single(await SearchAsync(anonymous, fileWord));
+        Assert.Equal(($"{url}#belge-{file.Id}", $"{context} · ekli belge"), (byFile.Url, byFile.Context));
+
+        // Taşınınca numara ve ders yolu güncellenir; silinince aramada çıkmaz.
+        await MoveAsync(admin, node.Id, null, 0).ExpectAsync(200);
+        var moved = Assert.Single(await SearchAsync(anonymous, titleWord), h => !h.Url.Contains('#'));
+        Assert.Equal(($"1. Bölüm Kast {titleWord}", $"Arama dersi {tag}", url), (moved.Title, moved.Context, moved.Url));
+        Assert.Equal("2. Bölüm", (await TocAsync(anonymous, course.Slug)).Toc.Single(e => e.Id == root.Id).Label);
+        await admin.DeleteAsync($"/api/admin/lecture-notes/{node.Id}").ExpectAsync(204);
+        Assert.Empty(await SearchAsync(anonymous, titleWord));
+        Assert.Empty(await SearchAsync(anonymous, textWord));
+        Assert.Empty(await SearchAsync(anonymous, fileWord));
+    }
+
+    /// <summary>Plan riski: dersteki her değişiklikte dersin tamamı yeniden indekslenir. 300 başlıkta süre ölçülür.</summary>
+    [Fact]
+    public async Task Search_ReindexOfThreeHundredNodeCourse_IsMeasured()
+    {
+        var admin = await factory.CreateAdminClientAsync();
+        var course = await CreateCourseAsync(admin, $"Büyük ders {tag}");
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var parents = new List<LectureNote>();
+            for (var i = 0; i < 300; i++)
+            {
+                var parent = i < 30 ? null : parents[i % 30];
+                var note = new LectureNote
+                {
+                    Title = $"Başlık {i} {tag}", Slug = $"b{i}-{tag}", CourseId = course.Id, ParentId = parent?.Id, SortOrder = i,
+                    Html = "<p>Kısa bir anlatım metni, birkaç cümle.</p>", PlainText = "Kısa bir anlatım metni, birkaç cümle.",
+                };
+                parents.Add(note);
+                db.LectureNotes.Add(note);
+            }
+            await db.SaveChangesAsync();
+        }
+        var toc = await TocAsync(admin, course.Slug);
+        Assert.Equal(300, toc.Toc.Count);
+        var target = toc.Toc[^1];
+
+        var changed = Word("degisti");
+        var watch = Stopwatch.StartNew();
+        await admin.PutJsonAsync($"/api/admin/lecture-notes/{target.Id}",
+            new SaveLectureNoteRequest(target.Title, $"<p>{changed}</p>", Visibility.Public, null, null, null)).ExpectAsync(200);
+        watch.Stop();
+        output.WriteLine($"300 başlıklı derste bir başlığın kaydı (dersin yeniden indekslenmesiyle): {watch.ElapsedMilliseconds} ms");
+
+        var hit = Assert.Single(await SearchAsync(admin, changed));
+        Assert.Equal($"{target.Label} {target.Title}", hit.Title);
     }
 
     [Fact]
@@ -367,6 +466,17 @@ public class LectureCourseTests(ApiFactory factory)
     private static async Task LinkToArticleAsync(HttpClient admin, LectureNoteDetail node, Guid articleId) =>
         await admin.PutJsonAsync($"/api/admin/lecture-notes/{node.Id}",
             new SaveLectureNoteRequest(node.Title, node.Html, node.Visibility, null, null, articleId)).ExpectAsync(200);
+
+    private static async Task<List<SearchHit>> SearchAsync(HttpClient client, string query) =>
+        (await (await client.GetAsync($"/api/search?q={Uri.EscapeDataString(query)}&kinds=dersNotu&limit=50")).ReadAsync<SearchResponse>()).Hits;
+
+    private static byte[] BuildPdf(string text)
+    {
+        var builder = new PdfDocumentBuilder();
+        var font = builder.AddStandard14Font(Standard14Font.Helvetica);
+        builder.AddPage(PageSize.A4).AddText(text, 11, new UglyToad.PdfPig.Core.PdfPoint(40, 750), font);
+        return builder.Build();
+    }
 
     private static MultipartFormDataContent Form(byte[] bytes, string fileName)
     {
