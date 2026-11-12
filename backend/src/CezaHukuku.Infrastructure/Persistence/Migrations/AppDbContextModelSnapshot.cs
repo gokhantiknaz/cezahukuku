@@ -23,6 +23,64 @@ namespace CezaHukuku.Infrastructure.Persistence.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("CezaHukuku.Domain.Content.LectureCourse", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("description");
+
+                    b.Property<string>("Slug")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)")
+                        .HasColumnName("slug");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer")
+                        .HasColumnName("sort_order");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)")
+                        .HasColumnName("title");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<string>("Visibility")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("visibility");
+
+                    b.HasKey("Id")
+                        .HasName("pk_lecture_courses");
+
+                    b.HasIndex("Slug")
+                        .IsUnique()
+                        .HasDatabaseName("ix_lecture_courses_slug")
+                        .HasFilter("deleted_at IS NULL");
+
+                    b.ToTable("lecture_courses", (string)null);
+                });
+
             modelBuilder.Entity("CezaHukuku.Domain.Content.LectureNote", b =>
                 {
                     b.Property<Guid>("Id")
@@ -33,6 +91,10 @@ namespace CezaHukuku.Infrastructure.Persistence.Migrations
                     b.Property<Guid?>("ArticleId")
                         .HasColumnType("uuid")
                         .HasColumnName("article_id");
+
+                    b.Property<Guid?>("CourseId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("course_id");
 
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
@@ -55,6 +117,10 @@ namespace CezaHukuku.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("law_id");
 
+                    b.Property<Guid?>("ParentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("parent_id");
+
                     b.Property<string>("PlainText")
                         .IsRequired()
                         .HasColumnType("text")
@@ -65,6 +131,10 @@ namespace CezaHukuku.Infrastructure.Persistence.Migrations
                         .HasMaxLength(120)
                         .HasColumnType("character varying(120)")
                         .HasColumnName("slug");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer")
+                        .HasColumnName("sort_order");
 
                     b.Property<string>("Title")
                         .IsRequired()
@@ -94,10 +164,16 @@ namespace CezaHukuku.Infrastructure.Persistence.Migrations
                     b.HasIndex("LawId")
                         .HasDatabaseName("ix_lecture_notes_law_id");
 
+                    b.HasIndex("ParentId")
+                        .HasDatabaseName("ix_lecture_notes_parent_id");
+
                     b.HasIndex("Slug")
                         .IsUnique()
                         .HasDatabaseName("ix_lecture_notes_slug")
                         .HasFilter("deleted_at IS NULL");
+
+                    b.HasIndex("CourseId", "ParentId", "SortOrder")
+                        .HasDatabaseName("ix_lecture_notes_course_id_parent_id_sort_order");
 
                     b.ToTable("lecture_notes", (string)null);
                 });
@@ -1600,6 +1676,12 @@ namespace CezaHukuku.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .HasConstraintName("fk_lecture_notes_articles_article_id");
 
+                    b.HasOne("CezaHukuku.Domain.Content.LectureCourse", null)
+                        .WithMany()
+                        .HasForeignKey("CourseId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_lecture_notes_lecture_courses_course_id");
+
                     b.HasOne("CezaHukuku.Domain.Laws.LawGroup", null)
                         .WithMany()
                         .HasForeignKey("LawGroupId")
@@ -1611,6 +1693,12 @@ namespace CezaHukuku.Infrastructure.Persistence.Migrations
                         .HasForeignKey("LawId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .HasConstraintName("fk_lecture_notes_laws_law_id");
+
+                    b.HasOne("CezaHukuku.Domain.Content.LectureNote", null)
+                        .WithMany()
+                        .HasForeignKey("ParentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_lecture_notes_lecture_notes_parent_id");
                 });
 
             modelBuilder.Entity("CezaHukuku.Domain.Content.LectureNoteFile", b =>

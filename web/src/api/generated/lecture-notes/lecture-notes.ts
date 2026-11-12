@@ -566,6 +566,11 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
   status: 204
 }
 
+export type deleteLectureNoteResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
 export type deleteLectureNoteResponse404 = {
   data: void
   status: 404
@@ -574,7 +579,7 @@ export type deleteLectureNoteResponse404 = {
 export type deleteLectureNoteResponseSuccess = (deleteLectureNoteResponse204) & {
   headers: Headers;
 };
-export type deleteLectureNoteResponseError = (deleteLectureNoteResponse404) & {
+export type deleteLectureNoteResponseError = (deleteLectureNoteResponse400 | deleteLectureNoteResponse404) & {
   headers: Headers;
 };
 
@@ -602,7 +607,7 @@ export const deleteLectureNote = async (id: string, options?: RequestInit): Prom
 
 
 
-export const getDeleteLectureNoteMutationOptions = <TError = void,
+export const getDeleteLectureNoteMutationOptions = <TError = HttpValidationProblemDetails | void,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteLectureNote>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof apiFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof deleteLectureNote>>, TError,{id: string}, TContext> => {
 
@@ -629,9 +634,9 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type DeleteLectureNoteMutationResult = NonNullable<Awaited<ReturnType<typeof deleteLectureNote>>>
     
-    export type DeleteLectureNoteMutationError = void
+    export type DeleteLectureNoteMutationError = HttpValidationProblemDetails | void
 
-    export const useDeleteLectureNote = <TError = void,
+    export const useDeleteLectureNote = <TError = HttpValidationProblemDetails | void,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteLectureNote>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof apiFetch>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof deleteLectureNote>>,

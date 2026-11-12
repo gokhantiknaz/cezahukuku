@@ -20,7 +20,9 @@ Faz 3 sesli not yazıya dökme + OCR, Faz 4 mevzuat değişiklik takibi, Faz 5 k
 | Kişisel içerik | Kullanıcının kendi vurgu, not, sesli not ve belgeleri (Belgelerim). | Yalnız sahibi görür; `owner_id` zorunlu. |
 | Karar | İçtihat (Yargıtay, BAM, AİHM…) ya da norm denetimi (AYM iptal/ret). | Bir kez girilir, çok maddeye bağlanır. |
 | Madde bağlantısı | İlgili madde ya da eski kanun (765) karşılığı; kütüphanede yoksa serbest etiket. | Otomatik atıf (`ArticleCitation`) ayrıdır: metinden çıkarılır. |
-| Ders notu | Kanundan bağımsız ders anlatımı; isteğe bağlı gruba, kanuna ya da maddeye bağlanır; belge eklenebilir. | Eski "madde notu olarak ders notu" kaldırıldı. |
+| Ders notu | Kanundan bağımsız ders anlatımı; isteğe bağlı gruba, kanuna ya da maddeye bağlanır; belge eklenebilir. Derse bağlı değilse "düz ders notu"dur ("Diğer ders notları"). | Eski "madde notu olarak ders notu" kaldırıldı. |
+| Ders | Ders kitabı gibi okunan numaralı başlık ağacının kökü (`LectureCourse`); adı, açıklaması, görünürlüğü, sırası vardır. | Adresi düz ders notlarıyla aynı alanda (`/ders-notlari/{adres}`), tekil. |
+| Başlık | Bir dersin ağacındaki ders notu (`LectureNote` + `CourseId`, `ParentId`, `SortOrder`). Numarası ağaçtaki yerden hesaplanır ("1.5.1", birinci düzey "1. Bölüm"), elle girilmez; etkin görünürlüğü ders → üst başlıklar → kendisi zincirinde daralır (`LectureOutline`). | Numara okuyucudan bağımsızdır (ADR 0001). Alt başlığı olan başlık silinmez. |
 | Görünürlük | `public`: herkes, SSR + SEO. `private`: yalnız giriş yapanlar. Üst öğeden miras alınır. | Rol değildir. |
 | Roller | `super_admin` her şeyi yönetir · `standard` okur, arar, kişisel içerik tutar · `reader` yalnız okur. | |
 | Ankraj | Vurgunun yeri: sürüm + fıkra + başlangıç/bitiş + alıntı (önek/sonek). | W3C Web Annotation modeli. |
@@ -28,6 +30,8 @@ Faz 3 sesli not yazıya dökme + OCR, Faz 4 mevzuat değişiklik takibi, Faz 5 k
 ## Business rules
 
 - **BR-1:** `private` içerik anonim istekte 404 döner; varlığı aramada, listede ve site haritasında da sızmaz.
+  Tek istisna: ders başlığı numaraları okuyucudan bağımsızdır; gizli başlığın bıraktığı numara boşluğu varlık
+  sızıntısı sayılmaz (yalnız numara, ad/içerik/adres değil) — [ADR 0001](decisions/0001-lecture-numbers-independent-of-reader.md).
 - **BR-2:** Kişisel içeriği yalnız sahibi görür ve değiştirir; yönetici de göremez.
 - **BR-3:** Madde değişince eski sürüm silinmez, yeni sürümün yürürlük başlangıcından bir gün önce kapanır. Suç tarihi
   seçilirse o tarihte yürürlükte olan metin gösterilir.

@@ -4,10 +4,11 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
-import { GraduationCap, Lock, Paperclip, Pencil, Plus, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, BookOpen, GraduationCap, Lock, Paperclip, Pencil, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { useReorderLectureCourses } from "@/api/generated/lecture-courses/lecture-courses";
 import { getListLectureNotesQueryKey, useDeleteLectureNote } from "@/api/generated/lecture-notes/lecture-notes";
-import type { LectureNoteScope, LectureNoteSummary } from "@/api/generated/model";
+import type { LectureCourseSummary, LectureNoteScope, LectureNoteSummary } from "@/api/generated/model";
 import { ConfirmDelete } from "@/components/panel/confirm-delete";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -24,7 +25,8 @@ export function scopeLabel(scope: LectureNoteScope) {
   return scope.group?.title ?? "Genel";
 }
 
-function useIsAdmin() {
+/** Yönetici mi (hidrasyondan sonra; sunucu çiziminde düğmeler görünmez). */
+export function useIsAdmin() {
   const { data: user } = useCurrentUser();
   return useHydrated() && isAdmin(user);
 }
@@ -38,6 +40,69 @@ export function NewLectureNoteButton() {
         <Plus /> Yeni ders notu
       </Link>
     </Button>
+  );
+}
+
+/** Yönetici: dersi listede bir yukarı/aşağı taşır (bütün derslerin yeni sırası gönderilir). */
+function CourseOrderButtons({ courses, index }: { courses: LectureCourseSummary[]; index: number }) {
+  const router = useRouter();
+  const reorder = useReorderLectureCourses();
+  if (!useIsAdmin()) return null;
+  async function shift(delta: -1 | 1) {
+    const ids = courses.map((c) => c.id);
+    [ids[index], ids[index + delta]] = [ids[index + delta], ids[index]];
+    try {
+      await reorder.mutateAsync({ data: { courseIds: ids } });
+      router.refresh();
+    } catch {
+      toast.error("Sıra değiştirilemedi; sayfayı yenileyip yeniden deneyin.");
+    }
+  }
+  const title = courses[index].title;
+  return (
+    <div className="flex flex-col justify-center gap-1 print:hidden">
+      <Button variant="ghost" size="icon" disabled={index === 0 || reorder.isPending} onClick={() => shift(-1)} aria-label={`Yukarı taşı: ${title}`}>
+        <ArrowUp />
+      </Button>
+      <Button
+        variant="ghost"
+        size="icon"
+        disabled={index === courses.length - 1 || reorder.isPending}
+        onClick={() => shift(1)}
+        aria-label={`Aşağı taşı: ${title}`}
+      >
+        <ArrowDown />
+      </Button>
+    </div>
+  );
+}
+
+/** Dersler sırasıyla: ad, açıklama, başlık sayısı. */
+export function CourseList({ courses }: { courses: LectureCourseSummary[] }) {
+  if (courses.length === 0) return <p className="mt-2 text-muted-foreground">Henüz ders eklenmedi.</p>;
+  return (
+    <ul className="mt-2 space-y-3">
+      {courses.map((course, index) => (
+        <li key={course.id} className="flex gap-2">
+          <Link href={`/ders-notlari/${course.slug}`} className="block min-w-0 flex-1 rounded-lg border bg-card p-4 hover:border-primary/50">
+            <span className="flex items-center gap-2 text-xl text-primary">
+              <BookOpen className="size-5 shrink-0" aria-hidden />
+              <span className="min-w-0">{course.title}</span>
+              {course.visibility === "private" && (
+                <Badge variant="outline" className="text-foreground">
+                  <Lock /> Özel
+                </Badge>
+              )}
+            </span>
+            {course.description && <span className="reading mt-1 block text-[16px] text-muted-foreground">{course.description}</span>}
+            <span className="mt-1 block text-sm text-muted-foreground">
+              {course.nodeCount === 0 ? "Henüz başlık yok" : `${course.nodeCount} başlık`}
+            </span>
+          </Link>
+          <CourseOrderButtons courses={courses} index={index} />
+        </li>
+      ))}
+    </ul>
   );
 }
 

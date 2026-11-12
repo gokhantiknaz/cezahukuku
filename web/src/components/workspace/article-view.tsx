@@ -339,9 +339,16 @@ export function ArticleView({ detail, asOf, initialTab }: { detail: ArticleDetai
                       <ul className="space-y-1">
                         {detail.lectureNotes.map((note) => (
                           <li key={note.slug}>
-                            <Link href={`/ders-notlari/${note.slug}`} className="inline-flex items-center gap-2 text-primary hover:underline">
-                              <GraduationCap className="size-4 shrink-0" aria-hidden />
-                              {note.title}
+                            {/* Ders başlığı numarası ve dersiyle, dersteki adresine gider; düz ders notu kendi sayfasına. */}
+                            <Link href={note.url} className="inline-flex items-start gap-2 text-primary hover:underline">
+                              <GraduationCap className="mt-1 size-4 shrink-0" aria-hidden />
+                              <span>
+                                {note.label && <span className="mr-1.5 tabular-nums">{note.label}</span>}
+                                {note.title}
+                                {note.courseTitle && (
+                                  <span className="ml-1.5 text-sm text-muted-foreground">({note.courseTitle})</span>
+                                )}
+                              </span>
                             </Link>
                           </li>
                         ))}

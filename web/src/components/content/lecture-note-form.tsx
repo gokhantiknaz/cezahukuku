@@ -140,6 +140,9 @@ function LectureNoteForm({ note, onSaved }: { note?: LectureNoteDetail; onSaved?
   const [files, setFiles] = useState<FileItem[]>(originalFiles);
   const [progress, setProgress] = useState<string | null>(null);
   const [emptyError, setEmptyError] = useState(false);
+  // Bir dersin başlığı: ders bağlamı gösterilir, kayıttan sonra dersteki adresine dönülür.
+  const node = note?.node ?? null;
+  const readHref = node && note ? `/ders-notlari/${node.course.slug}/${note.slug}` : note ? `/ders-notlari/${note.slug}` : "/ders-notlari";
 
   const library = useGetLibrary();
   const groups = library.data?.status === 200 ? library.data.data.groups : [];
@@ -156,7 +159,8 @@ function LectureNoteForm({ note, onSaved }: { note?: LectureNoteDetail; onSaved?
   async function submit(event: React.FormEvent) {
     event.preventDefault();
     const liveFiles = files.filter((f) => !(f.kind === "existing" && f.removed));
-    if (!hasText(form.html) && liveFiles.length === 0) {
+    // Ders başlığı içeriksiz olabilir (alt başlıkları gösterilir); düz ders notunda metin ya da belge gerekir.
+    if (!node && !hasText(form.html) && liveFiles.length === 0) {
       setEmptyError(true);
       return;
     }
@@ -182,14 +186,25 @@ function LectureNoteForm({ note, onSaved }: { note?: LectureNoteDetail; onSaved?
     await queryClient.invalidateQueries({ queryKey: getListLectureNotesQueryKey() });
     await queryClient.invalidateQueries({ queryKey: getGetLectureNoteQueryKey(saved.data.slug) });
     if (failures.length > 0) toast.error(`Ders notu kaydedildi; eklenemeyen belgeler: ${failures.join(" · ")}`, { duration: 10000 });
-    else toast.success(note ? "Ders notu kaydedildi." : "Ders notu eklendi.");
+    else toast.success(node ? "Başlık kaydedildi." : note ? "Ders notu kaydedildi." : "Ders notu eklendi.");
     onSaved?.();
-    router.push(`/ders-notlari/${saved.data.slug}`);
+    router.push(saved.data.node ? `/ders-notlari/${saved.data.node.course.slug}/${saved.data.slug}` : `/ders-notlari/${saved.data.slug}`);
     router.refresh();
   }
 
   return (
     <form onSubmit={(e) => submit(e).catch(() => {})} className="mt-5 space-y-4">
+      {node && (
+        <p className="text-sm text-muted-foreground">
+          Ders:{" "}
+          <Link href={`/ders-notlari/${node.course.slug}`} className="text-primary hover:underline">
+            {node.course.title}
+          </Link>
+          {" · "}
+          {[...node.path.map((p) => `${p.label} ${p.title}`), node.label].join(" › ")}
+          {" · "}Yeri ve numarası başlık sayfasındaki “Taşı” ile değişir.
+        </p>
+      )}
       <div className="grid gap-4 sm:grid-cols-[1fr_14rem]">
         <Field label="Başlık" htmlFor="lecture-title" error={error} field="title">
           <Input
@@ -306,7 +321,7 @@ function LectureNoteForm({ note, onSaved }: { note?: LectureNoteDetail; onSaved?
           {progress ?? (note ? "Kaydet" : "Ders notunu ekle")}
         </Button>
         <Button type="button" variant="ghost" asChild>
-          <Link href={note ? `/ders-notlari/${note.slug}` : "/ders-notlari"}>Vazgeç</Link>
+          <Link href={readHref}>Vazgeç</Link>
         </Button>
       </div>
     </form>

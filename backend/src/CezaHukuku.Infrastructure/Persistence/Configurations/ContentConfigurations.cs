@@ -47,6 +47,23 @@ internal sealed class LectureNoteConfiguration : IEntityTypeConfiguration<Lectur
         b.HasIndex(e => e.LawGroupId);
         b.HasIndex(e => e.LawId);
         b.HasIndex(e => e.ArticleId);
+        b.HasOne<LectureCourse>().WithMany().HasForeignKey(e => e.CourseId).OnDelete(DeleteBehavior.Restrict);
+        b.HasOne<LectureNote>().WithMany().HasForeignKey(e => e.ParentId).OnDelete(DeleteBehavior.Restrict);
+        b.HasIndex(e => new { e.CourseId, e.ParentId, e.SortOrder });
+        b.HasIndex(e => e.ParentId);
+    }
+}
+
+internal sealed class LectureCourseConfiguration : IEntityTypeConfiguration<LectureCourse>
+{
+    public void Configure(EntityTypeBuilder<LectureCourse> b)
+    {
+        b.HasQueryFilter(e => e.DeletedAt == null);
+        b.Property(e => e.Title).HasMaxLength(LectureCourse.MaxTitleLength);
+        b.Property(e => e.Slug).HasMaxLength(120);
+        b.Property(e => e.Description).HasMaxLength(LectureCourse.MaxDescriptionLength);
+        b.Property(e => e.Visibility).HasConversion<string>().HasMaxLength(16);
+        b.HasIndex(e => e.Slug).IsUnique().HasFilter(SoftDelete.ActiveFilter);
     }
 }
 

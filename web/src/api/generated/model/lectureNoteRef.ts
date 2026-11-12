@@ -4,8 +4,13 @@
  * CezaHukuku.Api | v1
  * OpenAPI spec version: 1.0.0
  */
+import type { LectureNoteRefLabel } from './lectureNoteRefLabel';
+import type { LectureNoteRefCourseTitle } from './lectureNoteRefCourseTitle';
 
 export interface LectureNoteRef {
   slug: string;
   title: string;
+  url: string;
+  label: LectureNoteRefLabel;
+  courseTitle: LectureNoteRefCourseTitle;
 }

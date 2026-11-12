@@ -10,6 +10,7 @@ import type { LectureNoteDetailLawGroupId } from './lectureNoteDetailLawGroupId'
 import type { LectureNoteDetailLawId } from './lectureNoteDetailLawId';
 import type { LectureNoteDetailArticleId } from './lectureNoteDetailArticleId';
 import type { LectureNoteFileDto } from './lectureNoteFileDto';
+import type { LectureNoteDetailNode } from './lectureNoteDetailNode';
 
 export interface LectureNoteDetail {
   id: string;
@@ -24,4 +25,5 @@ export interface LectureNoteDetail {
   lawId: LectureNoteDetailLawId;
   articleId: LectureNoteDetailArticleId;
   files: LectureNoteFileDto[];
+  node: LectureNoteDetailNode;
 }
