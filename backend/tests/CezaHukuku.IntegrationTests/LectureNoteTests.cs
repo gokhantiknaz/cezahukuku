@@ -39,7 +39,7 @@ public class LectureNoteTests(ApiFactory factory)
 
         // Madde ekranında bağlantı; aramada ders notu olarak, kendi sayfasının adresiyle.
         var articleDetail = await (await anonymous.GetAsync($"/api/library/laws/{law.Slug}/articles/madde-81")).ReadAsync<ArticleDetailResponse>();
-        Assert.Equal([new LectureNoteRef(forArticle.Slug, "Madde notu")], articleDetail.LectureNotes);
+        Assert.Equal([new LectureNoteRef(forArticle.Slug, "Madde notu", $"/ders-notlari/{forArticle.Slug}", null, null)], articleDetail.LectureNotes);
         var search = await (await anonymous.GetAsync($"/api/search?q={Uri.EscapeDataString(title)}&kinds=dersNotu")).ReadAsync<SearchResponse>();
         Assert.Contains(search.Hits, h => h.Kind == SearchKind.DersNotu && h.Url == $"/ders-notlari/{general.Slug}" && h.Context == "Genel");
     }

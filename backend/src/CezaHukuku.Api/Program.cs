@@ -165,6 +165,7 @@ app.MapHighlightEndpoints();
 app.MapSearchEndpoints();
 app.MapNewsEndpoints();
 app.MapLectureNoteEndpoints();
+app.MapLectureCourseEndpoints();
 app.MapQuizEndpoints();
 app.MapCitationCheckEndpoints();
 

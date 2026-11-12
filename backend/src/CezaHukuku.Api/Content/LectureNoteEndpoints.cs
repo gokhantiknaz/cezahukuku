@@ -55,10 +55,34 @@ public sealed record LectureNoteDetail(
     Guid? LawGroupId,
     Guid? LawId,
     Guid? ArticleId,
-    List<LectureNoteFileDto> Files);
+    List<LectureNoteFileDto> Files,
+    LectureNodeContext? Node);
 
 /// <summary>Maddenin altında gösterilen ders notu bağlantısı.</summary>
-public sealed record LectureNoteRef(string Slug, string Title);
+/// <param name="Url">Okuma sayfası: düz notta /ders-notlari/{not}, başlıkta /ders-notlari/{ders}/{başlık}.</param>
+/// <param name="Label">Başlığın numarası ("1.5.1", birinci düzeyde "1. Bölüm"); düz notta boş.</param>
+/// <param name="CourseTitle">Başlığın dersi; düz notta boş.</param>
+public sealed record LectureNoteRef(string Slug, string Title, string Url, string? Label, string? CourseTitle);
+
+public sealed record LectureCourseRef(Guid Id, string Slug, string Title);
+
+/// <param name="Label">Gösterilen numara: birinci düzeyde "1. Bölüm", altında "1.5.1".</param>
+/// <param name="EffectiveVisibility">Ders ve üst başlıklarla daralmış görünürlük ("Özel" rozeti için).</param>
+public sealed record LectureNodeRef(Guid Id, string Slug, string Title, string Label, Visibility EffectiveVisibility);
+
+/// <summary>Başlığın dersteki yeri: ders yolu, numara, önceki/sonraki ve alt başlıklar (okuyanın görebildikleri).</summary>
+/// <param name="Path">Birinci düzeyden üst başlığa kadar (başlığın kendisi hariç).</param>
+public sealed record LectureNodeContext(
+    LectureCourseRef Course,
+    Guid? ParentId,
+    string Number,
+    string Label,
+    int Depth,
+    Visibility EffectiveVisibility,
+    List<LectureNodeRef> Path,
+    LectureNodeRef? Previous,
+    LectureNodeRef? Next,
+    List<LectureNodeRef> Children);
 
 /// <param name="LawGroupId">İsteğe bağlı: kanun grubu (Temel Ceza Kanunları…).</param>
 /// <param name="LawId">İsteğe bağlı: kanun; verilirse grubu kanunun grubu olur.</param>
@@ -68,7 +92,9 @@ public sealed record SaveLectureNoteRequest(
 
 /// <summary>
 /// Ders Notları: kanundan bağımsız konu anlatımları. Herkes okur (private not yalnız girişte), yönetici girer.
-/// İsteğe bağlı olarak kanun grubuna, kanuna ya da maddeye bağlanır.
+/// İsteğe bağlı olarak kanun grubuna, kanuna ya da maddeye bağlanır. Bir dersin başlıkları da ders notudur
+/// (<see cref="LectureCourseEndpoints"/>): okuma, belge ve madde bağlantısında görünürlükleri dersin ağacından
+/// gelir (<see cref="LectureTree.IsVisible"/>).
 /// </summary>
 public static class LectureNoteEndpoints
 {
@@ -95,12 +121,15 @@ public static class LectureNoteEndpoints
         admin.MapDelete("/{id:guid}/files/{fileId:guid}", DeleteFileAsync).WithName("DeleteLectureNoteFile");
     }
 
-    /// <summary>Ders notları, son güncellenen önce. Süzme (kapsam, metin) istemcide yapılır; notlar az sayıdadır.</summary>
+    /// <summary>
+    /// Düz ders notları (bir derse bağlı olmayanlar), son güncellenen önce. Süzme (kapsam, metin) istemcide yapılır;
+    /// notlar az sayıdadır.
+    /// </summary>
     private static async Task<Ok<List<LectureNoteSummary>>> ListAsync(ClaimsPrincipal principal, AppDbContext db, CancellationToken ct)
     {
         var includePrivate = principal.CanSeePrivate();
         var notes = await db.LectureNotes.AsNoTracking()
-            .Where(n => includePrivate || n.Visibility == Visibility.Public)
+            .Where(n => n.CourseId == null && (includePrivate || n.Visibility == Visibility.Public))
             .OrderByDescending(n => n.UpdatedAt)
             .ToListAsync(ct);
         var scopes = await ScopesAsync(db, notes, includePrivate, ct);
@@ -118,12 +147,10 @@ public static class LectureNoteEndpoints
         string slug, ClaimsPrincipal principal, AppDbContext db, CancellationToken ct)
     {
         var includePrivate = principal.CanSeePrivate();
-        var note = await db.LectureNotes.AsNoTracking()
-            .FirstOrDefaultAsync(n => n.Slug == slug.ToLowerInvariant() && (includePrivate || n.Visibility == Visibility.Public), ct);
-        if (note is null)
-            return TypedResults.NotFound();
-        var scopes = await ScopesAsync(db, [note], includePrivate, ct);
-        return TypedResults.Ok(await ToDetailAsync(db, note, scopes[note.Id], ct));
+        var note = await db.LectureNotes.AsNoTracking().FirstOrDefaultAsync(n => n.Slug == slug.ToLowerInvariant(), ct);
+        return note is not null && await DetailAsync(db, note, includePrivate, ct) is { } detail
+            ? TypedResults.Ok(detail)
+            : TypedResults.NotFound();
     }
 
     private static async Task<Results<Created<LectureNoteDetail>, ValidationProblem>> CreateAsync(
@@ -132,11 +159,10 @@ public static class LectureNoteEndpoints
         var note = new LectureNote();
         if (await ApplyAsync(note, request, db, ct) is { } problem)
             return problem;
-        note.Slug = await UniqueSlugAsync(db, note.Title, ct);
+        note.Slug = await LectureTree.UniqueSlugAsync(db, note.Title, "ders-notu", ct);
         db.LectureNotes.Add(note);
         await db.SaveChangesAsync(ct);
-        var scopes = await ScopesAsync(db, [note], includePrivate: true, ct);
-        return TypedResults.Created($"/api/lecture-notes/{note.Slug}", await ToDetailAsync(db, note, scopes[note.Id], ct));
+        return TypedResults.Created($"/api/lecture-notes/{note.Slug}", (await DetailAsync(db, note, includePrivate: true, ct))!);
     }
 
     /// <summary>Adres (slug) değişmez: başlık değişse de verilen bağlantılar çalışmaya devam eder.</summary>
@@ -149,27 +175,42 @@ public static class LectureNoteEndpoints
         if (await ApplyAsync(note, request, db, ct) is { } problem)
             return problem;
         await db.SaveChangesAsync(ct);
-        var scopes = await ScopesAsync(db, [note], includePrivate: true, ct);
-        return TypedResults.Ok(await ToDetailAsync(db, note, scopes[note.Id], ct));
+        return TypedResults.Ok((await DetailAsync(db, note, includePrivate: true, ct))!);
     }
 
-    private static async Task<Results<NoContent, NotFound>> DeleteAsync(Guid id, AppDbContext db, TimeProvider clock, CancellationToken ct)
+    /// <summary>Kayıt ve belgeleri saklanır, okuyucudan kalkar. Alt başlığı olan başlık silinmez (önce alt başlıklar).</summary>
+    private static async Task<Results<NoContent, NotFound, ValidationProblem>> DeleteAsync(
+        Guid id, AppDbContext db, TimeProvider clock, CancellationToken ct)
     {
         var note = await db.LectureNotes.FindAsync([id], ct);
         if (note is null)
             return TypedResults.NotFound();
+        if (await db.LectureNotes.AnyAsync(n => n.ParentId == id, ct))
+            return ValidationErrors.Single("id", "Alt başlığı olan başlık silinemez; önce alt başlıkları taşıyın ya da silin.");
         note.DeletedAt = clock.GetUtcNow();
         await db.SaveChangesAsync(ct);
         return TypedResults.NoContent();
     }
 
-    /// <summary>Maddeye bağlı, okuyanın görebileceği ders notları (madde ekranında).</summary>
-    public static async Task<List<LectureNoteRef>> ForArticleAsync(AppDbContext db, Guid articleId, bool includePrivate) =>
-        await db.LectureNotes.AsNoTracking()
-            .Where(n => n.ArticleId == articleId && (includePrivate || n.Visibility == Visibility.Public))
-            .OrderBy(n => n.Title)
-            .Select(n => new LectureNoteRef(n.Slug, n.Title))
+    /// <summary>
+    /// Maddeye bağlı, okuyanın görebileceği ders notları ve ders başlıkları (madde ekranında): önce düz notlar, sonra
+    /// başlıklar dersine ve adına göre; başlık numarası ve dersiyle, dersteki adresine bağlanır.
+    /// </summary>
+    public static async Task<List<LectureNoteRef>> ForArticleAsync(AppDbContext db, Guid articleId, bool includePrivate)
+    {
+        var notes = await db.LectureNotes.AsNoTracking()
+            .Where(n => n.ArticleId == articleId)
+            .Select(n => new LectureNote { Id = n.Id, Slug = n.Slug, Title = n.Title, Visibility = n.Visibility, CourseId = n.CourseId })
             .ToListAsync();
+        var outlines = await LectureTree.OutlinesAsync(
+            db, notes.Where(n => n.CourseId != null).Select(n => n.CourseId!.Value), includePrivate, CancellationToken.None);
+        return [.. notes
+            .Where(n => LectureTree.IsVisible(n, outlines, includePrivate))
+            .Select(n => n.CourseId is { } courseId && outlines[courseId] is var outline
+                ? new LectureNoteRef(n.Slug, n.Title, LectureTree.UrlOf(n, outline.Course), outline.Find(n.Id)!.Label, outline.Course.Title)
+                : new LectureNoteRef(n.Slug, n.Title, LectureTree.UrlOf(n, null), null, null))
+            .OrderBy(r => r.CourseTitle is null ? 0 : 1).ThenBy(r => r.CourseTitle).ThenBy(r => r.Title)];
+    }
 
     private static async Task<ValidationProblem?> ApplyAsync(
         LectureNote note, SaveLectureNoteRequest request, AppDbContext db, CancellationToken ct)
@@ -212,26 +253,6 @@ public static class LectureNoteEndpoints
         return null;
     }
 
-    /// <summary>Başlıktan adres: "Kast ve taksir" → "kast-ve-taksir"; varsa "-2", "-3"…</summary>
-    private static async Task<string> UniqueSlugAsync(AppDbContext db, string title, CancellationToken ct)
-    {
-        var slug = Slugs.FromText(title);
-        if (slug.Length > 100)
-            slug = slug[..100].TrimEnd('-');
-        if (slug.Length == 0)
-            slug = "ders-notu";
-        else if (slug == "yeni")
-            slug = "yeni-ders-notu"; // /ders-notlari/yeni yeni not formudur
-        var taken = await db.LectureNotes.IgnoreQueryFilters()
-            .Where(n => n.DeletedAt == null && (n.Slug == slug || n.Slug.StartsWith(slug + "-")))
-            .Select(n => n.Slug)
-            .ToListAsync(ct);
-        var candidate = slug;
-        for (var i = 2; taken.Contains(candidate); i++)
-            candidate = $"{slug}-{i}";
-        return candidate;
-    }
-
     /// <summary>Notların bağlantıları adlarıyla; okuyanın göremediği kanun ve madde boş bırakılır.</summary>
     private static async Task<Dictionary<Guid, LectureNoteScope>> ScopesAsync(
         AppDbContext db, IReadOnlyCollection<LectureNote> notes, bool includePrivate, CancellationToken ct)
@@ -258,12 +279,45 @@ public static class LectureNoteEndpoints
         return flat.Length <= ExcerptLength ? flat : flat[..ExcerptLength].TrimEnd() + "…";
     }
 
-    private static async Task<LectureNoteDetail> ToDetailAsync(AppDbContext db, LectureNote n, LectureNoteScope scope, CancellationToken ct)
+    /// <summary>
+    /// Ders notunun okuyana göre ayrıntısı; başlıkta dersteki yeriyle. Okuyan göremiyorsa (özel not, özel ders ya da
+    /// özel üst başlığın altı) null.
+    /// </summary>
+    internal static async Task<LectureNoteDetail?> DetailAsync(AppDbContext db, LectureNote n, bool includePrivate, CancellationToken ct)
     {
+        LectureNodeContext? context = null;
+        if (n.CourseId is { } courseId)
+        {
+            var outline = await LectureTree.OutlineAsync(db, courseId, includePrivate, ct);
+            if (outline?.Find(n.Id) is not { } node)
+                return null;
+            context = ContextOf(outline, node);
+        }
+        else if (!includePrivate && n.Visibility != Visibility.Public)
+            return null;
+
+        var scopes = await ScopesAsync(db, [n], includePrivate, ct);
         var files = await db.LectureNoteFiles.AsNoTracking().Where(f => f.LectureNoteId == n.Id)
             .OrderBy(f => f.SortOrder).ThenBy(f => f.CreatedAt).ToListAsync(ct);
-        return new(n.Id, n.Slug, n.Title, n.Html, scope, n.Visibility, n.CreatedAt, n.UpdatedAt, n.LawGroupId, n.LawId, n.ArticleId,
-            [.. files.Select(f => ToFileDto(n, f))]);
+        return new(n.Id, n.Slug, n.Title, n.Html, scopes[n.Id], n.Visibility, n.CreatedAt, n.UpdatedAt, n.LawGroupId, n.LawId, n.ArticleId,
+            [.. files.Select(f => ToFileDto(n, f))], context);
+    }
+
+    private static LectureNodeContext ContextOf(LectureOutline outline, LectureOutlineNode node)
+    {
+        static LectureNodeRef Ref(LectureOutlineNode n) => new(n.Note.Id, n.Note.Slug, n.Note.Title, n.Label, n.EffectiveVisibility);
+        var course = outline.Course;
+        return new(
+            new LectureCourseRef(course.Id, course.Slug, course.Title),
+            node.Note.ParentId is { } parentId && outline.Find(parentId) is not null ? parentId : null,
+            node.Number,
+            node.Label,
+            node.Depth,
+            node.EffectiveVisibility,
+            [.. outline.PathOf(node.Note.Id).Select(Ref)],
+            outline.Previous(node.Note.Id) is { } previous ? Ref(previous) : null,
+            outline.Next(node.Note.Id) is { } next ? Ref(next) : null,
+            [.. node.Children.Select(Ref)]);
     }
 
     private static LectureNoteFileDto ToFileDto(LectureNote note, LectureNoteFile f) =>
@@ -278,14 +332,16 @@ public static class LectureNoteEndpoints
     {
         var includePrivate = principal.CanSeePrivate();
         var lowerSlug = slug.ToLowerInvariant();
-        var file = await (
+        var found = await (
                 from f in db.LectureNoteFiles
                 join n in db.LectureNotes on f.LectureNoteId equals n.Id
-                where f.Id == fileId && n.Slug == lowerSlug && (includePrivate || n.Visibility == Visibility.Public)
-                select f)
+                where f.Id == fileId && n.Slug == lowerSlug
+                select new { File = f, Note = n })
             .AsNoTracking().FirstOrDefaultAsync(ct);
-        if (file is null || await storage.OpenReadAsync(file.StorageKey, ct) is not { } stream)
+        if (found is null || !await LectureTree.IsVisibleAsync(db, found.Note, includePrivate, ct)
+            || await storage.OpenReadAsync(found.File.StorageKey, ct) is not { } stream)
             return TypedResults.NotFound();
+        var file = found.File;
 
         if (download != true && DocumentFiles.IsInline(file.ContentType))
         {
