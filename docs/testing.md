@@ -15,7 +15,11 @@
   başlangıç durumu); bağlantı `CEZAHUKUKU_TEST_CONNECTION` ya da API user-secrets'ından, veritabanı adı her zaman
   `cezahukuku_integration` (geliştirme veritabanı silinmez). Yüklenen dosyalar geçici klasöre; hız sınırı testlerde
   yükseltilir, ayrıca `AuthTests`'te denenir; dış yazıya dökme servisi kapalı (stub yok, uç nokta devre dışı).
-- **Web:** otomatik test yok (B-3). Web için kanıt: `typecheck`, `lint`, `web build` adımları + VERIFY'daki ekran
+- **Web birim (Node'un yerleşik test koşucusu, `node --experimental-strip-types --test`):** `web/src/**/*.test.ts` —
+  yalnız saf mantık (React ve DOM yok; ör. `src/lib/lecture-moves.ts`). Test dosyası modülü `./x.ts` uzantısıyla içe
+  aktarır, modülde yalnız `import type` olabilir (tür silme; `@/` yolu çalışma anında çözülmez). Bağımlılık yok;
+  check'te `web unit` (fast) adımı (spec 0003, plan A-1). Bileşen testi yok.
+- **Web arayüzü:** Web için kanıt: `typecheck`, `lint`, `web unit`, `web build` adımları + VERIFY'daki ekran
   görüntüleri (Evidence for UI criteria). Ekran görüntüleri depo dışında, tek seferlik Playwright betikleriyle (headless
   Edge, ayrı deneme veritabanı kopyası, API :5180 + web :3100) alınır; bunlar gözlemdir, check adımı değildir.
 - **Determinism:** API zamanı `TimeProvider`'dan alır; testler sabit saate dayanmaz, kendi verisini benzersiz adlarla (Guid) üretir, sıraya
