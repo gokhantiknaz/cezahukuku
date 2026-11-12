@@ -28,6 +28,8 @@ Faz 3 sesli not yazıya dökme + OCR, Faz 4 mevzuat değişiklik takibi, Faz 5 k
 ## Business rules
 
 - **BR-1:** `private` içerik anonim istekte 404 döner; varlığı aramada, listede ve site haritasında da sızmaz.
+  Tek istisna: ders başlığı numaraları okuyucudan bağımsızdır; gizli başlığın bıraktığı numara boşluğu varlık
+  sızıntısı sayılmaz (yalnız numara, ad/içerik/adres değil) — [ADR 0001](decisions/0001-lecture-numbers-independent-of-reader.md).
 - **BR-2:** Kişisel içeriği yalnız sahibi görür ve değiştirir; yönetici de göremez.
 - **BR-3:** Madde değişince eski sürüm silinmez, yeni sürümün yürürlük başlangıcından bir gün önce kapanır. Suç tarihi
   seçilirse o tarihte yürürlükte olan metin gösterilir.
