@@ -157,6 +157,21 @@ public class ArticleTabEditTests(ApiFactory factory)
         await admin.PutJsonAsync($"/api/admin/decisions/{decision.Id}", Decision("x", Visibility.Public)).ExpectAsync(404);
     }
 
+    // AC-1 (VERIFY QA-1): güncelleme yalnız yanıtta değil, kayıtta da kalıcıdır.
+    [Fact]
+    public async Task UpdatedNote_IsPersisted()
+    {
+        var admin = await factory.CreateAdminClientAsync();
+        var (law, m81, _) = await CreateLawAsync(admin);
+        var note = await CreateNoteAsync(admin, m81.Id, "<p>İlk metin.</p>", Visibility.Public);
+
+        await admin.PutJsonAsync($"/api/admin/notes/{note.Id}",
+            new SaveEditorialNoteRequest(EditorialNoteKind.Gerekce, "Yeni başlık", "<p>Düzeltilmiş metin.</p>", Visibility.Public, null)).ExpectAsync(200);
+
+        var shown = Assert.Single((await ArticleAsync(factory.CreateAnonymousClient(), law, "81")).Notes);
+        Assert.Equal(("Yeni başlık", "<p>Düzeltilmiş metin.</p>"), (shown.Title, shown.Html));
+    }
+
     private static string Word() => "zq" + Guid.NewGuid().ToString("N")[..8];
 
     private static SaveDecisionRequest Decision(string summary, Visibility visibility, string chamber = "Ceza Genel Kurulu", params Guid[] articles) =>
