@@ -68,7 +68,7 @@ export function NoteActions({
               target={{ level: "article", id: articleId }}
               kinds={{ [note.kind]: words.label }}
               note={note}
-              onDone={() => setOpen(false)}
+              onDone={() => changeOpen(false)}
               onGone={() => {
                 if (stale.current) return;
                 stale.current = true;
