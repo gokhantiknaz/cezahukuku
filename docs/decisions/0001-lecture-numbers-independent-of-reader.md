@@ -2,6 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-11-12
+- Revised: 2026-11-12 — karar cümlesindeki ters anlam düzeltildi (karar aynı)
 
 ## Context
 Spec 0002 ile ders notları numaralı bir başlık ağacına dönüştü ("1.5.1.1.3.1"; birinci düzey "1. Bölüm"). Bir ders
