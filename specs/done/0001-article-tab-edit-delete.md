@@ -1,6 +1,6 @@
 # Spec 0001 — Madde sekmelerinde kayıtları düzenleme ve kaldırma
 
-- Status: In progress
+- Status: Shipped
 - Mode: lite
 - Plan: `specs/plans/0001-plan.md`
 - Self-critique: done
@@ -59,38 +59,38 @@ bağlantıları, Açıklama sekmesindeki ders notu bağlantıları ve kararı t�
   denetimi (iki yönetici aynı kaydı düzenlerse son kaydeden kazanır).
 
 ## Acceptance criteria
-- [ ] AC-1 — Yönetici Gerekçe ve Açıklama sekmelerinde bir notu pencereden düzenler: pencere mevcut başlık, görünürlük ve
+- [x] AC-1 — Yönetici Gerekçe ve Açıklama sekmelerinde bir notu pencereden düzenler: pencere mevcut başlık, görünürlük ve
   metinle dolu açılır; kaydedince pencere kapanır, yeni metin aynı sekmede görünür ve sekme değişmez.
-- [ ] AC-2 — Yönetici bir notu onay penceresiyle kaldırır: onaylayınca not sekmeden ve giriş yapmamış okuyucunun
+- [x] AC-2 — Yönetici bir notu onay penceresiyle kaldırır: onaylayınca not sekmeden ve giriş yapmamış okuyucunun
   sayfasından kalkar (sekmede başka not kalmazsa boş durum metni görünür); onay penceresinde Vazgeç'e basılırsa not
   yerinde kalır.
-- [ ] AC-3 — Yönetici İçtihatlar ve Norm Denetimi sekmelerinde bir kararı pencereden düzenler: pencere mevcut değerlerle
+- [x] AC-3 — Yönetici İçtihatlar ve Norm Denetimi sekmelerinde bir kararı pencereden düzenler: pencere mevcut değerlerle
   dolu açılır; kaydedince künye/özet sekmede ve aramada güncel hâliyle görünür.
-- [ ] AC-4 — Başka maddelere de bağlı bir karar düzenlenirken pencere bağlı maddeleri listeler.
-- [ ] AC-5 — "Bu maddeden kaldır" onaylanınca karar bu maddenin sekmesinden kalkar; aynı karar bağlı olduğu diğer maddede
+- [x] AC-4 — Başka maddelere de bağlı bir karar düzenlenirken pencere bağlı maddeleri listeler.
+- [x] AC-5 — "Bu maddeden kaldır" onaylanınca karar bu maddenin sekmesinden kalkar; aynı karar bağlı olduğu diğer maddede
   ve karar yönetim listesinde durmaya devam eder; sekmede başka karar kalmazsa boş durum metni görünür.
-- [ ] AC-6 — Düzenleme penceresi Vazgeç ya da Esc ile kapatılırsa kayıt değişmez.
-- [ ] AC-7 — Yönetici bir notu ya da kararı "üyelere özel" yapınca giriş yapmamış okuyucu onu okuma ekranında ve aramada
+- [x] AC-6 — Düzenleme penceresi Vazgeç ya da Esc ile kapatılırsa kayıt değişmez.
+- [x] AC-7 — Yönetici bir notu ya da kararı "üyelere özel" yapınca giriş yapmamış okuyucu onu okuma ekranında ve aramada
   artık görmez; giriş yapmış üye görür.
-- [ ] AC-8 — Giriş yapmamış okuyucu, `standard` ve `reader` kullanıcılar düğmeleri görmez; yönetici olmayanın düzenleme ve
+- [x] AC-8 — Giriş yapmamış okuyucu, `standard` ve `reader` kullanıcılar düğmeleri görmez; yönetici olmayanın düzenleme ve
   kaldırma istekleri sunucuda reddedilir (giriş yok → 401, rol yetmiyor → 403) ve kayıt değişmez.
-- [ ] AC-9 — Kayıt bu arada silinmişse ya da doğrulama hatası varsa sunucunun mesajı gösterilir; düzenleme penceresi açık
+- [x] AC-9 — Kayıt bu arada silinmişse ya da doğrulama hatası varsa sunucunun mesajı gösterilir; düzenleme penceresi açık
   kalır, girilenler kaybolmaz; kayıt silinmişse sekme güncel hâliyle yenilenir.
-- [ ] AC-10 — Düğmeler klavyeyle ulaşılır ve erişilebilir adları kaydı içerir; yazdırmada gizlidir; 390 px genişlikte sayfa
+- [x] AC-10 — Düğmeler klavyeyle ulaşılır ve erişilebilir adları kaydı içerir; yazdırmada gizlidir; 390 px genişlikte sayfa
   ve pencere yatay taşmaz.
 
 ## Definition of Done
-- [ ] Every acceptance criterion mapped to proof (test or reproducible observation)
-- [ ] `scripts/check` green
-- [ ] Independent review done; real findings fixed, noise rejected with written rationale, deferred ones in `specs/backlog.md`
-- [ ] Docs / ADRs updated if behavior or architecture changed
-- [ ] Spec moved to `specs/done/` (it becomes immutable there)
+- [x] Every acceptance criterion mapped to proof (test or reproducible observation)
+- [x] `scripts/check` green
+- [x] Independent review done; real findings fixed, noise rejected with written rationale, deferred ones in `specs/backlog.md`
+- [x] Docs / ADRs updated if behavior or architecture changed
+- [x] Spec moved to `specs/done/` (it becomes immutable there)
 
 ## Scorecard (fill at ship — honest numbers make the process improvable)
 | Metric | Value |
 |---|---|
-| Spec revisions | |
-| Fix rounds | |
-| Review findings: real / noise / deferred | |
-| Regressions introduced | |
-| Bugs escaped to production | |
+| Spec revisions | 0 onay sonrası (A-1 yalnız test adı/yorum) |
+| Fix rounds | 3 |
+| Review findings: real / noise / deferred | 10 / 1 / 1 (B-5) |
+| Regressions introduced | 0 |
+| Bugs escaped to production | 0 (henüz canlıya alınmadı) |
