@@ -5,6 +5,7 @@
 import { cache } from "react";
 import { cookies } from "next/headers";
 import { getGetArticleUrl, getGetLawNotesUrl, getGetLawUrl, getGetLibraryUrl } from "@/api/generated/library/library";
+import { getGetLectureCourseUrl, getListLectureCoursesUrl } from "@/api/generated/lecture-courses/lecture-courses";
 import { getGetLectureNoteUrl, getListLectureNotesUrl } from "@/api/generated/lecture-notes/lecture-notes";
 import { getListNewsUrl } from "@/api/generated/news/news";
 import { getSearchUrl } from "@/api/generated/search/search";
@@ -12,6 +13,8 @@ import type {
   ArticleDetailResponse,
   EditorialNoteDto,
   LawTreeResponse,
+  LectureCourseDetail,
+  LectureCourseSummary,
   LectureNoteDetail,
   LectureNoteSummary,
   LibraryResponse,
@@ -73,6 +76,14 @@ export const getNews = cache(async (limit = 100) => (await apiGet<NewsItemDto[]>
 
 /** Ders notları (son güncellenen önce); giriş yapan kullanıcıya üyelere özel olanlar da gelir. */
 export const getLectureNotes = cache(async () => (await apiGet<LectureNoteSummary[]>(getListLectureNotesUrl())) ?? []);
+
+/** Dersler sırasıyla (özel dersler yalnız girişte). */
+export const getLectureCourses = cache(async () => (await apiGet<LectureCourseSummary[]>(getListLectureCoursesUrl())) ?? []);
+
+/** Ders ve içindekileri; adres bir ders değilse (düz ders notu ya da yok) null. */
+export const getLectureCourse = cache(async (slug: string) =>
+  isSlug(slug) ? apiGet<LectureCourseDetail>(getGetLectureCourseUrl(slug)) : null,
+);
 
 export const getLectureNote = cache(async (slug: string) =>
   isSlug(slug) ? apiGet<LectureNoteDetail>(getGetLectureNoteUrl(slug)) : null,

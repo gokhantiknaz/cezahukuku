@@ -4,10 +4,10 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
-import { GraduationCap, Lock, Paperclip, Pencil, Plus, Trash2 } from "lucide-react";
+import { BookOpen, GraduationCap, Lock, Paperclip, Pencil, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { getListLectureNotesQueryKey, useDeleteLectureNote } from "@/api/generated/lecture-notes/lecture-notes";
-import type { LectureNoteScope, LectureNoteSummary } from "@/api/generated/model";
+import type { LectureCourseSummary, LectureNoteScope, LectureNoteSummary } from "@/api/generated/model";
 import { ConfirmDelete } from "@/components/panel/confirm-delete";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -38,6 +38,34 @@ export function NewLectureNoteButton() {
         <Plus /> Yeni ders notu
       </Link>
     </Button>
+  );
+}
+
+/** Dersler sırasıyla: ad, açıklama, başlık sayısı. */
+export function CourseList({ courses }: { courses: LectureCourseSummary[] }) {
+  if (courses.length === 0) return <p className="mt-2 text-muted-foreground">Henüz ders eklenmedi.</p>;
+  return (
+    <ul className="mt-2 space-y-3">
+      {courses.map((course) => (
+        <li key={course.id}>
+          <Link href={`/ders-notlari/${course.slug}`} className="block rounded-lg border bg-card p-4 hover:border-primary/50">
+            <span className="flex items-center gap-2 text-xl text-primary">
+              <BookOpen className="size-5 shrink-0" aria-hidden />
+              <span className="min-w-0">{course.title}</span>
+              {course.visibility === "private" && (
+                <Badge variant="outline" className="text-foreground">
+                  <Lock /> Özel
+                </Badge>
+              )}
+            </span>
+            {course.description && <span className="reading mt-1 block text-[16px] text-muted-foreground">{course.description}</span>}
+            <span className="mt-1 block text-sm text-muted-foreground">
+              {course.nodeCount === 0 ? "Henüz başlık yok" : `${course.nodeCount} başlık`}
+            </span>
+          </Link>
+        </li>
+      ))}
+    </ul>
   );
 }
 
