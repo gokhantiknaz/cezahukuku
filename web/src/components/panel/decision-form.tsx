@@ -77,7 +77,7 @@ export function DecisionDialog({
   const onGone = () => {
     if (stale.current) return;
     stale.current = true;
-    toast.error(`${goneMessage} Pencereyi kapatınca sekme yenilenir.`);
+    toast.error(`${goneMessage} Pencereyi kapatınca liste yenilenir.`);
   };
   function changeOpen(next: boolean) {
     setOpen(next);
@@ -139,7 +139,7 @@ function LoadedDecisionForm({
   }, [gone]);
   if (loadError) {
     return (
-      <FormMessages messages={gone ? [`${goneMessage} Pencereyi kapatınca sekme yenilenir.`] : otherMessages(loadError, [])} />
+      <FormMessages messages={gone ? [`${goneMessage} Pencereyi kapatınca liste yenilenir.`] : otherMessages(loadError, [])} />
     );
   }
   if (query.data?.status !== 200) return <p className="text-muted-foreground">Yükleniyor…</p>;
@@ -321,7 +321,7 @@ export function DecisionForm({
       <FormMessages
         messages={
           isGone(error)
-            ? [onGone ? `${goneMessage} Pencereyi kapatınca sekme yenilenir.` : `${goneMessage} Liste yenilendi.`]
+            ? [onGone ? `${goneMessage} Pencereyi kapatınca liste yenilenir.` : `${goneMessage} Liste yenilendi.`]
             : otherMessages(error, decisionFields)
         }
       />
