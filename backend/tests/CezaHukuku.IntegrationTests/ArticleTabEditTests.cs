@@ -172,6 +172,26 @@ public class ArticleTabEditTests(ApiFactory factory)
         Assert.Equal(("Yeni başlık", "<p>Düzeltilmiş metin.</p>"), (shown.Title, shown.Html));
     }
 
+    // AC-9 (VERIFY QA-2): düzenlemede geçersiz veri 400 döner ve kayıt değişmez.
+    [Fact]
+    public async Task InvalidEdit_Returns400_AndRecordIsUnchanged()
+    {
+        var admin = await factory.CreateAdminClientAsync();
+        var (law, m81, _) = await CreateLawAsync(admin);
+        var note = await CreateNoteAsync(admin, m81.Id, "<p>Özgün not.</p>", Visibility.Public);
+        var decision = await CreateDecisionAsync(admin, "Özgün özet.", Visibility.Public, m81.Id);
+
+        await admin.PutJsonAsync($"/api/admin/notes/{note.Id}",
+            new SaveEditorialNoteRequest(EditorialNoteKind.Gerekce, "Yeni başlık", "", Visibility.Public, null)).ExpectAsync(400);
+        await admin.PutJsonAsync($"/api/admin/decisions/{decision.Id}",
+            Decision("Değişti.", Visibility.Public) with { SourceUrl = "ftp://ornek" }).ExpectAsync(400);
+
+        var view = await ArticleAsync(admin, law, "81");
+        var shownNote = Assert.Single(view.Notes);
+        Assert.Equal(((string?)null, "<p>Özgün not.</p>"), (shownNote.Title, shownNote.Html));
+        Assert.Equal("Özgün özet.", Assert.Single(view.Decisions).Summary);
+    }
+
     private static string Word() => "zq" + Guid.NewGuid().ToString("N")[..8];
 
     private static SaveDecisionRequest Decision(string summary, Visibility visibility, string chamber = "Ceza Genel Kurulu", params Guid[] articles) =>
