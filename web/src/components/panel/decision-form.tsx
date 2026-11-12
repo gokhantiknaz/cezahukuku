@@ -8,6 +8,7 @@ import { RichTextEditor } from "@/components/rich-text/rich-text-editor";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -328,6 +329,12 @@ export function DecisionForm({
         <Button type="submit" disabled={create.isPending || update.isPending}>
           {decision ? "Kaydet" : "Kararı ekle"}
         </Button>
+        {/* Pencerenin kendi kapatma yolu: Esc/X gibi, kapanınca bekleyen tazeleme de yapılır (DecisionDialog). */}
+        <DialogClose asChild>
+          <Button type="button" variant="ghost">
+            Vazgeç
+          </Button>
+        </DialogClose>
       </DialogFooter>
     </form>
   );
