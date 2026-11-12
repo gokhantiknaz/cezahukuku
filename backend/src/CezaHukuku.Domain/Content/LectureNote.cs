@@ -7,11 +7,26 @@ namespace CezaHukuku.Domain.Content;
 /// Ders notu: kanun ya da maddeden bağımsız, kendi sayfası olan konu anlatımı (Ders Notları bölümü). İsteğe bağlı
 /// olarak bir kanun grubuna (Temel Ceza Kanunları…), bir kanuna ya da bir maddeye bağlanır; bağlı değilse genel
 /// ders notudur. Bağlantı tutarlı tutulur: maddeye bağlı not o maddenin kanununa ve grubuna da bağlıdır.
-/// Görünürlüğü yalnız kendi ayarıdır (bağlandığı kanunun görünürlüğü notu daraltmaz).
+/// Bağlandığı kanunun görünürlüğü notu daraltmaz.
+/// <para>
+/// Not bir derse bağlıysa (<see cref="CourseId"/>) o dersin başlık ağacında bir başlıktır: <see cref="ParentId"/> üst
+/// başlığı (boşsa birinci düzey), <see cref="SortOrder"/> kardeşler arasındaki sırasıdır. Başlığın numarası, ders
+/// yolu ve etkin görünürlüğü (ders → üst başlıklar → kendisi) <see cref="LectureOutline"/> ile hesaplanır.
+/// Derse bağlı olmayan not düz ders notudur; görünürlüğü yalnız kendi ayarıdır.
+/// </para>
 /// </summary>
 public sealed class LectureNote : Entity
 {
     public const int MaxTitleLength = 300;
+
+    /// <summary>Başlığın dersi; boşsa düz ders notu.</summary>
+    public Guid? CourseId { get; set; }
+
+    /// <summary>Üst başlık (aynı dersten); boşsa birinci düzey başlık.</summary>
+    public Guid? ParentId { get; set; }
+
+    /// <summary>Kardeş başlıklar arasındaki sıra (küçük önce).</summary>
+    public int SortOrder { get; set; }
 
     public string Title { get; set; } = "";
 
