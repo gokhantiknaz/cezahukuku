@@ -159,6 +159,60 @@
         }
       }
     },
+    "/api/admin/lecture-notes/{id}/position": {
+      "put": {
+        "tags": [
+          "LectureCourses"
+        ],
+        "operationId": "MoveLectureNode",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MoveLectureNodeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LectureNoteDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/quiz": {
       "get": {
         "tags": [
@@ -3270,6 +3324,16 @@
           },
           "404": {
             "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
           }
         }
       }
@@ -3489,6 +3553,278 @@
           },
           "404": {
             "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/lecture-courses": {
+      "get": {
+        "tags": [
+          "LectureCourses"
+        ],
+        "operationId": "ListLectureCourses",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/LectureCourseSummary"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/lecture-courses/{slug}": {
+      "get": {
+        "tags": [
+          "LectureCourses"
+        ],
+        "operationId": "GetLectureCourse",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LectureCourseDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/admin/lecture-courses": {
+      "post": {
+        "tags": [
+          "LectureCourses"
+        ],
+        "operationId": "CreateLectureCourse",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveLectureCourseRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LectureCourseDetail"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/lecture-courses/order": {
+      "put": {
+        "tags": [
+          "LectureCourses"
+        ],
+        "operationId": "ReorderLectureCourses",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReorderLectureCoursesRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/lecture-courses/{id}": {
+      "put": {
+        "tags": [
+          "LectureCourses"
+        ],
+        "operationId": "UpdateLectureCourse",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveLectureCourseRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LectureCourseDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "LectureCourses"
+        ],
+        "operationId": "DeleteLectureCourse",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/lecture-courses/{id}/nodes": {
+      "post": {
+        "tags": [
+          "LectureCourses"
+        ],
+        "operationId": "AddLectureNode",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddLectureNodeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LectureNoteDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
           }
         }
       }
@@ -3734,6 +4070,29 @@
   },
   "components": {
     "schemas": {
+      "AddLectureNodeRequest": {
+        "required": [
+          "title",
+          "parentId",
+          "visibility"
+        ],
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "parentId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "visibility": {
+            "$ref": "#/components/schemas/Visibility"
+          }
+        }
+      },
       "AdminDecisionDetail": {
         "required": [
           "decision",
@@ -6027,6 +6386,194 @@
           }
         }
       },
+      "LectureCourseDetail": {
+        "required": [
+          "id",
+          "slug",
+          "title",
+          "description",
+          "visibility",
+          "toc"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "visibility": {
+            "$ref": "#/components/schemas/Visibility"
+          },
+          "toc": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LectureTocEntry"
+            }
+          }
+        }
+      },
+      "LectureCourseRef": {
+        "required": [
+          "id",
+          "slug",
+          "title"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          }
+        }
+      },
+      "LectureCourseSummary": {
+        "required": [
+          "id",
+          "slug",
+          "title",
+          "description",
+          "visibility",
+          "nodeCount"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "visibility": {
+            "$ref": "#/components/schemas/Visibility"
+          },
+          "nodeCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "LectureNodeContext": {
+        "required": [
+          "course",
+          "parentId",
+          "number",
+          "label",
+          "depth",
+          "effectiveVisibility",
+          "path",
+          "previous",
+          "next",
+          "children"
+        ],
+        "type": "object",
+        "properties": {
+          "course": {
+            "$ref": "#/components/schemas/LectureCourseRef"
+          },
+          "parentId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "number": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "depth": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "effectiveVisibility": {
+            "$ref": "#/components/schemas/Visibility"
+          },
+          "path": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LectureNodeRef"
+            }
+          },
+          "previous": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/LectureNodeRef"
+              }
+            ]
+          },
+          "next": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/LectureNodeRef"
+              }
+            ]
+          },
+          "children": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LectureNodeRef"
+            }
+          }
+        }
+      },
+      "LectureNodeRef": {
+        "required": [
+          "id",
+          "slug",
+          "title",
+          "label",
+          "effectiveVisibility"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "effectiveVisibility": {
+            "$ref": "#/components/schemas/Visibility"
+          }
+        }
+      },
       "LectureNoteDetail": {
         "required": [
           "id",
@@ -6040,7 +6587,8 @@
           "lawGroupId",
           "lawId",
           "articleId",
-          "files"
+          "files",
+          "node"
         ],
         "type": "object",
         "properties": {
@@ -6097,6 +6645,16 @@
             "items": {
               "$ref": "#/components/schemas/LectureNoteFileDto"
             }
+          },
+          "node": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/LectureNodeContext"
+              }
+            ]
           }
         }
       },
@@ -6177,7 +6735,10 @@
       "LectureNoteRef": {
         "required": [
           "slug",
-          "title"
+          "title",
+          "url",
+          "label",
+          "courseTitle"
         ],
         "type": "object",
         "properties": {
@@ -6186,6 +6747,21 @@
           },
           "title": {
             "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "label": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "courseTitle": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -6268,6 +6844,55 @@
           "fileCount": {
             "type": "integer",
             "format": "int32"
+          }
+        }
+      },
+      "LectureTocEntry": {
+        "required": [
+          "id",
+          "parentId",
+          "slug",
+          "title",
+          "number",
+          "label",
+          "depth",
+          "visibility",
+          "effectiveVisibility"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "parentId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "number": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "depth": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "visibility": {
+            "$ref": "#/components/schemas/Visibility"
+          },
+          "effectiveVisibility": {
+            "$ref": "#/components/schemas/Visibility"
           }
         }
       },
@@ -6432,6 +7057,26 @@
           "rememberMe": {
             "type": "boolean",
             "default": false
+          }
+        }
+      },
+      "MoveLectureNodeRequest": {
+        "required": [
+          "parentId",
+          "index"
+        ],
+        "type": "object",
+        "properties": {
+          "parentId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "index": {
+            "type": "integer",
+            "format": "int32"
           }
         }
       },
@@ -6841,6 +7486,21 @@
           },
           "displayName": {
             "type": "string"
+          }
+        }
+      },
+      "ReorderLectureCoursesRequest": {
+        "required": [
+          "courseIds"
+        ],
+        "type": "object",
+        "properties": {
+          "courseIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
           }
         }
       },
@@ -7271,6 +7931,28 @@
               "integer"
             ],
             "format": "int32"
+          }
+        }
+      },
+      "SaveLectureCourseRequest": {
+        "required": [
+          "title",
+          "description",
+          "visibility"
+        ],
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "visibility": {
+            "$ref": "#/components/schemas/Visibility"
           }
         }
       },
@@ -7721,6 +8403,9 @@
     },
     {
       "name": "News"
+    },
+    {
+      "name": "LectureCourses"
     },
     {
       "name": "Quiz"
