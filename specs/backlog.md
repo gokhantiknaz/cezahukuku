@@ -35,3 +35,5 @@ step 7). Nothing lands here without that decision; noise is rejected in the tria
   — Recommendation: 400'den sonra içindekileri `before` ile karşılaştıran bir assert ekle — Deferred by: Gokhan, 2026-11-13, 0002'den kalan test; davranış doğru
 - **B-10** — Telefon içindekiler çekmecesinde kapatma (×) düğmesi uzun ders adının üstüne biniyor — Source: spec 0003, VERIFY (N-5, `web/src/components/content/course-toc.tsx:413`) — Severity: info
   — Recommendation: çekmece başlığına × için sağ boşluk ver (ör. `pr-10`) ya da başlığı satır kaydırmalı yap — Deferred by: Gokhan, 2026-11-13, 0003 öncesinden kalan görünüm sorunu
+- **B-11** — Başlığı olan ders silinemiyor, alt başlığı olan başlık da; dersi kaldırmak için bütün başlıklar alttan yukarı tek tek silinmeli — Source: spec 0004, plan (R-10, `backend/src/CezaHukuku.Api/Content/LectureCourseEndpoints.cs:144`) — Severity: low
+  — Recommendation: "Dersi başlıklarıyla birlikte sil" (onayda başlık/metin/belge sayısı, soft delete) — Deferred by: Gokhan, 2026-11-13, 0004 kapsamı büyümesin; mevcut 23 başlık elle silinir
