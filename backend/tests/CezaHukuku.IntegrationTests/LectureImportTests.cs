@@ -98,7 +98,7 @@ public class LectureImportTests(ApiFactory factory)
         var text = BookChapter(Word("tipik"));
         var before = await CoursesAsync(admin);
 
-        var preview = await PreviewAsync(admin, new(text, null, null, ApplySuggestions: true));
+        var preview = await PreviewAsync(admin, new(text, null, null, ApplyTitleSuggestion: true, ApplyChapterSuggestion: true));
         Assert.Equal(("Suç Teorisi", 2), (preview.Title, preview.ChapterNumber));
         Assert.Empty(preview.Errors);
         Assert.Equal(["2.1", "2.1.1", "2.1.2", "2.2", "2.3", "2.3.1", "2.3.2"], preview.Headings.Select(h => h.Label));
@@ -159,8 +159,8 @@ public class LectureImportTests(ApiFactory factory)
         await RejectAsync(new(string.Join('\n', Enumerable.Range(1, 301).Select(i => $"{i}. B {i}")), "Ders", null, Visibility.Public), "text");
 
         Assert.Equal(before.Count, (await CoursesAsync(admin)).Count);
-        Assert.Equal([2], (await PreviewAsync(admin, new($"1. Bir {tag}\n1.1.1. Üç", "Ders", null, false))).Errors.Select(e => e.Line));
-        Assert.Contains((await PreviewAsync(admin, new("0.1. Bir", "Ders", 0, false))).Errors,
+        Assert.Equal([2], (await PreviewAsync(admin, new($"1. Bir {tag}\n1.1.1. Üç", "Ders", null, false, false))).Errors.Select(e => e.Line));
+        Assert.Contains((await PreviewAsync(admin, new("0.1. Bir", "Ders", 0, false, false))).Errors,
             e => e.Line == 0 && e.Message.Contains("Bölüm numarası"));
     }
 
@@ -214,7 +214,7 @@ public class LectureImportTests(ApiFactory factory)
         var admin = await factory.CreateAdminClientAsync();
         var course = await CreateCourseAsync(admin, $"Yetki {tag}");
         var before = await CoursesAsync(admin);
-        var preview = new LectureImportPreviewRequest($"1. Bir {tag}", "Ders", null, true);
+        var preview = new LectureImportPreviewRequest($"1. Bir {tag}", "Ders", null, true, true);
         var import = new LectureImportRequest($"1. Bir {tag}", $"Yetkisiz {tag}", null, Visibility.Public);
 
         foreach (var (client, status) in new[]

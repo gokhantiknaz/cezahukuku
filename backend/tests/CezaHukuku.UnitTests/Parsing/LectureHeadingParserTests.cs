@@ -26,7 +26,7 @@ public class LectureHeadingParserTests
         """;
 
     private static HeadingImport Parse(string text, string? title = null, int? chapter = null, bool suggest = true) =>
-        LectureHeadingParser.Parse(text, title, chapter, suggest);
+        LectureHeadingParser.Parse(text, title, chapter, suggest, suggest);
 
     [Fact]
     public void SingleChapter_SuggestsTitleAndNumber_NumbersFollowTheChapter()
@@ -72,7 +72,7 @@ public class LectureHeadingParserTests
             """, chapter: 5);
 
         Assert.Equal(("Ceza Hukuku Ders Notları", null), (result.SuggestedTitle, result.SuggestedChapterNumber));
-        Assert.Null(result.ChapterNumber); // öneriler uygulanınca elle girilen 5 de kalkar
+        Assert.Null(result.ChapterNumber); // numara önerisi uygulanınca (alan bir önceki öneriydi) 5 kalkar
         Assert.Equal(["1", "1.1", "1.1.1", "2", "2.1", "3", "3.1"], result.Headings.Select(h => h.Number));
         Assert.Equal(["Ceza Hukukuna Giriş", "Suç ve Ceza Kavramları", "Asker Kişiler (NATO Askerleri)", "Suç Teorisi",
             "Suçun Unsurları", "Yaptırım", "Ceza Hukuku Yaptırımları"], result.Headings.Select(h => h.Title));
@@ -134,6 +134,23 @@ public class LectureHeadingParserTests
         // Bölüm numarası 7 iken 2 ile başlayan satırlar ve 2. bölüm satırı hatadır.
         Assert.Contains(kept.Errors, e => e.Line == 3 && e.Message.Contains("7 ile başlamıyor"));
         Assert.Contains(kept.Errors, e => e.Line == 2 && e.Message.Contains("bölüm satırı"));
+    }
+
+    /// <summary>Review M-1: yöneticinin değiştirdiği alan, metin düzeltilip yeniden önizlenince öneriyle ezilmez.</summary>
+    [Fact]
+    public void Suggestions_ArePerField_ManualValuesSurviveTextEdits()
+    {
+        const string text = "Suç Teorisi\n2.1. Suçun Unsurları\n2.1.1. Tipiklik";
+        // Metinde bölüm satırı yok: yönetici 2 yazdı, sonra metni düzeltip yeniden önizledi.
+        var kept = LectureHeadingParser.Parse(text, "Suç Teorisi", 2, applyTitleSuggestion: true, applyChapterSuggestion: false);
+        Assert.Equal(("Suç Teorisi", 2), (kept.Title, kept.ChapterNumber));
+        Assert.Empty(kept.Errors);
+
+        // Ad yöneticinin: metindeki başlık bilgisi önerisi uygulanmaz; numara önerisi (tek bölüm satırı) uygulanır.
+        var named = LectureHeadingParser.Parse(Chapter2, "Benim adım", null, applyTitleSuggestion: false, applyChapterSuggestion: true);
+        Assert.Equal(("Benim adım", 2), (named.Title, named.ChapterNumber));
+        // Metinde öneri yoksa ad aynen kalır.
+        Assert.Equal("Benim adım", LectureHeadingParser.Parse("1. Bir", "Benim adım", null, true, true).Title);
     }
 
     [Fact]

@@ -59,10 +59,19 @@ export function LectureImport() {
   }
 
   async function runPreview() {
-    // Metin son önizlemeden beri değiştiyse metinden önerilen ad ve bölüm numarası kullanılır.
-    const applySuggestions = previewed === null || previewed.text !== text;
+    // Metin son önizlemeden beri değiştiyse metinden önerilen ad ve bölüm numarası kullanılır; ama yalnız yöneticinin
+    // değiştirmediği alana (boş ya da hâlâ bir önceki önizlemenin önerisi): elle girilen değer ezilmez.
+    const textChanged = previewed === null || previewed.text !== text;
+    const untouched = (value: string, suggestion: string | null | undefined) =>
+      value.trim() === "" || (previewed !== null && value === (suggestion ?? ""));
     const response = await previewMutation.mutateAsync({
-      data: { text, title: title.trim() || null, chapterNumber: chapter.trim() ? Number(chapter) : null, applySuggestions },
+      data: {
+        text,
+        title: title.trim() || null,
+        chapterNumber: chapter.trim() ? Number(chapter) : null,
+        applyTitleSuggestion: textChanged && untouched(title, previewed?.result.suggestedTitle),
+        applyChapterSuggestion: textChanged && untouched(chapter, previewed?.result.suggestedChapterNumber?.toString()),
+      },
     });
     if (response.status !== 200) return;
     const result = response.data;

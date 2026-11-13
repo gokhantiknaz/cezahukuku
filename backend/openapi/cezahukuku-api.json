@@ -6669,7 +6669,8 @@
           "text",
           "title",
           "chapterNumber",
-          "applySuggestions"
+          "applyTitleSuggestion",
+          "applyChapterSuggestion"
         ],
         "type": "object",
         "properties": {
@@ -6692,7 +6693,10 @@
             ],
             "format": "int32"
           },
-          "applySuggestions": {
+          "applyTitleSuggestion": {
+            "type": "boolean"
+          },
+          "applyChapterSuggestion": {
             "type": "boolean"
           }
         }

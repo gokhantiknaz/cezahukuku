@@ -12,5 +12,6 @@ export interface LectureImportPreviewRequest {
   text: LectureImportPreviewRequestText;
   title: LectureImportPreviewRequestTitle;
   chapterNumber: LectureImportPreviewRequestChapterNumber;
-  applySuggestions: boolean;
+  applyTitleSuggestion: boolean;
+  applyChapterSuggestion: boolean;
 }

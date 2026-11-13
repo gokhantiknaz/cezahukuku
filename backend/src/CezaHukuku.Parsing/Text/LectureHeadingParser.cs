@@ -72,8 +72,12 @@ public static partial class LectureHeadingParser
         public string Title { get; set; } = title;
     }
 
-    /// <param name="applySuggestions">Metin değişti: metinden önerilen ad ve bölüm numarası kullanılsın.</param>
-    public static HeadingImport Parse(string? text, string? title, int? chapterNumber, bool applySuggestions)
+    /// <param name="applyTitleSuggestion">Metinden önerilen ad kullanılsın (metin değişti ve yönetici adı değiştirmedi).
+    /// Metinde öneri yoksa verilen ad kalır.</param>
+    /// <param name="applyChapterSuggestion">Metinden önerilen bölüm numarası kullanılsın (metin değişti ve yönetici
+    /// numarayı değiştirmedi); metinde tek bölüm satırı yoksa numarasız.</param>
+    public static HeadingImport Parse(
+        string? text, string? title, int? chapterNumber, bool applyTitleSuggestion, bool applyChapterSuggestion)
     {
         text ??= "";
         if (text.Length > MaxTextLength)
@@ -102,11 +106,10 @@ public static partial class LectureHeadingParser
         var chapters = items.Where(i => i.IsChapter).ToList();
         var suggestedChapter = chapters.Count == 1 ? chapters[0].Parts[0] : (int?)null;
         var suggestedTitle = chapters.Count == 1 ? FixCase(chapters[0].Title) : header is null ? null : FixCase(header);
-        if (applySuggestions)
-        {
+        if (applyTitleSuggestion)
             title = suggestedTitle ?? title;
+        if (applyChapterSuggestion)
             chapterNumber = suggestedChapter;
-        }
         title = Clean(title);
 
         var errors = new List<HeadingImportIssue>();

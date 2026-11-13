@@ -10,8 +10,12 @@ using Microsoft.EntityFrameworkCore;
 namespace CezaHukuku.Api.Content;
 
 /// <param name="Text">Başlık listesi (yapıştırılan ya da dosyadan alınan metin).</param>
-/// <param name="ApplySuggestions">Metin son önizlemeden beri değişti: metinden önerilen ad ve bölüm numarası kullanılsın.</param>
-public sealed record LectureImportPreviewRequest(string? Text, string? Title, int? ChapterNumber, bool ApplySuggestions);
+/// <param name="ApplyTitleSuggestion">Metinden önerilen ad kullanılsın: metin son önizlemeden beri değişti ve yönetici
+/// adı değiştirmedi (boş ya da önceki öneriyle aynı). Metinde öneri yoksa verilen ad kalır.</param>
+/// <param name="ApplyChapterSuggestion">Metinden önerilen bölüm numarası kullanılsın: metin değişti ve yönetici numarayı
+/// değiştirmedi. Elle girilen numara korunur.</param>
+public sealed record LectureImportPreviewRequest(
+    string? Text, string? Title, int? ChapterNumber, bool ApplyTitleSuggestion, bool ApplyChapterSuggestion);
 
 /// <param name="Line">Kaynak metindeki satır (1'den).</param>
 /// <param name="SourceNumber">Satırdaki numara (kaydedilmez).</param>
@@ -53,12 +57,13 @@ public static class LectureImportEndpoints
     }
 
     private static Ok<LectureImportPreview> Preview(LectureImportPreviewRequest request) =>
-        TypedResults.Ok(ToPreview(Read(request.Text, request.Title, request.ChapterNumber, request.ApplySuggestions)));
+        TypedResults.Ok(ToPreview(Read(request.Text, request.Title, request.ChapterNumber, request.ApplyTitleSuggestion,
+            request.ApplyChapterSuggestion)));
 
     private static async Task<Results<Created<LectureImportResult>, ValidationProblem>> ImportAsync(
         LectureImportRequest request, AppDbContext db, CancellationToken ct)
     {
-        var import = Read(request.Text, request.Title, request.ChapterNumber, applySuggestions: false);
+        var import = Read(request.Text, request.Title, request.ChapterNumber, applyTitleSuggestion: false, applyChapterSuggestion: false);
         if (import.Errors.Count > 0)
         {
             var errors = new ValidationErrors();
@@ -106,9 +111,9 @@ public static class LectureImportEndpoints
     private sealed record Reading(HeadingImport Result, List<Issue> Errors);
 
     /// <summary>Okuyucunun sonucu + formun kendi denetimleri (bölüm numarası aralığı).</summary>
-    private static Reading Read(string? text, string? title, int? chapterNumber, bool applySuggestions)
+    private static Reading Read(string? text, string? title, int? chapterNumber, bool applyTitleSuggestion, bool applyChapterSuggestion)
     {
-        var result = LectureHeadingParser.Parse(text, title, chapterNumber, applySuggestions);
+        var result = LectureHeadingParser.Parse(text, title, chapterNumber, applyTitleSuggestion, applyChapterSuggestion);
         var errors = result.Errors
             .Select(e => new Issue(e.Line, e.Message, e.Field))
             .ToList();
