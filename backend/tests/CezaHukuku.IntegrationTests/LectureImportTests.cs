@@ -73,6 +73,173 @@ public class LectureImportTests(ApiFactory factory)
         await SaveCourseAsync(admin, course.Id, title, 99).ExpectAsync(200);
     }
 
+    private string BookChapter(string word) => $"""
+        CEZA HUKUKU DERS NOTLARI
+        2
+        2. BÖLÜM – SUÇ TEORİSİ
+        2.1. Suçun Unsurları
+        2.1.1. Tipiklik {word}
+        2.1.2. Hukuka Aykırılık
+        2.2. Cezalandırılabilirliğin Diğer
+        Şartları
+        2.9. İçtima
+        2.9.1. Genel Olarak
+        2.9.3. Genel Olarak
+        """;
+
+    /// <summary>
+    /// AC-6 (+ AC-2/AC-5 sunucu yolu): önizleme önerileri doldurur ve hiçbir şey kaydetmez; kayıt yeni dersi listenin
+    /// sonunda, başlıkları metindeki sırayla ve önizlemedeki numaralarla kurar.
+    /// </summary>
+    [Fact]
+    public async Task Import_CreatesCourseAtEnd_WithAllHeadingsInOrder()
+    {
+        var admin = await factory.CreateAdminClientAsync();
+        var text = BookChapter(Word("tipik"));
+        var before = await CoursesAsync(admin);
+
+        var preview = await PreviewAsync(admin, new(text, null, null, ApplySuggestions: true));
+        Assert.Equal(("Suç Teorisi", 2), (preview.Title, preview.ChapterNumber));
+        Assert.Empty(preview.Errors);
+        Assert.Equal(["2.1", "2.1.1", "2.1.2", "2.2", "2.3", "2.3.1", "2.3.2"], preview.Headings.Select(h => h.Label));
+        Assert.Equal("Cezalandırılabilirliğin Diğer Şartları", preview.Headings[3].Title);
+        Assert.Contains(preview.Warnings, w => w.Message.Contains("Aynı üst başlık altında aynı ad"));
+        Assert.Equal(before.Count, (await CoursesAsync(admin)).Count); // önizleme kayıt yapmaz
+
+        var result = await (await admin.PostJsonAsync("/api/admin/lecture-courses/import",
+            new LectureImportRequest(text, preview.Title, preview.ChapterNumber, Visibility.Public))).ReadAsync<LectureImportResult>(201);
+        Assert.Equal(7, result.HeadingCount);
+
+        var courses = await CoursesAsync(admin);
+        Assert.Equal((result.CourseId, 2, 7), (courses[^1].Id, courses[^1].ChapterNumber!.Value, courses[^1].NodeCount));
+        var toc = await (await admin.GetAsync($"/api/lecture-courses/{result.Slug}")).ReadAsync<LectureCourseDetail>();
+        Assert.Equal(preview.Headings.Select(h => (h.Label, h.Title)), toc.Toc.Select(e => (e.Label, e.Title)));
+        Assert.All(toc.Toc, e => Assert.Equal(Visibility.Public, e.Visibility));
+        Assert.Equal(Visibility.Public, toc.Visibility);
+    }
+
+    /// <summary>AC-6: aynı aktarımdaki aynı adlı başlıklar (birçok "Genel Olarak") ayrı adres alır; hepsi okunur.</summary>
+    [Fact]
+    public async Task Import_DuplicateTitles_GetDistinctAddresses()
+    {
+        var admin = await factory.CreateAdminClientAsync();
+        var text = $"1. Bir {tag}\n1.1. Genel Olarak\n1.2. İki {tag}\n1.2.1. Genel Olarak\n2. Üç {tag}\n2.1. Genel Olarak\n2.2. Genel Olarak";
+        var result = await (await admin.PostJsonAsync("/api/admin/lecture-courses/import",
+            new LectureImportRequest(text, $"Adres dersi {tag}", null, Visibility.Public))).ReadAsync<LectureImportResult>(201);
+
+        var toc = await (await admin.GetAsync($"/api/lecture-courses/{result.Slug}")).ReadAsync<LectureCourseDetail>();
+        var general = toc.Toc.Where(e => e.Title == "Genel Olarak").ToList();
+        Assert.Equal(4, general.Count);
+        Assert.Equal(4, general.Select(e => e.Slug).Distinct().Count());
+        foreach (var entry in general)
+            Assert.Equal(entry.Id, (await (await admin.GetAsync($"/api/lecture-notes/{entry.Slug}")).ReadAsync<LectureNoteDetail>()).Id);
+    }
+
+    /// <summary>AC-5/AC-6: hatalı metin, boş ad ya da geçersiz bölüm numarası 400 döner ve hiçbir ders/başlık oluşmaz.</summary>
+    [Fact]
+    public async Task Import_WithErrors_Returns400_AndCreatesNothing()
+    {
+        var admin = await factory.CreateAdminClientAsync();
+        var before = await CoursesAsync(admin);
+
+        async Task<string> RejectAsync(LectureImportRequest request, string field)
+        {
+            var response = await admin.PostJsonAsync("/api/admin/lecture-courses/import", request);
+            Assert.Equal(400, (int)response.StatusCode);
+            var problem = await response.Content.ReadAsStringAsync();
+            Assert.Contains($"\"{field}\"", problem);
+            return problem;
+        }
+
+        Assert.Contains("Satır 2", await RejectAsync(new($"1. Bir {tag}\n1.1.1. Üç", "Ders", null, Visibility.Public), "text"));
+        await RejectAsync(new($"1. Bir {tag}", "  ", null, Visibility.Public), "title");
+        await RejectAsync(new($"1. Bir {tag}", "Ders", 0, Visibility.Public), "chapterNumber");
+        await RejectAsync(new($"1. Bir {tag}", "Ders", 100, Visibility.Public), "chapterNumber");
+        await RejectAsync(new("düz metin", "Ders", null, Visibility.Public), "text");
+        await RejectAsync(new(string.Join('\n', Enumerable.Range(1, 301).Select(i => $"{i}. B {i}")), "Ders", null, Visibility.Public), "text");
+
+        Assert.Equal(before.Count, (await CoursesAsync(admin)).Count);
+        Assert.Equal([2], (await PreviewAsync(admin, new($"1. Bir {tag}\n1.1.1. Üç", "Ders", null, false))).Errors.Select(e => e.Line));
+        Assert.Contains((await PreviewAsync(admin, new("0.1. Bir", "Ders", 0, false))).Errors,
+            e => e.Line == 0 && e.Message.Contains("Bölüm numarası"));
+    }
+
+    /// <summary>
+    /// AC-7 (hassas): özel kurulan dersin başlıkları giriş yapmamış okuyucuya okumada, içindekilerde ve aramada yoktur
+    /// (sitede site haritası yok); üye görür. Açık kurulan ders herkese görünür. Başlıkların kendi ayarı açıktır.
+    /// </summary>
+    [Fact]
+    public async Task Import_PrivateByDefault_HiddenFromAnonymous_VisibleToMember()
+    {
+        var admin = await factory.CreateAdminClientAsync();
+        var anonymous = factory.CreateAnonymousClient();
+        var member = await CreateUserClientAsync(admin, Roles.Standard);
+
+        async Task<(LectureImportResult Result, string Word)> ImportAsync(Visibility visibility)
+        {
+            var word = Word(visibility == Visibility.Private ? "gizliaktar" : "acikaktar");
+            var result = await (await admin.PostJsonAsync("/api/admin/lecture-courses/import",
+                new LectureImportRequest($"1. Giriş {word}\n1.1. Alt başlık {word}", $"Görünürlük {tag} {visibility}", null, visibility)))
+                .ReadAsync<LectureImportResult>(201);
+            return (result, word);
+        }
+
+        async Task AssertVisibleAsync(HttpClient client, LectureImportResult course, string word, bool visible)
+        {
+            await client.GetAsync($"/api/lecture-courses/{course.Slug}").ExpectAsync(visible ? 200 : 404);
+            var listed = (await (await client.GetAsync("/api/lecture-courses")).ReadAsync<List<LectureCourseSummary>>()).Any(c => c.Id == course.CourseId);
+            Assert.Equal(visible, listed);
+            Assert.Equal(visible ? 2 : 0, (await SearchAsync(client, word)).Count);
+        }
+
+        var (secret, secretWord) = await ImportAsync(Visibility.Private);
+        var adminToc = await (await admin.GetAsync($"/api/lecture-courses/{secret.Slug}")).ReadAsync<LectureCourseDetail>();
+        Assert.All(adminToc.Toc, e => Assert.Equal((Visibility.Public, Visibility.Private), (e.Visibility, e.EffectiveVisibility)));
+        await AssertVisibleAsync(anonymous, secret, secretWord, false);
+        foreach (var entry in adminToc.Toc)
+            await anonymous.GetAsync($"/api/lecture-notes/{entry.Slug}").ExpectAsync(404);
+        await AssertVisibleAsync(member, secret, secretWord, true);
+
+        var (open, openWord) = await ImportAsync(Visibility.Public);
+        await AssertVisibleAsync(anonymous, open, openWord, true);
+    }
+
+    /// <summary>
+    /// AC-8 (hassas): önizleme, içe aktarma ve bölüm numarası yalnız yöneticiye açık — giriş yok 401, standard ve reader
+    /// 403; hiçbir ders oluşmaz, numara değişmez.
+    /// </summary>
+    [Fact]
+    public async Task Import_AndChapterNumber_AdminOnly()
+    {
+        var admin = await factory.CreateAdminClientAsync();
+        var course = await CreateCourseAsync(admin, $"Yetki {tag}");
+        var before = await CoursesAsync(admin);
+        var preview = new LectureImportPreviewRequest($"1. Bir {tag}", "Ders", null, true);
+        var import = new LectureImportRequest($"1. Bir {tag}", $"Yetkisiz {tag}", null, Visibility.Public);
+
+        foreach (var (client, status) in new[]
+        {
+            (factory.CreateAnonymousClient(), 401),
+            (await CreateUserClientAsync(admin, Roles.Standard), 403),
+            (await CreateUserClientAsync(admin, Roles.Reader), 403),
+        })
+        {
+            await client.PostJsonAsync("/api/admin/lecture-courses/import/preview", preview).ExpectAsync(status);
+            await client.PostJsonAsync("/api/admin/lecture-courses/import", import).ExpectAsync(status);
+            await SaveCourseAsync(client, course.Id, course.Title, 3).ExpectAsync(status);
+        }
+
+        var after = await CoursesAsync(admin);
+        Assert.Equal(before.Count, after.Count);
+        Assert.Null(after.Single(c => c.Id == course.Id).ChapterNumber);
+    }
+
+    private static async Task<List<LectureCourseSummary>> CoursesAsync(HttpClient client) =>
+        await (await client.GetAsync("/api/lecture-courses")).ReadAsync<List<LectureCourseSummary>>();
+
+    private static async Task<LectureImportPreview> PreviewAsync(HttpClient admin, LectureImportPreviewRequest request) =>
+        await (await admin.PostJsonAsync("/api/admin/lecture-courses/import/preview", request)).ReadAsync<LectureImportPreview>();
+
     private static Task<HttpResponseMessage> SaveCourseAsync(HttpClient admin, Guid id, string title, int? chapter) =>
         admin.PutJsonAsync($"/api/admin/lecture-courses/{id}", new SaveLectureCourseRequest(title, null, Visibility.Public, chapter));
 

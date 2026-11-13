@@ -3829,6 +3829,76 @@
         }
       }
     },
+    "/api/admin/lecture-courses/import/preview": {
+      "post": {
+        "tags": [
+          "LectureCourses"
+        ],
+        "operationId": "PreviewLectureImport",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LectureImportPreviewRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LectureImportPreview"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/lecture-courses/import": {
+      "post": {
+        "tags": [
+          "LectureCourses"
+        ],
+        "operationId": "ImportLectureCourse",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LectureImportRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LectureImportResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/admin/quiz": {
       "get": {
         "tags": [
@@ -6485,6 +6555,197 @@
             "format": "int32"
           },
           "nodeCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "LectureImportHeading": {
+        "required": [
+          "line",
+          "title",
+          "depth",
+          "sourceNumber",
+          "number",
+          "label"
+        ],
+        "type": "object",
+        "properties": {
+          "line": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "title": {
+            "type": "string"
+          },
+          "depth": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "sourceNumber": {
+            "type": "string"
+          },
+          "number": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          }
+        }
+      },
+      "LectureImportIssue": {
+        "required": [
+          "line",
+          "message"
+        ],
+        "type": "object",
+        "properties": {
+          "line": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "LectureImportPreview": {
+        "required": [
+          "title",
+          "chapterNumber",
+          "suggestedTitle",
+          "suggestedChapterNumber",
+          "headings",
+          "errors",
+          "warnings"
+        ],
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "chapterNumber": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "suggestedTitle": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "suggestedChapterNumber": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "headings": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LectureImportHeading"
+            }
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LectureImportIssue"
+            }
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LectureImportIssue"
+            }
+          }
+        }
+      },
+      "LectureImportPreviewRequest": {
+        "required": [
+          "text",
+          "title",
+          "chapterNumber",
+          "applySuggestions"
+        ],
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "title": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "chapterNumber": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "applySuggestions": {
+            "type": "boolean"
+          }
+        }
+      },
+      "LectureImportRequest": {
+        "required": [
+          "text",
+          "title",
+          "chapterNumber",
+          "visibility"
+        ],
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "title": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "chapterNumber": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "visibility": {
+            "$ref": "#/components/schemas/Visibility"
+          }
+        }
+      },
+      "LectureImportResult": {
+        "required": [
+          "courseId",
+          "slug",
+          "headingCount"
+        ],
+        "type": "object",
+        "properties": {
+          "courseId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "headingCount": {
             "type": "integer",
             "format": "int32"
           }

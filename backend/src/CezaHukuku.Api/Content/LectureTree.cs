@@ -80,48 +80,61 @@ internal static class LectureTree
     /// Düz ders notu ya da ders için adres: "Kast ve taksir" → "kast-ve-taksir"; alınmışsa "-2", "-3"… Ders ve ders
     /// notları aynı /ders-notlari/{adres} alanını paylaştığından iki tabloya birden bakılır.
     /// </summary>
-    public static async Task<string> UniqueSlugAsync(AppDbContext db, string title, string fallback, CancellationToken ct)
+    /// <param name="batch">Toplu üretimde (içe aktarma) bu işlemde verilmiş, henüz kaydedilmemiş adresler; sonuç da eklenir.</param>
+    public static async Task<string> UniqueSlugAsync(
+        AppDbContext db, string title, string fallback, CancellationToken ct, ISet<string>? batch = null)
     {
         var slug = Truncate(Slugs.FromText(title));
         if (slug.Length == 0)
             slug = fallback;
         else if (Reserved.Contains(slug))
             slug = $"{slug}-{fallback}";
-        return await NumberedAsync(db, slug, ct);
+        return Remember(await NumberedAsync(db, slug, ct, batch), batch);
     }
 
     /// <summary>
     /// Başlık adresi: önce adın kendisi; alınmışsa (ör. bir derste birçok "Genel Olarak") üst başlığın adıyla
     /// ("yer-bakimindan-uygulama-genel-olarak"); o da alınmışsa "-2", "-3"…
     /// </summary>
-    public static async Task<string> NodeSlugAsync(AppDbContext db, string title, string? parentTitle, CancellationToken ct)
+    /// <param name="batch">Toplu üretimde (içe aktarma) bu işlemde verilmiş, henüz kaydedilmemiş adresler; sonuç da eklenir.</param>
+    public static async Task<string> NodeSlugAsync(
+        AppDbContext db, string title, string? parentTitle, CancellationToken ct, ISet<string>? batch = null)
     {
         var slug = Truncate(Slugs.FromText(title));
         if (slug.Length == 0)
             slug = "baslik";
-        if (!Reserved.Contains(slug) && !await IsTakenAsync(db, slug, ct))
-            return slug;
+        if (!Reserved.Contains(slug) && !await IsTakenAsync(db, slug, ct, batch))
+            return Remember(slug, batch);
         if (parentTitle is not null && Truncate(Slugs.FromText(parentTitle)) is { Length: > 0 } parentSlug)
         {
             var prefixed = Truncate($"{parentSlug}-{slug}");
-            if (!await IsTakenAsync(db, prefixed, ct))
-                return prefixed;
+            if (!await IsTakenAsync(db, prefixed, ct, batch))
+                return Remember(prefixed, batch);
             slug = prefixed;
         }
         else if (Reserved.Contains(slug))
             slug = $"{slug}-baslik";
-        return await NumberedAsync(db, slug, ct);
+        return Remember(await NumberedAsync(db, slug, ct, batch), batch);
     }
 
-    private static async Task<bool> IsTakenAsync(AppDbContext db, string slug, CancellationToken ct) =>
-        await db.LectureNotes.AnyAsync(n => n.Slug == slug, ct) || await db.LectureCourses.AnyAsync(c => c.Slug == slug, ct);
+    private static string Remember(string slug, ISet<string>? batch)
+    {
+        batch?.Add(slug);
+        return slug;
+    }
 
-    private static async Task<string> NumberedAsync(AppDbContext db, string slug, CancellationToken ct)
+    private static async Task<bool> IsTakenAsync(AppDbContext db, string slug, CancellationToken ct, ISet<string>? batch) =>
+        batch?.Contains(slug) == true
+        || await db.LectureNotes.AnyAsync(n => n.Slug == slug, ct) || await db.LectureCourses.AnyAsync(c => c.Slug == slug, ct);
+
+    private static async Task<string> NumberedAsync(AppDbContext db, string slug, CancellationToken ct, ISet<string>? batch = null)
     {
         var prefix = slug + "-";
         var taken = (await db.LectureNotes.Where(n => n.Slug == slug || n.Slug.StartsWith(prefix)).Select(n => n.Slug).ToListAsync(ct))
             .Concat(await db.LectureCourses.Where(c => c.Slug == slug || c.Slug.StartsWith(prefix)).Select(c => c.Slug).ToListAsync(ct))
             .ToHashSet();
+        if (batch is not null)
+            taken.UnionWith(batch);
         var candidate = slug;
         for (var i = 2; taken.Contains(candidate) || Reserved.Contains(candidate); i++)
             candidate = $"{slug}-{i}";
