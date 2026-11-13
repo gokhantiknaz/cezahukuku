@@ -7,11 +7,11 @@
 import type { LectureImportRequestText } from './lectureImportRequestText';
 import type { LectureImportRequestTitle } from './lectureImportRequestTitle';
 import type { LectureImportRequestChapterNumber } from './lectureImportRequestChapterNumber';
-import type { Visibility } from './visibility';
+import type { LectureImportRequestVisibility } from './lectureImportRequestVisibility';
 
 export interface LectureImportRequest {
   text: LectureImportRequestText;
   title: LectureImportRequestTitle;
   chapterNumber: LectureImportRequestChapterNumber;
-  visibility: Visibility;
+  visibility: LectureImportRequestVisibility;
 }

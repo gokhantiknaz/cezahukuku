@@ -202,6 +202,14 @@ public class LectureImportTests(ApiFactory factory)
 
         var (open, openWord) = await ImportAsync(Visibility.Public);
         await AssertVisibleAsync(anonymous, open, openWord, true);
+
+        // Review L-3: görünürlük gönderilmezse ders özel kurulur (açık tarafa düşmez).
+        var unspecifiedWord = Word("belirsizaktar");
+        var unspecified = await (await admin.PostJsonAsync("/api/admin/lecture-courses/import",
+            new { text = $"1. Giriş {unspecifiedWord}", title = $"Görünürlük yok {tag}" })).ReadAsync<LectureImportResult>(201);
+        Assert.Equal(Visibility.Private,
+            (await (await admin.GetAsync($"/api/lecture-courses/{unspecified.Slug}")).ReadAsync<LectureCourseDetail>()).Visibility);
+        await AssertVisibleAsync(anonymous, unspecified, unspecifiedWord, false);
     }
 
     /// <summary>

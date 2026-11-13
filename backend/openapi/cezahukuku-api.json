@@ -6730,7 +6730,14 @@
             "format": "int32"
           },
           "visibility": {
-            "$ref": "#/components/schemas/Visibility"
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/Visibility"
+              }
+            ]
           }
         }
       },

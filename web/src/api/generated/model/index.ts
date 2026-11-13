@@ -184,6 +184,7 @@ export * from './lectureImportRequest';
 export * from './lectureImportRequestChapterNumber';
 export * from './lectureImportRequestText';
 export * from './lectureImportRequestTitle';
+export * from './lectureImportRequestVisibility';
 export * from './lectureImportResult';
 export * from './lectureNodeContext';
 export * from './lectureNodeContextNext';

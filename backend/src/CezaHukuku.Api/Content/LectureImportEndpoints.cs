@@ -37,7 +37,8 @@ public sealed record LectureImportPreview(
     List<LectureImportIssue> Errors,
     List<LectureImportIssue> Warnings);
 
-public sealed record LectureImportRequest(string? Text, string? Title, int? ChapterNumber, Visibility Visibility);
+/// <param name="Visibility">Yeni dersin görünürlüğü; gönderilmezse özel (yarım içerik anonim okuyucuya düşmesin).</param>
+public sealed record LectureImportRequest(string? Text, string? Title, int? ChapterNumber, Visibility? Visibility);
 
 /// <param name="Slug">Yeni dersin adresi (/ders-notlari/{slug}).</param>
 public sealed record LectureImportResult(Guid CourseId, string Slug, int HeadingCount);
@@ -76,7 +77,7 @@ public static class LectureImportEndpoints
         var course = new LectureCourse
         {
             Title = import.Result.Title,
-            Visibility = request.Visibility,
+            Visibility = request.Visibility ?? Visibility.Private,
             ChapterNumber = import.Result.ChapterNumber,
             SortOrder = (await db.LectureCourses.MaxAsync(c => (int?)c.SortOrder, ct) ?? -1) + 1,
         };
