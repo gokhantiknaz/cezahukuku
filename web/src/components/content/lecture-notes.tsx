@@ -17,6 +17,7 @@ import { useHydrated } from "@/hooks/use-hydrated";
 import { isAdmin, useCurrentUser } from "@/lib/auth";
 import { formatDate } from "@/lib/dates";
 import { matchesTr } from "@/lib/turkish";
+import { courseHeading } from "@/lib/lecture-courses";
 
 /** "TCK m.81", "TCK", "Temel Ceza Kanunları" ya da "Genel". */
 export function scopeLabel(scope: LectureNoteScope) {
@@ -87,7 +88,7 @@ export function CourseList({ courses }: { courses: LectureCourseSummary[] }) {
           <Link href={`/ders-notlari/${course.slug}`} className="block min-w-0 flex-1 rounded-lg border bg-card p-4 hover:border-primary/50">
             <span className="flex items-center gap-2 text-xl text-primary">
               <BookOpen className="size-5 shrink-0" aria-hidden />
-              <span className="min-w-0">{course.title}</span>
+              <span className="min-w-0">{courseHeading(course)}</span>
               {course.visibility === "private" && (
                 <Badge variant="outline" className="text-foreground">
                   <Lock /> Özel

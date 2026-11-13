@@ -28,6 +28,10 @@ import type {
   HttpValidationProblemDetails,
   LectureCourseDetail,
   LectureCourseSummary,
+  LectureImportPreview,
+  LectureImportPreviewRequest,
+  LectureImportRequest,
+  LectureImportResult,
   LectureNoteDetail,
   MoveLectureNodeRequest,
   ReorderLectureCoursesRequest,
@@ -781,6 +785,167 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       > => {
 
       const mutationOptions = getAddLectureNodeMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    export type previewLectureImportResponse200 = {
+  data: LectureImportPreview
+  status: 200
+}
+    
+export type previewLectureImportResponseSuccess = (previewLectureImportResponse200) & {
+  headers: Headers;
+};
+;
+
+export type previewLectureImportResponse = (previewLectureImportResponseSuccess)
+
+export const getPreviewLectureImportUrl = () => {
+
+
+  
+
+  return `/api/admin/lecture-courses/import/preview`
+}
+
+export const previewLectureImport = async (lectureImportPreviewRequest: LectureImportPreviewRequest, options?: RequestInit): Promise<previewLectureImportResponse> => {
+  
+  return apiFetch<previewLectureImportResponse>(getPreviewLectureImportUrl(),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      lectureImportPreviewRequest,)
+  }
+);}
+
+
+
+
+export const getPreviewLectureImportMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof previewLectureImport>>, TError,{data: LectureImportPreviewRequest}, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof previewLectureImport>>, TError,{data: LectureImportPreviewRequest}, TContext> => {
+
+const mutationKey = ['previewLectureImport'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof previewLectureImport>>, {data: LectureImportPreviewRequest}> = (props) => {
+          const {data} = props ?? {};
+
+          return  previewLectureImport(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PreviewLectureImportMutationResult = NonNullable<Awaited<ReturnType<typeof previewLectureImport>>>
+    export type PreviewLectureImportMutationBody = LectureImportPreviewRequest
+    export type PreviewLectureImportMutationError = unknown
+
+    export const usePreviewLectureImport = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof previewLectureImport>>, TError,{data: LectureImportPreviewRequest}, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof previewLectureImport>>,
+        TError,
+        {data: LectureImportPreviewRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getPreviewLectureImportMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    export type importLectureCourseResponse201 = {
+  data: LectureImportResult
+  status: 201
+}
+
+export type importLectureCourseResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+    
+export type importLectureCourseResponseSuccess = (importLectureCourseResponse201) & {
+  headers: Headers;
+};
+export type importLectureCourseResponseError = (importLectureCourseResponse400) & {
+  headers: Headers;
+};
+
+export type importLectureCourseResponse = (importLectureCourseResponseSuccess | importLectureCourseResponseError)
+
+export const getImportLectureCourseUrl = () => {
+
+
+  
+
+  return `/api/admin/lecture-courses/import`
+}
+
+export const importLectureCourse = async (lectureImportRequest: LectureImportRequest, options?: RequestInit): Promise<importLectureCourseResponse> => {
+  
+  return apiFetch<importLectureCourseResponse>(getImportLectureCourseUrl(),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      lectureImportRequest,)
+  }
+);}
+
+
+
+
+export const getImportLectureCourseMutationOptions = <TError = HttpValidationProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof importLectureCourse>>, TError,{data: LectureImportRequest}, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof importLectureCourse>>, TError,{data: LectureImportRequest}, TContext> => {
+
+const mutationKey = ['importLectureCourse'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof importLectureCourse>>, {data: LectureImportRequest}> = (props) => {
+          const {data} = props ?? {};
+
+          return  importLectureCourse(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ImportLectureCourseMutationResult = NonNullable<Awaited<ReturnType<typeof importLectureCourse>>>
+    export type ImportLectureCourseMutationBody = LectureImportRequest
+    export type ImportLectureCourseMutationError = HttpValidationProblemDetails
+
+    export const useImportLectureCourse = <TError = HttpValidationProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof importLectureCourse>>, TError,{data: LectureImportRequest}, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof importLectureCourse>>,
+        TError,
+        {data: LectureImportRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getImportLectureCourseMutationOptions(options);
 
       return useMutation(mutationOptions, queryClient);
     }

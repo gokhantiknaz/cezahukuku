@@ -6,9 +6,11 @@
  */
 import type { SaveLectureCourseRequestDescription } from './saveLectureCourseRequestDescription';
 import type { Visibility } from './visibility';
+import type { SaveLectureCourseRequestChapterNumber } from './saveLectureCourseRequestChapterNumber';
 
 export interface SaveLectureCourseRequest {
   title: string;
   description: SaveLectureCourseRequestDescription;
   visibility: Visibility;
+  chapterNumber?: SaveLectureCourseRequestChapterNumber;
 }

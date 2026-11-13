@@ -5,6 +5,7 @@
  * OpenAPI spec version: 1.0.0
  */
 import type { Visibility } from './visibility';
+import type { LectureCourseDetailChapterNumber } from './lectureCourseDetailChapterNumber';
 import type { LectureTocEntry } from './lectureTocEntry';
 
 export interface LectureCourseDetail {
@@ -13,5 +14,6 @@ export interface LectureCourseDetail {
   title: string;
   description: string;
   visibility: Visibility;
+  chapterNumber: LectureCourseDetailChapterNumber;
   toc: LectureTocEntry[];
 }

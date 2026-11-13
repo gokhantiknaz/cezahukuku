@@ -5,6 +5,7 @@
  * OpenAPI spec version: 1.0.0
  */
 import type { Visibility } from './visibility';
+import type { LectureCourseSummaryChapterNumber } from './lectureCourseSummaryChapterNumber';
 
 export interface LectureCourseSummary {
   id: string;
@@ -12,5 +13,6 @@ export interface LectureCourseSummary {
   title: string;
   description: string;
   visibility: Visibility;
+  chapterNumber: LectureCourseSummaryChapterNumber;
   nodeCount: number;
 }
