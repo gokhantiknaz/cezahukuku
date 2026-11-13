@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useMemo, useState, useTransition, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowDown, ArrowUp, FolderInput, Pencil, Plus, Trash2 } from "lucide-react";
@@ -23,10 +23,21 @@ import type {
 import { useIsAdmin } from "@/components/content/lecture-notes";
 import { ConfirmDelete } from "@/components/panel/confirm-delete";
 import { Field, FormMessages, OptionSelect, otherMessages, visibilityLabels } from "@/components/panel/form";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { type MoveTarget, subtreeIds, visibilityChange } from "@/lib/lecture-moves";
 
 const selectClass = "h-9 w-full rounded-md border bg-card px-2 text-sm";
 
@@ -248,29 +259,123 @@ export function AddNodeButton({ courseId, parent, variant = "outline" }: { cours
   );
 }
 
-/** Başlığın kendisi ve bütün alt başlıkları (taşıma hedefi olamazlar). */
-function subtreeOf(toc: LectureTocEntry[], id: string) {
-  const result = new Set([id]);
-  for (const entry of toc) if (entry.parentId && result.has(entry.parentId)) result.add(entry.id);
-  return result;
-}
-
 const ROOT = "";
+
+/** `onError` verilirse hata bildirim yerine ona iletilir (form hatayı alanında gösterir). */
+type MoveRequest = { noteId: string; target: MoveTarget; onError?: (error: unknown) => void };
+type PendingConfirm = { request: MoveRequest; change: { to: Visibility; affected: number }; resolve: (moved: boolean) => void };
+
+/**
+ * Başlık taşıma ("Taşı" penceresi, yukarı/aşağı ve içindekilerde sürükle-bırak aynısını kullanır): kayıt, yeni numarayla
+ * bildirim, hata mesajı ve içindekilerin tazelenmesi. Taşıma etkin görünürlüğü değiştirecekse önce onay sorulur
+ * (spec 0003 R-7); bu yalnız uyarıdır, görünürlük kararı sunucudadır. `confirmDialog` çağıranın ağacına konur.
+ *
+ * `pending`, onay beklenirken, kayıt sürerken ve kayıttan sonra içindekiler sunucudan tazelenene kadar true'dur:
+ * bir sonraki taşıma (bırakma yeri, görünürlük onayı, yukarı/aşağı sırası) hiçbir zaman eski ağaçla hesaplanmaz.
+ * `movingId` bu süre boyunca taşınan başlıktır. Aynı ekrandaki bütün taşıma yolları tek bir örneği paylaşmalıdır
+ * (başlık sayfasında yukarı/aşağı ve "Taşı" penceresi): biri beklerken öteki eski ağaçla çalışmasın.
+ */
+export function useMoveNode(toc: LectureTocEntry[], courseVisibility: Visibility) {
+  const router = useRouter();
+  const move = useMoveLectureNode();
+  const [pendingConfirm, setPendingConfirm] = useState<PendingConfirm | null>(null);
+  const [movingId, setMovingId] = useState<string | null>(null);
+  const [refreshing, startRefresh] = useTransition();
+
+  async function save(request: MoveRequest) {
+    try {
+      const saved = await move.mutateAsync({ id: request.noteId, data: request.target });
+      if (saved.status === 200) toast.success(`Başlık taşındı; yeni numarası ${saved.data.node?.label ?? ""}.`);
+      // Tazeleme bir geçiş (transition) içinde: `refreshing` yeni içindekiler gelene kadar true kalır; movingId de
+      // aynı geçişte, yani yeni ağaçla birlikte temizlenir.
+      startRefresh(() => {
+        setMovingId(null);
+        router.refresh();
+      });
+      return true;
+    } catch (error) {
+      if (request.onError) request.onError(error);
+      else toast.error(otherMessages(error, []).join(" ") || "Başlık taşınamadı.");
+      setMovingId(null);
+      return false;
+    }
+  }
+
+  /** Taşır; görünürlük değişecekse önce onay ister. Taşındıysa true, vazgeçildi ya da hata olduysa false. */
+  function request(request: MoveRequest): Promise<boolean> {
+    setMovingId(request.noteId);
+    const change = visibilityChange(toc, courseVisibility, request.noteId, request.target.parentId);
+    if (!change) return save(request);
+    return new Promise((resolve) => setPendingConfirm({ request, change, resolve }));
+  }
+
+  async function confirm() {
+    if (!pendingConfirm) return;
+    const { request: confirmed, resolve } = pendingConfirm;
+    setPendingConfirm(null);
+    resolve(await save(confirmed));
+  }
+
+  const others = pendingConfirm ? pendingConfirm.change.affected - 1 : 0;
+  const subject = `Bu başlık${others > 0 ? ` ve ${others} alt başlığı` : ""}`;
+  const confirmDialog = (
+    <AlertDialog
+      open={pendingConfirm !== null}
+      onOpenChange={(open) => {
+        if (!open && pendingConfirm) {
+          pendingConfirm.resolve(false);
+          setPendingConfirm(null);
+          setMovingId(null);
+        }
+      }}
+    >
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Görünürlük değişecek</AlertDialogTitle>
+          <AlertDialogDescription>
+            {pendingConfirm?.change.to === "private"
+              ? `${subject} giriş yapmamış okuyuculardan kalkacak; yalnız giriş yapanlar görecek.`
+              : `${subject} herkese açılacak; giriş yapmamış okuyucular da görecek.`}
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Vazgeç</AlertDialogCancel>
+          {/* Varsayılan kapanma engellenir: kayıt başlarken pencere kendisi kapanır (Vazgeç sayılmasın). */}
+          <AlertDialogAction
+            onClick={(event) => {
+              event.preventDefault();
+              void confirm();
+            }}
+          >
+            Taşı
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+
+  const pending = movingId !== null || move.isPending || refreshing || pendingConfirm !== null;
+  return { request, pending, movingId, confirmDialog };
+}
 
 function MoveForm({
   note,
   context,
-  toc,
+  course,
+  move,
   onDone,
 }: {
   note: LectureNoteDetail;
   context: LectureNodeContext;
-  toc: LectureTocEntry[];
+  course: LectureCourseDetail;
+  /** Başlık sayfasının ortak taşıma örneği (onay penceresini de o koyar). */
+  move: ReturnType<typeof useMoveNode>;
   onDone: () => void;
 }) {
-  const router = useRouter();
-  const move = useMoveLectureNode();
-  const blocked = useMemo(() => subtreeOf(toc, note.id), [toc, note.id]);
+  const toc = course.toc;
+  // Form hatayı alanında gösterir (bildirimle değil).
+  const [error, setError] = useState<unknown>(null);
+  const blocked = useMemo(() => subtreeIds(toc, note.id), [toc, note.id]);
   const [parentId, setParentId] = useState(context.parentId ?? ROOT);
   // Hedef kardeşler (başlığın kendisi hariç), içindekiler sırasıyla.
   const siblings = toc.filter((e) => (e.parentId ?? ROOT) === parentId && e.id !== note.id);
@@ -279,16 +384,13 @@ function MoveForm({
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
-    const saved = await move.mutateAsync({ id: note.id, data: { parentId: parentId || null, index } });
-    if (saved.status !== 200) return;
-    toast.success(`Başlık taşındı; yeni numarası ${saved.data.node?.label ?? ""}.`);
-    onDone();
-    router.refresh();
+    setError(null);
+    if (await move.request({ noteId: note.id, target: { parentId: parentId || null, index }, onError: setError })) onDone();
   }
 
   return (
     <form onSubmit={(e) => submit(e).catch(() => {})} className="space-y-4">
-      <Field label="Yeni üst başlık" htmlFor="move-parent" error={move.error} field="parentId">
+      <Field label="Yeni üst başlık" htmlFor="move-parent" error={error} field="parentId">
         <select
           id="move-parent"
           value={parentId}
@@ -309,7 +411,7 @@ function MoveForm({
             ))}
         </select>
       </Field>
-      <Field label="Yeri" htmlFor="move-position" error={move.error} field="index">
+      <Field label="Yeri" htmlFor="move-position" error={error} field="index">
         <select id="move-position" value={position} onChange={(e) => setPosition(e.target.value)} className={selectClass}>
           <option value="0">En başa</option>
           {siblings.map((s, i) => (
@@ -322,8 +424,8 @@ function MoveForm({
       <p className="text-xs text-muted-foreground">
         Başlık alt başlıklarıyla birlikte taşınır; numaraları yeniden hesaplanır, adresleri değişmez.
       </p>
-      <FormMessages messages={otherMessages(move.error, ["parentId", "index"])} />
-      <FormButtons pending={move.isPending} label="Taşı" />
+      <FormMessages messages={otherMessages(error, ["parentId", "index"])} />
+      <FormButtons pending={move.pending} label="Taşı" />
     </form>
   );
 }
@@ -332,14 +434,15 @@ function MoveForm({
 export function NodeAdminActions({
   note,
   context,
-  toc,
+  course,
 }: {
   note: LectureNoteDetail;
   context: LectureNodeContext;
-  toc: LectureTocEntry[];
+  course: LectureCourseDetail;
 }) {
   const router = useRouter();
-  const move = useMoveLectureNode();
+  const toc = course.toc;
+  const move = useMoveNode(toc, course.visibility);
   const remove = useDeleteLectureNote();
   const isAdmin = useIsAdmin();
   if (!isAdmin) return null;
@@ -348,15 +451,10 @@ export function NodeAdminActions({
   const siblings = toc.filter((e) => (e.parentId ?? null) === (context.parentId ?? null));
   const position = siblings.findIndex((e) => e.id === note.id);
 
-  async function shift(delta: -1 | 1) {
-    try {
-      const saved = await move.mutateAsync({ id: note.id, data: { parentId: context.parentId ?? null, index: position + delta } });
-      if (saved.status === 200) toast.success(`Yeni numarası ${saved.data.node?.label ?? ""}.`);
-      router.refresh();
-    } catch (error) {
-      toast.error(otherMessages(error, []).join(" ") || "Taşınamadı.");
-    }
-  }
+  // Aynı üst başlık içinde görünürlük değişmez. Onay penceresi bir kez, burada konur ("Taşı" penceresi de bu
+  // örneği kullanır): pencere kapandıktan sonra tazeleme bitene kadar yukarı/aşağı da kapalı kalır.
+  const shift = (delta: -1 | 1) =>
+    move.request({ noteId: note.id, target: { parentId: context.parentId ?? null, index: position + delta } });
 
   return (
     <div className="flex flex-wrap gap-2 print:hidden">
@@ -369,7 +467,7 @@ export function NodeAdminActions({
       <Button
         variant="ghost"
         size="icon"
-        disabled={position <= 0 || move.isPending}
+        disabled={position <= 0 || move.pending}
         onClick={() => shift(-1)}
         aria-label={`Yukarı taşı: ${name}`}
         title="Aynı düzeyde yukarı"
@@ -379,7 +477,7 @@ export function NodeAdminActions({
       <Button
         variant="ghost"
         size="icon"
-        disabled={position < 0 || position >= siblings.length - 1 || move.isPending}
+        disabled={position < 0 || position >= siblings.length - 1 || move.pending}
         onClick={() => shift(1)}
         aria-label={`Aşağı taşı: ${name}`}
         title="Aynı düzeyde aşağı"
@@ -394,8 +492,9 @@ export function NodeAdminActions({
           </Button>
         }
       >
-        {(close) => <MoveForm note={note} context={context} toc={toc} onDone={close} />}
+        {(close) => <MoveForm note={note} context={context} course={course} move={move} onDone={close} />}
       </FormDialog>
+      {move.confirmDialog}
       <ConfirmDelete
         title="Başlık silinsin mi?"
         description="Başlık belgeleriyle birlikte okuyuculardan kaldırılır, kaydı saklanır. Alt başlığı olan başlık silinemez; önce alt başlıklarını taşıyın ya da silin."

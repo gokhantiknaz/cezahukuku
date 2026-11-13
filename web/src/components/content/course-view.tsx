@@ -7,7 +7,6 @@ import type {
   LectureNodeRef,
   LectureNoteDetail,
   LectureNoteScope,
-  LectureTocEntry,
 } from "@/api/generated/model";
 import { CourseAdminActions, NodeAdminActions } from "@/components/content/course-admin";
 import { LectureNoteFileList } from "@/components/content/lecture-note-files";
@@ -178,7 +177,15 @@ function Pager({ courseSlug, context }: { courseSlug: string; context: LectureNo
 }
 
 /** Başlık sayfası: ders yolu, numara ve ad, metin, belgeler, alt başlıklar, önceki/sonraki. */
-export function NodeView({ note, context, toc }: { note: LectureNoteDetail; context: LectureNodeContext; toc: LectureTocEntry[] }) {
+export function NodeView({
+  note,
+  context,
+  course,
+}: {
+  note: LectureNoteDetail;
+  context: LectureNodeContext;
+  course: LectureCourseDetail;
+}) {
   const courseSlug = context.course.slug;
   const isEmpty = !note.html && note.files.length === 0;
   return (
@@ -220,7 +227,7 @@ export function NodeView({ note, context, toc }: { note: LectureNoteDetail; cont
             {context.effectiveVisibility === "private" && <PrivateBadge />}
           </p>
         </div>
-        <NodeAdminActions note={note} context={context} toc={toc} />
+        <NodeAdminActions note={note} context={context} course={course} />
       </header>
 
       {note.html && <RichTextView html={note.html} className="mt-6 rounded-lg border bg-card p-4 md:p-6" />}

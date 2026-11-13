@@ -18,7 +18,7 @@ step 7). Nothing lands here without that decision; noise is rejected in the tria
   — Recommendation: `backend/global.json` ekle, 10.0.x ile tam derleme + testleri doğrula — Deferred by: Gokhan, 2026-11-11, bootstrap koda dokunmaz; ayrı küçük iş
 - **B-2** — Mimari kurallar (docs/architecture.md, yasak bağımlılıklar 1–3) yalnız .csproj başvurularıyla tutuluyor; bir mimari test (ör. proje başvurularını okuyan birim testi) ile sabitlenmeli — Source: bootstrap 2026-11-11 — Severity: low
   — Recommendation: UnitTests'e Domain/Parsing/Infrastructure başvurularını denetleyen test ekle — Deferred by: Gokhan, 2026-11-11, bootstrap koda dokunmaz; ayrı küçük iş
-- **B-3** — Web'de otomatik test yok; bileşen testleri (Vitest + Testing Library) ilk gerçek ihtiyaçta kurulmalı ve hızlı kontrole eklenmeli — Source: bootstrap 2026-11-11 — Severity: low
+- **B-3** — (kısmen kapandı: spec 0003 saf web mantığı için `web unit` adımını ekledi — Node test koşucusu; bileşen testi hâlâ yok) Web'de otomatik test yok; bileşen testleri (Vitest + Testing Library) ilk gerçek ihtiyaçta kurulmalı ve hızlı kontrole eklenmeli — Source: bootstrap 2026-11-11 — Severity: low
   — Recommendation: arayüz mantığı ağırlaşan ilk feature'ın planında kurulum adımı olarak ele al — Deferred by: Gokhan, 2026-11-11, şimdilik UI ölçütleri entegrasyon testi + VERIFY ekran görüntüleriyle kanıtlanıyor (seçenek A)
 - **B-4** — Çıkıştan sonra kopyalanmış oturum çerezi süresi dolana kadar geçerli kalıyor — Source: bootstrap 2026-11-11 (2026-10-31 güvenlik testi bulgusu, 9ea95f2) — Severity: medium
   — Recommendation: çıkışta security stamp yenileme (tüm cihazlar ≤1 dk) ya da sunucu tarafı oturum tablosu (ITicketStore; cihaz bazında anında kapatma + "aktif oturumlar") — Deferred by: Gokhan, 2026-10-31, "çıkış şu an kalsın"
@@ -30,3 +30,7 @@ step 7). Nothing lands here without that decision; noise is rejected in the tria
   — Recommendation: `notFound()` yanıtlarının gerçek 404 durum koduyla dönmesini sağla (Next cacheComponents/akış davranışını incele) — Deferred by: Gokhan, 2026-11-12, 0002'nin getirdiği bir gerileme değil; uygulama geneli iş
 - **B-8** — Ders silme testi yalnız 400 kodunu denetliyor, gerekçe metnini denetlemiyor — Source: spec 0002, VERIFY (N-3, `backend/tests/CezaHukuku.IntegrationTests/LectureCourseTests.cs:413`) — Severity: low
   — Recommendation: `Assert.Contains("Başlığı olan ders silinemez", …)` ekle — Deferred by: Gokhan, 2026-11-12, mesaj ekran görüntüsüyle kanıtlı; sonraki değişiklikte
+- **B-9** — `Move_RenumbersSubtree_KeepsAddresses_RejectsMoveUnderOwnDescendant` reddedilen taşımadan sonra ağacın değişmediğini doğrulamıyor (`before` alınıyor, karşılaştırılmıyor) — Source: spec 0003, VERIFY (N-4, `backend/tests/CezaHukuku.IntegrationTests/LectureCourseTests.cs:165`) — Severity: info
+  — Recommendation: 400'den sonra içindekileri `before` ile karşılaştıran bir assert ekle — Deferred by: Gokhan, 2026-11-13, 0002'den kalan test; davranış doğru
+- **B-10** — Telefon içindekiler çekmecesinde kapatma (×) düğmesi uzun ders adının üstüne biniyor — Source: spec 0003, VERIFY (N-5, `web/src/components/content/course-toc.tsx:413`) — Severity: info
+  — Recommendation: çekmece başlığına × için sağ boşluk ver (ör. `pr-10`) ya da başlığı satır kaydırmalı yap — Deferred by: Gokhan, 2026-11-13, 0003 öncesinden kalan görünüm sorunu

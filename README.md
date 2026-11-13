@@ -11,7 +11,7 @@ Ceza hukuku mevzuatı, gerekçeler, içtihatlar ve kişisel notlar için çalı�
 ## Gereksinimler
 
 - .NET 10 SDK (net10.0 hedeflenir)
-- Node.js 22+
+- Node.js 22.6+
 - PostgreSQL 17 (yerel kurulum ya da bulut, ör. Neon)
 
 ## İlk kurulum
