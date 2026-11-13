@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useMemo, useState, useTransition, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowDown, ArrowUp, FolderInput, Pencil, Plus, Trash2 } from "lucide-react";
@@ -268,26 +268,39 @@ type PendingConfirm = { request: MoveRequest; change: { to: Visibility; affected
  * Başlık taşıma ("Taşı" penceresi, yukarı/aşağı ve içindekilerde sürükle-bırak aynısını kullanır): kayıt, yeni numarayla
  * bildirim, hata mesajı ve içindekilerin tazelenmesi. Taşıma etkin görünürlüğü değiştirecekse önce onay sorulur
  * (spec 0003 R-7); bu yalnız uyarıdır, görünürlük kararı sunucudadır. `confirmDialog` çağıranın ağacına konur.
+ *
+ * `pending`, onay beklenirken, kayıt sürerken ve kayıttan sonra içindekiler sunucudan tazelenene kadar true'dur:
+ * bir sonraki taşıma (bırakma yeri, görünürlük onayı, yukarı/aşağı sırası) hiçbir zaman eski ağaçla hesaplanmaz.
+ * `movingId` bu süre boyunca taşınan başlıktır.
  */
 export function useMoveNode(toc: LectureTocEntry[], courseVisibility: Visibility, { toastErrors = true } = {}) {
   const router = useRouter();
   const move = useMoveLectureNode();
   const [pendingConfirm, setPendingConfirm] = useState<PendingConfirm | null>(null);
+  const [movingId, setMovingId] = useState<string | null>(null);
+  const [refreshing, startRefresh] = useTransition();
 
   async function save(request: MoveRequest) {
     try {
       const saved = await move.mutateAsync({ id: request.noteId, data: request.target });
       if (saved.status === 200) toast.success(`Başlık taşındı; yeni numarası ${saved.data.node?.label ?? ""}.`);
-      router.refresh();
+      // Tazeleme bir geçiş (transition) içinde: `refreshing` yeni içindekiler gelene kadar true kalır; movingId de
+      // aynı geçişte, yani yeni ağaçla birlikte temizlenir.
+      startRefresh(() => {
+        setMovingId(null);
+        router.refresh();
+      });
       return true;
     } catch (error) {
       if (toastErrors) toast.error(otherMessages(error, []).join(" ") || "Başlık taşınamadı.");
+      setMovingId(null);
       return false;
     }
   }
 
   /** Taşır; görünürlük değişecekse önce onay ister. Taşındıysa true, vazgeçildi ya da hata olduysa false. */
   function request(request: MoveRequest): Promise<boolean> {
+    setMovingId(request.noteId);
     const change = visibilityChange(toc, courseVisibility, request.noteId, request.target.parentId);
     if (!change) return save(request);
     return new Promise((resolve) => setPendingConfirm({ request, change, resolve }));
@@ -309,6 +322,7 @@ export function useMoveNode(toc: LectureTocEntry[], courseVisibility: Visibility
         if (!open && pendingConfirm) {
           pendingConfirm.resolve(false);
           setPendingConfirm(null);
+          setMovingId(null);
         }
       }}
     >
@@ -337,7 +351,8 @@ export function useMoveNode(toc: LectureTocEntry[], courseVisibility: Visibility
     </AlertDialog>
   );
 
-  return { request, pending: move.isPending || pendingConfirm !== null, error: move.error, confirmDialog };
+  const pending = movingId !== null || move.isPending || refreshing || pendingConfirm !== null;
+  return { request, pending, movingId, error: move.error, confirmDialog };
 }
 
 function MoveForm({
@@ -430,7 +445,7 @@ export function NodeAdminActions({
   const siblings = toc.filter((e) => (e.parentId ?? null) === (context.parentId ?? null));
   const position = siblings.findIndex((e) => e.id === note.id);
 
-  // Aynı üst başlık içinde: görünürlük değişmez, onay çıkmaz.
+  // Aynı üst başlık içinde görünürlük değişmez; onay penceresi yine de konur (hiçbir taşıma onaysız kalmasın).
   const shift = (delta: -1 | 1) =>
     move.request({ noteId: note.id, target: { parentId: context.parentId ?? null, index: position + delta } });
 
@@ -472,6 +487,7 @@ export function NodeAdminActions({
       >
         {(close) => <MoveForm note={note} context={context} course={course} onDone={close} />}
       </FormDialog>
+      {move.confirmDialog}
       <ConfirmDelete
         title="Başlık silinsin mi?"
         description="Başlık belgeleriyle birlikte okuyuculardan kaldırılır, kaydı saklanır. Alt başlığı olan başlık silinemez; önce alt başlıklarını taşıyın ya da silin."

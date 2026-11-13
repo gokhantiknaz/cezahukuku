@@ -103,7 +103,6 @@ export function CourseToc({ course, footer, sort }: { course: LectureCourseDetai
   const move = useMoveNode(course.toc, course.visibility);
   const [dragId, setDragId] = useState<string | null>(null);
   const [drop, setDrop] = useState<{ id: string; zone: DropZone } | null>(null);
-  const [savingId, setSavingId] = useState<string | null>(null);
   const expandTimer = useRef<{ id: string; timer: ReturnType<typeof setTimeout> } | null>(null);
   const scroller = useRef<HTMLDivElement>(null);
 
@@ -112,12 +111,18 @@ export function CourseToc({ course, footer, sort }: { course: LectureCourseDetai
     expandTimer.current = null;
   };
 
+  const clearDrop = () => {
+    if (drop) setDrop(null);
+    clearExpandTimer();
+  };
+
   const dnd: Dnd | undefined = sorting
     ? {
         dragId,
         drop,
-        savingId,
-        busy: savingId !== null || move.pending,
+        // Kayıt ve ardından içindekilerin tazelenmesi bitene kadar yeni sürükleme başlamaz (eski ağaçla hesap yok).
+        savingId: move.movingId,
+        busy: move.pending,
         onDragStart(event, node) {
           event.dataTransfer.effectAllowed = "move";
           event.dataTransfer.setData("text/plain", node.id);
@@ -156,16 +161,11 @@ export function CourseToc({ course, footer, sort }: { course: LectureCourseDetai
           setDrop(null);
           setDragId(null);
           clearExpandTimer();
-          if (!draggedId || !target) return;
-          setSavingId(draggedId);
-          try {
-            // Taşınan başlık yeni yerinde görünsün: içine bırakılan (kapalı olabilen) üst başlık açılır.
-            const moved = await move.request({ noteId: draggedId, target });
-            const parentId = target.parentId;
-            if (moved && parentId) setExpanded((current) => new Set([...current, parentId]));
-          } finally {
-            setSavingId(null);
-          }
+          if (!draggedId || !target || move.pending) return;
+          // Taşınan başlık yeni yerinde görünsün: içine bırakılan (kapalı olabilen) üst başlık açılır.
+          const moved = await move.request({ noteId: draggedId, target });
+          const parentId = target.parentId;
+          if (moved && parentId) setExpanded((current) => new Set([...current, parentId]));
         },
         onDragEnd() {
           // Esc, ağacın dışına bırakma ya da başarılı bırakma: gösterge temizlenir; kayıt yalnız onDrop'ta.
@@ -176,10 +176,14 @@ export function CourseToc({ course, footer, sort }: { course: LectureCourseDetai
       }
     : undefined;
 
-  /** Sürüklerken panelin üst/alt kenarına yaklaşınca içindekiler kayar (uzun derslerde görünmeyen yere taşımak için). */
-  function autoScroll(event: DragEvent<HTMLDivElement>) {
+  /**
+   * Sürüklerken panelin üst/alt kenarına yaklaşınca içindekiler kayar (uzun derslerde görünmeyen yere taşımak için).
+   * Fare bir başlık satırında değilse (boşluk, alt kısım) bırakma göstergesi silinir: orada bırakmak iptaldir.
+   */
+  function onScrollerDragOver(event: DragEvent<HTMLDivElement>) {
     const element = scroller.current;
     if (!dragId || !element) return;
+    if (!(event.target as Element).closest?.("[data-toc-row]")) clearDrop();
     const rect = element.getBoundingClientRect();
     if (event.clientY < rect.top + SCROLL_EDGE_PX) element.scrollBy(0, -SCROLL_STEP_PX);
     else if (event.clientY > rect.bottom - SCROLL_EDGE_PX) element.scrollBy(0, SCROLL_STEP_PX);
@@ -216,7 +220,14 @@ export function CourseToc({ course, footer, sort }: { course: LectureCourseDetai
           )}
         </div>
       )}
-      <div ref={scroller} onDragOver={autoScroll} className="min-h-0 flex-1 overflow-y-auto p-2">
+      <div
+        ref={scroller}
+        onDragOver={onScrollerDragOver}
+        onDragLeave={(event) => {
+          // İçindekilerin dışına çıkınca gösterge kalmaz.
+          if (dragId && !event.currentTarget.contains(event.relatedTarget as Node | null)) clearDrop();
+        }}
+        className="min-h-0 flex-1 overflow-y-auto p-2">
         {roots.length === 0 ? (
           <p className="p-2 text-sm text-muted-foreground">Bu derse henüz başlık eklenmedi.</p>
         ) : (
@@ -274,16 +285,19 @@ function TocList({
         const name = `${node.label} ${node.title}`;
         const zone = dnd?.drop?.id === node.id ? dnd.drop.zone : null;
         const saving = dnd?.savingId === node.id;
+        // Açık ve alt başlıklı başlığın "arkası" bütün alt başlıklarının arkasıdır: çizgi alt ağacın sonunda çizilir.
+        const afterSubtree = zone === "after" && open && node.children.length > 0;
         return (
-          <li key={node.id}>
+          <li key={node.id} className={cn(afterSubtree && "shadow-[inset_0_-3px_0_0_var(--primary)]")}>
             <div
+              data-toc-row
               className={cn(
                 "flex items-start gap-0.5 rounded-md",
                 dnd?.dragId === node.id && "opacity-50",
                 saving && "opacity-60",
                 // Gösterge yalnız renge dayanmaz: çizgi (önüne/arkasına) ya da çerçeve (içine).
                 zone === "before" && "shadow-[inset_0_3px_0_0_var(--primary)]",
-                zone === "after" && "shadow-[inset_0_-3px_0_0_var(--primary)]",
+                zone === "after" && !afterSubtree && "shadow-[inset_0_-3px_0_0_var(--primary)]",
                 zone === "inside" && "ring-2 ring-primary ring-inset",
               )}
               style={{ paddingLeft: `${(node.depth - 1) * 12}px` }}
