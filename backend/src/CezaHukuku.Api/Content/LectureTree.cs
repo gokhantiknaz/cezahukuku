@@ -16,10 +16,10 @@ internal static class LectureTree
     private const int MaxSlugLength = 100;
 
     /// <summary>
-    /// "/ders-notlari/yeni" yeni not formu, ".../{adres}/duzenle" düzenleme sayfasıdır; bu adresler ders, not ya da
-    /// başlığa verilmez.
+    /// "/ders-notlari/yeni" yeni not formu, "/ders-notlari/ice-aktar" başlık içe aktarma ekranı,
+    /// ".../{adres}/duzenle" düzenleme sayfasıdır; bu adresler ders, not ya da başlığa verilmez.
     /// </summary>
-    private static readonly HashSet<string> Reserved = ["yeni", "duzenle"];
+    private static readonly HashSet<string> Reserved = ["yeni", "duzenle", "ice-aktar"];
 
     /// <summary>
     /// Derslerin ağaçları. Başlıkların yalnız ağaç için gereken alanları yüklenir (metin yok); ders ≤ 300 başlıktır.

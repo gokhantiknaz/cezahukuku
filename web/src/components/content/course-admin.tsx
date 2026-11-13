@@ -3,7 +3,7 @@
 import { useMemo, useState, useTransition, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowDown, ArrowUp, FolderInput, Pencil, Plus, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, FileInput, FolderInput, Pencil, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import {
   useAddLectureNode,
@@ -178,9 +178,22 @@ function CourseForm({ course, onDone }: { course?: LectureCourseDetail; onDone: 
   );
 }
 
-/** Dersler listesinde: yeni ders. */
+/** Dersler listesinde: yeni ders ve başlıkları içe aktarma (yeni ders kurar). */
 export function NewCourseButton() {
   if (!useIsAdmin()) return null;
+  return (
+    <div className="flex flex-wrap gap-2">
+      <Button variant="outline" asChild>
+        <Link href="/ders-notlari/ice-aktar">
+          <FileInput /> Başlıkları içe aktar
+        </Link>
+      </Button>
+      <NewCourseDialog />
+    </div>
+  );
+}
+
+function NewCourseDialog() {
   return (
     <FormDialog
       title="Yeni ders"
