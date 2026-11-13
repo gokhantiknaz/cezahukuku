@@ -110,7 +110,7 @@ public static class LectureImportEndpoints
     {
         var result = LectureHeadingParser.Parse(text, title, chapterNumber, applySuggestions);
         var errors = result.Errors
-            .Select(e => new Issue(e.Line, e.Message, e.Line == 0 && e.Message.StartsWith("Ders adı", StringComparison.Ordinal) ? "title" : "text"))
+            .Select(e => new Issue(e.Line, e.Message, e.Field))
             .ToList();
         if (result.ChapterNumber is < LectureCourse.MinChapterNumber or > LectureCourse.MaxChapterNumber)
             errors.Insert(0, new(0, $"Bölüm numarası {LectureCourse.MinChapterNumber}–{LectureCourse.MaxChapterNumber} arası olmalı.", "chapterNumber"));

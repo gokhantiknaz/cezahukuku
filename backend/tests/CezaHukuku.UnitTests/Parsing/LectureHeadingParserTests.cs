@@ -140,7 +140,8 @@ public class LectureHeadingParserTests
     public void Errors_SkippedLevel_EmptyTitle_NoHeadings_LongTitle_TooLongText()
     {
         Assert.Contains(Parse("1. Bir\n1.1.1. Üç", "Ders").Errors, e => e.Line == 2 && e.Message.Contains("düzey atlanmış"));
-        Assert.Contains(Parse("1. Bir", "  ", suggest: false).Errors, e => e.Line == 0 && e.Message.Contains("Ders adı boş"));
+        Assert.Contains(Parse("1. Bir", "  ", suggest: false).Errors,
+            e => (e.Line, e.Field) == (0, HeadingImportIssue.TitleField) && e.Message.Contains("Ders adı boş"));
         Assert.Contains(Parse("Yalnız düz metin\nbaşka satır", "Ders").Errors, e => e.Message.Contains("başlık bulunamadı"));
         Assert.Contains(Parse("1. " + new string('a', 301), "Ders").Errors, e => e.Line == 1 && e.Message.Contains("300 karakter"));
         Assert.Empty(Parse("1. " + new string('a', 300), "Ders").Errors);

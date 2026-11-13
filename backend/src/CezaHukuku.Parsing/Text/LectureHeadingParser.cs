@@ -11,7 +11,12 @@ namespace CezaHukuku.Parsing.Text;
 public sealed record ImportedHeading(int Line, string Title, int Depth, string SourceNumber, string Number);
 
 /// <param name="Line">Kaynak metindeki satır numarası; metnin tamamıyla ilgiliyse 0.</param>
-public sealed record HeadingImportIssue(int Line, string Message);
+/// <param name="Field">Sorunun ait olduğu form alanı: <see cref="TextField"/> ya da <see cref="TitleField"/>.</param>
+public sealed record HeadingImportIssue(int Line, string Message, string Field = HeadingImportIssue.TextField)
+{
+    public const string TextField = "text";
+    public const string TitleField = "title";
+}
 
 /// <summary>Başlık listesinin okunuşu: kullanılan ad ve bölüm numarası, öneriler, başlıklar, hatalar ve uyarılar.</summary>
 /// <param name="Title">Kullanılan ders adı (öneriler uygulandıysa öneriden).</param>
@@ -107,9 +112,9 @@ public static partial class LectureHeadingParser
         var errors = new List<HeadingImportIssue>();
         var warnings = new List<HeadingImportIssue>();
         if (title.Length == 0)
-            errors.Add(new(0, "Ders adı boş olamaz."));
+            errors.Add(new(0, "Ders adı boş olamaz.", HeadingImportIssue.TitleField));
         else if (title.Length > MaxTitleLength)
-            errors.Add(new(0, $"Ders adı {MaxTitleLength} karakterden uzun olamaz."));
+            errors.Add(new(0, $"Ders adı {MaxTitleLength} karakterden uzun olamaz.", HeadingImportIssue.TitleField));
 
         var headings = new List<ImportedHeading>();
         var lastDepth = 0;
