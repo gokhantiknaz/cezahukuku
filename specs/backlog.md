@@ -30,3 +30,7 @@ step 7). Nothing lands here without that decision; noise is rejected in the tria
   — Recommendation: `notFound()` yanıtlarının gerçek 404 durum koduyla dönmesini sağla (Next cacheComponents/akış davranışını incele) — Deferred by: Gokhan, 2026-11-12, 0002'nin getirdiği bir gerileme değil; uygulama geneli iş
 - **B-8** — Ders silme testi yalnız 400 kodunu denetliyor, gerekçe metnini denetlemiyor — Source: spec 0002, VERIFY (N-3, `backend/tests/CezaHukuku.IntegrationTests/LectureCourseTests.cs:413`) — Severity: low
   — Recommendation: `Assert.Contains("Başlığı olan ders silinemez", …)` ekle — Deferred by: Gokhan, 2026-11-12, mesaj ekran görüntüsüyle kanıtlı; sonraki değişiklikte
+- **B-8** — `Move_RenumbersSubtree_KeepsAddresses_RejectsMoveUnderOwnDescendant` reddedilen taşımadan sonra ağacın değişmediğini doğrulamıyor (`before` alınıyor, karşılaştırılmıyor) — Source: spec 0003, VERIFY (N-4, `backend/tests/CezaHukuku.IntegrationTests/LectureCourseTests.cs:165`) — Severity: info
+  — Recommendation: 400'den sonra içindekileri `before` ile karşılaştıran bir assert ekle — Deferred by: Gokhan, 2026-11-13, 0002'den kalan test; davranış doğru
+- **B-9** — Telefon içindekiler çekmecesinde kapatma (×) düğmesi uzun ders adının üstüne biniyor — Source: spec 0003, VERIFY (N-5, `web/src/components/content/course-toc.tsx:413`) — Severity: info
+  — Recommendation: çekmece başlığına × için sağ boşluk ver (ör. `pr-10`) ya da başlığı satır kaydırmalı yap — Deferred by: Gokhan, 2026-11-13, 0003 öncesinden kalan görünüm sorunu

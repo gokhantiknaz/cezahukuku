@@ -474,23 +474,28 @@ public class LectureCourseTests(ApiFactory factory, ITestOutputHelper output)
         var b = await AddNodeAsync(admin, course.Id, $"İkinci {tag}");
         var word = Word("tasinan");
         var node = await AddNodeAsync(admin, course.Id, $"Kast {word}", a.Id);
+        var siblingWord = Word("kardesalt");
+        await AddNodeAsync(admin, course.Id, $"Kardeş {siblingWord}", b.Id);
         await LinkToArticleAsync(admin, node, article.Id);
         var url = $"/ders-notlari/{course.Slug}/{node.Slug}";
 
         var anonymous = factory.CreateAnonymousClient();
         Assert.Equal("1.1", (await ArticleRefAsync(anonymous, law.Slug, node.Slug)).Label);
 
-        // B'nin içine (sona) taşı: 1.1 → 2.1; madde ekranı ve arama yeni numarayla, adres aynı.
+        // B'nin içine (başına) taşı: 1.1 → 2.1; madde ekranı ve arama yeni numarayla, adres aynı. B'nin alt başlığı kayar.
         await MoveAsync(admin, node.Id, b.Id, 0).ExpectAsync(200);
         var moved = await ArticleRefAsync(anonymous, law.Slug, node.Slug);
         Assert.Equal(("2.1", url), (moved.Label, moved.Url));
         var hit = Assert.Single(await SearchAsync(anonymous, word));
         Assert.Equal(($"2.1 Kast {word}", url, $"Taşınan ders {tag} › İkinci {tag}"), (hit.Title, hit.Url, hit.Context));
+        Assert.Equal($"2.2 Kardeş {siblingWord}", Assert.Single(await SearchAsync(anonymous, siblingWord)).Title);
 
-        // Birinci düzeye, en başa: "1. Bölüm"; eski birinci düzeyler kayar.
+        // Birinci düzeye, en başa: "1. Bölüm"; eski birinci düzeyler kayar. Kayan kardeşin (B) yerinde duran alt
+        // başlığı da aramada yeni numarasıyla çıkar (kendisi kaydedilmese de).
         await MoveAsync(admin, node.Id, null, 0).ExpectAsync(200);
         Assert.Equal("1. Bölüm", (await ArticleRefAsync(anonymous, law.Slug, node.Slug)).Label);
         Assert.Equal($"1. Bölüm Kast {word}", Assert.Single(await SearchAsync(anonymous, word)).Title);
+        Assert.Equal($"3.1 Kardeş {siblingWord}", Assert.Single(await SearchAsync(anonymous, siblingWord)).Title);
         var toc = await TocAsync(anonymous, course.Slug);
         Assert.Equal([(node.Id, "1. Bölüm"), (a.Id, "2. Bölüm"), (b.Id, "3. Bölüm")],
             toc.Toc.Where(e => e.Depth == 1).Select(e => (e.Id, e.Label)));

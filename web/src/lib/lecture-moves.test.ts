@@ -80,6 +80,8 @@ describe("lecture-moves", () => {
     assert.deepEqual(visibilityChange(withPrivate, "public", "A1", "P"), { to: "private", affected: 2 });
     // Özel üstün altından birinci düzeye: P1 açılır.
     assert.deepEqual(visibilityChange(withPrivate, "public", "P1", null), { to: "public", affected: 1 });
+    // Kendi ayarı açık ama özel üstün altında olan P1'in içine: miras etkin görünürlükten gelir, A12 özel olur.
+    assert.deepEqual(visibilityChange(withPrivate, "public", "A12", "P1"), { to: "private", affected: 1 });
     // Görünürlük değişmeyen taşıma: onay yok.
     assert.equal(visibilityChange(withPrivate, "public", "A12", null), null);
     assert.equal(visibilityChange(withPrivate, "public", "A11", "P"), null);
