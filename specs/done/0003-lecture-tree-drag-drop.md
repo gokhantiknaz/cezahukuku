@@ -1,6 +1,6 @@
 # Spec 0003 — Ders içindekilerinde sürükle-bırak ile başlık taşıma
 
-- Status: In progress
+- Status: Shipped
 - Mode: lite
 - Plan: `specs/plans/0003-plan.md`
 - Self-critique: done
@@ -73,42 +73,42 @@ okuyucu bir şey fark etmez, yalnız yeni sırayı görür. Bilinçli olarak yap
   sürükleme; geri al; ders sayfası "Bölümler" ve "Alt başlıklar" listelerinde sürükleme; başka derse taşıma.
 
 ## Acceptance criteria
-- [ ] AC-1 — Yönetici içindekilerde "Sırala"yı açınca sürükleme tutamaçları görünür, "Bitti" ile kapanır; mod
+- [x] AC-1 — Yönetici içindekilerde "Sırala"yı açınca sürükleme tutamaçları görünür, "Bitti" ile kapanır; mod
   kapalıyken içindekiler bugünkü gibi çalışır. Okuyucu, standart ve okur kullanıcılar "Sırala"yı ve tutamaçları görmez.
-- [ ] AC-2 — Bir başlık başka bir başlığın üstüne/altına bırakılınca o başlığın önüne/arkasına (aynı düzeye),
+- [x] AC-2 — Bir başlık başka bir başlığın üstüne/altına bırakılınca o başlığın önüne/arkasına (aynı düzeye),
   içine bırakılınca alt başlığı olarak sona taşınır; birinci düzeyde üstüne/altına bırakma birinci düzeye taşır;
   alt başlıklar onunla gider.
-- [ ] AC-3 — Taşımadan sonra taşınan başlığın, alt başlıklarının ve etkilenen kardeşlerin numaraları içindekilerde,
+- [x] AC-3 — Taşımadan sonra taşınan başlığın, alt başlıklarının ve etkilenen kardeşlerin numaraları içindekilerde,
   başlık sayfasında, ders yolunda, madde ekranında ve aramada yeni değerleriyle görünür; adresleri değişmez;
   bildirim yeni numarayı gösterir.
-- [ ] AC-4 — Başlığın kendisi ya da alt başlıklarından biri bırakma hedefi olmaz; sunucu taşımayı yine de reddederse
+- [x] AC-4 — Başlığın kendisi ya da alt başlıklarından biri bırakma hedefi olmaz; sunucu taşımayı yine de reddederse
   gerekçeli mesaj gösterilir ve ağaç taşımadan önceki hâline döner; aynı yere bırakma (üst başlığı ve kardeşler
   arasındaki yeri değişmeyen) kayıt yapmaz ve bildirim çıkmaz; Esc ya da ağacın dışına bırakma sürüklemeyi iptal eder,
   kayıt yapılmaz.
-- [ ] AC-5 — Etkin görünürlüğü değiştiren taşımada (açık → özel üst başlık ya da özel → açık) kayıttan önce onay
+- [x] AC-5 — Etkin görünürlüğü değiştiren taşımada (açık → özel üst başlık ya da özel → açık) kayıttan önce onay
   istenir ve kaç başlığın etkileneceği yazılır; "Vazgeç" kayıt yapmaz; onaylanınca giriş yapmamış okuyucu için
   okuma, içindekiler, madde ekranı ve aramada yeni görünürlük hemen geçerlidir. Görünürlük değişmiyorsa onay sorulmaz.
-- [ ] AC-6 — Taşıma yalnız yöneticiye açıktır: giriş yok → 401, `standard` ve `reader` → 403, ağaç değişmez
+- [x] AC-6 — Taşıma yalnız yöneticiye açıktır: giriş yok → 401, `standard` ve `reader` → 403, ağaç değişmez
   (0002'nin taşıma kuralı sürükle-bırak yolunda da geçerli).
-- [ ] AC-7 — Kapalı dalın üzerinde ~0,7 sn bekleyince dal açılır ve içindeki başlıklara bırakılabilir; sürüklerken
+- [x] AC-7 — Kapalı dalın üzerinde ~0,7 sn bekleyince dal açılır ve içindeki başlıklara bırakılabilir; sürüklerken
   panelin üst/alt kenarına yaklaşınca içindekiler kendiliğinden kayar; kayıt sürerken başlık beklemede görünür ve yeni
   sürükleme başlatılamaz.
-- [ ] AC-8 — Klavyeyle ve telefonda (390 px) mevcut "Taşı" penceresi ve yukarı/aşağı düğmeleri çalışmaya devam eder;
+- [x] AC-8 — Klavyeyle ve telefonda (390 px) mevcut "Taşı" penceresi ve yukarı/aşağı düğmeleri çalışmaya devam eder;
   tutamaçların erişilebilir adı başlığı içerir, "Sırala" `aria-pressed` bildirir; dar ekranda ve telefon çekmecesinde
   "Sırala" görünmez; 390 px'te yatay taşma yok.
 
 ## Definition of Done
-- [ ] Every acceptance criterion mapped to proof (test or reproducible observation)
-- [ ] `scripts/check` green
-- [ ] Independent review done; real findings fixed, noise rejected with written rationale, deferred ones in `specs/backlog.md`
-- [ ] Docs / ADRs updated if behavior or architecture changed
-- [ ] Spec moved to `specs/done/` (it becomes immutable there)
+- [x] Every acceptance criterion mapped to proof (test or reproducible observation)
+- [x] `scripts/check` green
+- [x] Independent review done; real findings fixed, noise rejected with written rationale, deferred ones in `specs/backlog.md`
+- [x] Docs / ADRs updated if behavior or architecture changed
+- [x] Spec moved to `specs/done/` (it becomes immutable there)
 
 ## Scorecard (fill at ship — honest numbers make the process improvable)
 | Metric | Value |
 |---|---|
-| Spec revisions | |
-| Fix rounds | |
-| Review findings: real / noise / deferred | |
-| Regressions introduced | |
-| Bugs escaped to production | |
+| Spec revisions | 0 onay sonrası (plan değişiklikleri A-1, A-2) |
+| Fix rounds | 3 (fix-3 yalnız test) + 1 yalnız belge (backlog numarası) |
+| Review findings: real / noise / deferred | 8 / 4 / 0 (round 2 N-3 yeniden üretilemedi → kanıtla kapatıldı) — VERIFY: N-1, N-2 real (fix-3), N-3 noise, N-4 → B-9, N-5 → B-10 |
+| Regressions introduced | 0 |
+| Bugs escaped to production | 0 (henüz canlıya alınmadı) |
