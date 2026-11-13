@@ -32,6 +32,8 @@ export function LectureImport() {
   const [chapter, setChapter] = useState("");
   const [visibility, setVisibility] = useState<Visibility>("private");
   const [previewed, setPreviewed] = useState<Previewed | null>(null);
+  // Ekran okuyucu duyurusu: her önizlemede önce temizlenir, sonra yazılır (aynı sonuç da yeniden okunsun).
+  const [announcement, setAnnouncement] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
   const extract = useExtractImportText();
   const previewMutation = usePreviewLectureImport();
@@ -79,6 +81,13 @@ export function LectureImport() {
     setTitle(result.title);
     setChapter(usedChapter);
     setPreviewed({ text, title: result.title, chapter: usedChapter, result });
+    const first = result.errors[0] ?? result.warnings[0];
+    const firstLabel = result.errors.length > 0 ? "İlk hata" : "İlk uyarı";
+    const message =
+      `Önizleme hazır: ${result.headings.length} başlık; ${result.errors.length} hata, ${result.warnings.length} uyarı.` +
+      (first ? ` ${firstLabel}: ${first.line > 0 ? `Satır ${first.line}: ` : ""}${first.message}` : "");
+    setAnnouncement("");
+    window.setTimeout(() => setAnnouncement(message), 100);
   }
 
   async function runImport() {
@@ -172,7 +181,7 @@ export function LectureImport() {
           )}
         </div>
         <p role="status" aria-live="polite" className="sr-only">
-          {summary}
+          {previewed && !upToDate ? "Önizleme güncel değil: yeniden önizleyin." : announcement}
         </p>
         </fieldset>
       </section>
