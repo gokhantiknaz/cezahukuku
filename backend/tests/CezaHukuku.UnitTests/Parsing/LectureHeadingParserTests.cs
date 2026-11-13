@@ -80,6 +80,45 @@ public class LectureHeadingParserTests
         Assert.Contains(result.Errors, e => e.Line == 5 && e.Message.Contains("düzey atlanmış"));
     }
 
+    /// <summary>Review L-4: R-4'ün saydığı bölüm satırı biçimleri (ayraç türleri, büyük/küçük harf, aksansız).</summary>
+    [Theory]
+    [InlineData("2. BÖLÜM – SUÇ TEORİSİ")]
+    [InlineData("2. BÖLÜM — SUÇ TEORİSİ")]
+    [InlineData("2. BÖLÜM - SUÇ TEORİSİ")]
+    [InlineData("2. BÖLÜM: SUÇ TEORİSİ")]
+    [InlineData("2. Bölüm – Suç Teorisi")]
+    [InlineData("2. bölüm - Suç Teorisi")]
+    [InlineData("2. BOLUM – SUÇ TEORİSİ")]
+    [InlineData("2 BÖLÜM – SUÇ TEORİSİ")]
+    public void ChapterLine_Forms(string line)
+    {
+        var result = Parse($"{line}\n2.1. Suçun Unsurları");
+
+        Assert.Equal(("Suç Teorisi", 2), (result.SuggestedTitle, result.SuggestedChapterNumber));
+        Assert.Equal("2.1", Assert.Single(result.Headings).Number);
+        Assert.Empty(result.Errors);
+    }
+
+    [Fact]
+    public void ChapterLine_WithoutSeparator_IsNotAChapter()
+    {
+        // Ayraçsız satır bölüm satırı sayılmaz: numaralı bir başlıktır ("2." düzeyi), öneri yok.
+        var result = Parse("2. BÖLÜM SUÇ TEORİSİ\n2.1. Suçun Unsurları");
+
+        Assert.Null(result.SuggestedChapterNumber);
+        Assert.Equal(["Bölüm Suç Teorisi", "Suçun Unsurları"], result.Headings.Select(h => h.Title));
+        Assert.Equal(["2", "2.1"], result.Headings.Select(h => h.SourceNumber));
+    }
+
+    [Fact]
+    public void WholeBook_WithManualChapterNumber_OtherChaptersAreErrors()
+    {
+        var result = Parse("1. BÖLÜM – GİRİŞ\n1.1. Kavramlar\n2. BÖLÜM – SUÇ TEORİSİ\n2.1. Unsurlar", "Giriş", 1, suggest: false);
+
+        Assert.Equal(["1.1"], result.Headings.Select(h => h.Number));
+        Assert.Equal([3, 4], result.Errors.Select(e => e.Line));
+    }
+
     [Theory]
     [InlineData("CEZA HUKUKUNA GİRİŞ", "Ceza Hukukuna Giriş")]
     [InlineData("İDARENİN DÜZENLEYİCİ İŞLEMLERLE SUÇ VE CEZA YARATMASI YASAĞI", "İdarenin Düzenleyici İşlemlerle Suç ve Ceza Yaratması Yasağı")]
