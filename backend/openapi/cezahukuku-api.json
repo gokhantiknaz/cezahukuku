@@ -6393,6 +6393,7 @@
           "title",
           "description",
           "visibility",
+          "chapterNumber",
           "toc"
         ],
         "type": "object",
@@ -6412,6 +6413,13 @@
           },
           "visibility": {
             "$ref": "#/components/schemas/Visibility"
+          },
+          "chapterNumber": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
           },
           "toc": {
             "type": "array",
@@ -6448,6 +6456,7 @@
           "title",
           "description",
           "visibility",
+          "chapterNumber",
           "nodeCount"
         ],
         "type": "object",
@@ -6467,6 +6476,13 @@
           },
           "visibility": {
             "$ref": "#/components/schemas/Visibility"
+          },
+          "chapterNumber": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
           },
           "nodeCount": {
             "type": "integer",
@@ -7953,6 +7969,13 @@
           },
           "visibility": {
             "$ref": "#/components/schemas/Visibility"
+          },
+          "chapterNumber": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
           }
         }
       },

@@ -1,6 +1,6 @@
 # Spec 0004 — Ders başlıklarını toplu içe aktarma ve ders bölüm numarası
 
-- Status: Approved
+- Status: In progress
 - Mode: lite
 - Plan: `specs/plans/0004-plan.md`
 - Self-critique: done

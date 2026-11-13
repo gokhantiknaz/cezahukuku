@@ -3,21 +3,21 @@ using CezaHukuku.Domain.Laws;
 namespace CezaHukuku.Domain.Content;
 
 /// <summary>Ders ağacındaki bir başlık: numarası, düzeyi, etkin görünürlüğü ve görünür alt başlıkları.</summary>
+/// <param name="Label">Gösterilen numara: birinci düzeyde "1. Bölüm", altında "1.5.1"; bölüm numaralı derste her düzeyde
+/// numaranın kendisi ("2.1", "2.1.1").</param>
 public sealed record LectureOutlineNode(
     LectureNote Note,
     string Number,
+    string Label,
     int Depth,
     Visibility EffectiveVisibility,
-    IReadOnlyList<LectureOutlineNode> Children)
-{
-    /// <summary>Gösterilen numara: birinci düzeyde "1. Bölüm", altında "1.5.1".</summary>
-    public string Label => LectureOutline.LabelOf(Number, Depth);
-}
+    IReadOnlyList<LectureOutlineNode> Children);
 
 /// <summary>
 /// Bir dersin başlık ağacı (içindekiler): sıra, numaralar, etkin görünürlük, önceki/sonraki ve ders yolu.
 /// <list type="bullet">
 /// <item>Kardeşler <see cref="LectureNote.SortOrder"/>, sonra oluşturulma sırasıyla dizilir.</item>
+/// <item>Dersin bölüm numarası (<see cref="LectureCourse.ChapterNumber"/>) varsa numaralar onunla başlar ("2.1.1").</item>
 /// <item>Numara ağaçtaki yerden hesaplanır ve okuyucudan bağımsızdır: gizli bir başlık okuyucuda görünmese de
 /// sonraki kardeşlerin numarası kaymaz (aynı numara herkes için aynı başlığı gösterir).</item>
 /// <item>Etkin görünürlük dersten aşağı doğru daralır (<see cref="VisibilityExtensions.Narrow"/>): özel ders ya da
@@ -52,7 +52,7 @@ public sealed class LectureOutline
             .OrderBy(n => n.SortOrder).ThenBy(n => n.CreatedAt).ThenBy(n => n.Id)
             .ToLookup(n => KnownOrNull(n.ParentId));
 
-        Number(null, "", 0);
+        Number(null, course.ChapterNumber?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "", 0);
 
         bool IsIncluded(Visibility visibility) => includePrivate || visibility == Visibility.Public;
 
@@ -69,7 +69,8 @@ public sealed class LectureOutline
                 var index = tocOrder.Count;
                 tocIndex[note.Id] = index;
                 tocOrder.Add(null!);
-                var node = new LectureOutlineNode(note, number, depth, visibility, Visit(note.Id));
+                var node = new LectureOutlineNode(note, number, LabelOf(number, depth, course.ChapterNumber is not null), depth,
+                    visibility, Visit(note.Id));
                 tocOrder[index] = node;
                 result.Add(node);
             }
@@ -83,8 +84,12 @@ public sealed class LectureOutline
     public static LectureOutline Build(LectureCourse course, IEnumerable<LectureNote> nodes, bool includePrivate) =>
         new(course, nodes, includePrivate);
 
-    /// <summary>Birinci düzeyde "1. Bölüm", altında numaranın kendisi.</summary>
-    public static string LabelOf(string number, int depth) => depth == 1 ? $"{number}. Bölüm" : number;
+    /// <summary>
+    /// Birinci düzeyde "1. Bölüm", altında numaranın kendisi. Bölüm numaralı derste (<paramref name="chaptered"/>)
+    /// numara zaten bölümle başladığından ("2.1") her düzeyde numaranın kendisi.
+    /// </summary>
+    public static string LabelOf(string number, int depth, bool chaptered) =>
+        depth == 1 && !chaptered ? $"{number}. Bölüm" : number;
 
     /// <summary>Görünür başlığı kimliğiyle bulur; gizli ya da olmayan başlıkta null.</summary>
     public LectureOutlineNode? Find(Guid noteId) =>
