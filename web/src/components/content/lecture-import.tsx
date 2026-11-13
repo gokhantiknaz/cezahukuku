@@ -103,7 +103,9 @@ export function LectureImport() {
         </Link>
       </Button>
 
-      <section className="space-y-4 rounded-lg border bg-card p-4">
+      <section className="rounded-lg border bg-card p-4">
+        {/* Kayıt sürerken form kilitli: gönderilenle ekrandaki metin ayrışmasın. */}
+        <fieldset disabled={importMutation.isPending} className="min-w-0 space-y-4">
         <p className="reading text-muted-foreground">
           Ders kitabının başlık listesini yapıştırın ya da Word/PDF dosyasından alın. Her başlık numarasıyla bir satırda
           olmalı (&quot;2.1.1. Tipiklik&quot;); düzey numaradan anlaşılır, numaraları sistem yeniden hesaplar. Tek bölümlük
@@ -172,6 +174,7 @@ export function LectureImport() {
         <p role="status" aria-live="polite" className="sr-only">
           {summary}
         </p>
+        </fieldset>
       </section>
 
       {preview && (
