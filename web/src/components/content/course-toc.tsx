@@ -55,6 +55,15 @@ const zoneOf = (event: DragEvent<HTMLElement>): DropZone => {
   return y < rect.height * 0.25 ? "before" : y > rect.height * 0.75 ? "after" : "inside";
 };
 
+/**
+ * Bırakma göstergeleri satırın içeriğinin üstüne çizilir (açık başlığın bordo zeminli bağlantısı onu örtmesin); ince
+ * zemin renkli kenar, bordo zemin üzerinde de görünmesini sağlar.
+ */
+const LINE =
+  "after:pointer-events-none after:absolute after:inset-x-0 after:z-10 after:h-[3px] after:rounded-full after:bg-primary after:shadow-[0_0_0_1px_var(--background)]";
+const FRAME =
+  "after:pointer-events-none after:absolute after:inset-0 after:z-10 after:rounded-md after:border-2 after:border-primary after:shadow-[inset_0_0_0_1px_var(--background)]";
+
 const EXPAND_DELAY_MS = 700;
 const SCROLL_EDGE_PX = 48;
 const SCROLL_STEP_PX = 14;
@@ -288,17 +297,17 @@ function TocList({
         // Açık ve alt başlıklı başlığın "arkası" bütün alt başlıklarının arkasıdır: çizgi alt ağacın sonunda çizilir.
         const afterSubtree = zone === "after" && open && node.children.length > 0;
         return (
-          <li key={node.id} className={cn(afterSubtree && "shadow-[inset_0_-3px_0_0_var(--primary)]")}>
+          <li key={node.id} className={cn("relative", afterSubtree && cn(LINE, "after:bottom-0"))}>
             <div
               data-toc-row
               className={cn(
-                "flex items-start gap-0.5 rounded-md",
+                "relative flex items-start gap-0.5 rounded-md",
                 dnd?.dragId === node.id && "opacity-50",
                 saving && "opacity-60",
                 // Gösterge yalnız renge dayanmaz: çizgi (önüne/arkasına) ya da çerçeve (içine).
-                zone === "before" && "shadow-[inset_0_3px_0_0_var(--primary)]",
-                zone === "after" && !afterSubtree && "shadow-[inset_0_-3px_0_0_var(--primary)]",
-                zone === "inside" && "ring-2 ring-primary ring-inset",
+                zone === "before" && cn(LINE, "after:top-0"),
+                zone === "after" && !afterSubtree && cn(LINE, "after:bottom-0"),
+                zone === "inside" && FRAME,
               )}
               style={{ paddingLeft: `${(node.depth - 1) * 12}px` }}
               draggable={dnd ? !dnd.busy : undefined}

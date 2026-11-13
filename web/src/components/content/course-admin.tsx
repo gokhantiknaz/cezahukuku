@@ -261,7 +261,8 @@ export function AddNodeButton({ courseId, parent, variant = "outline" }: { cours
 
 const ROOT = "";
 
-type MoveRequest = { noteId: string; target: MoveTarget };
+/** `onError` verilirse hata bildirim yerine ona iletilir (form hatayı alanında gösterir). */
+type MoveRequest = { noteId: string; target: MoveTarget; onError?: (error: unknown) => void };
 type PendingConfirm = { request: MoveRequest; change: { to: Visibility; affected: number }; resolve: (moved: boolean) => void };
 
 /**
@@ -271,9 +272,10 @@ type PendingConfirm = { request: MoveRequest; change: { to: Visibility; affected
  *
  * `pending`, onay beklenirken, kayıt sürerken ve kayıttan sonra içindekiler sunucudan tazelenene kadar true'dur:
  * bir sonraki taşıma (bırakma yeri, görünürlük onayı, yukarı/aşağı sırası) hiçbir zaman eski ağaçla hesaplanmaz.
- * `movingId` bu süre boyunca taşınan başlıktır.
+ * `movingId` bu süre boyunca taşınan başlıktır. Aynı ekrandaki bütün taşıma yolları tek bir örneği paylaşmalıdır
+ * (başlık sayfasında yukarı/aşağı ve "Taşı" penceresi): biri beklerken öteki eski ağaçla çalışmasın.
  */
-export function useMoveNode(toc: LectureTocEntry[], courseVisibility: Visibility, { toastErrors = true } = {}) {
+export function useMoveNode(toc: LectureTocEntry[], courseVisibility: Visibility) {
   const router = useRouter();
   const move = useMoveLectureNode();
   const [pendingConfirm, setPendingConfirm] = useState<PendingConfirm | null>(null);
@@ -292,7 +294,8 @@ export function useMoveNode(toc: LectureTocEntry[], courseVisibility: Visibility
       });
       return true;
     } catch (error) {
-      if (toastErrors) toast.error(otherMessages(error, []).join(" ") || "Başlık taşınamadı.");
+      if (request.onError) request.onError(error);
+      else toast.error(otherMessages(error, []).join(" ") || "Başlık taşınamadı.");
       setMovingId(null);
       return false;
     }
@@ -352,23 +355,26 @@ export function useMoveNode(toc: LectureTocEntry[], courseVisibility: Visibility
   );
 
   const pending = movingId !== null || move.isPending || refreshing || pendingConfirm !== null;
-  return { request, pending, movingId, error: move.error, confirmDialog };
+  return { request, pending, movingId, confirmDialog };
 }
 
 function MoveForm({
   note,
   context,
   course,
+  move,
   onDone,
 }: {
   note: LectureNoteDetail;
   context: LectureNodeContext;
   course: LectureCourseDetail;
+  /** Başlık sayfasının ortak taşıma örneği (onay penceresini de o koyar). */
+  move: ReturnType<typeof useMoveNode>;
   onDone: () => void;
 }) {
   const toc = course.toc;
   // Form hatayı alanında gösterir (bildirimle değil).
-  const move = useMoveNode(toc, course.visibility, { toastErrors: false });
+  const [error, setError] = useState<unknown>(null);
   const blocked = useMemo(() => subtreeIds(toc, note.id), [toc, note.id]);
   const [parentId, setParentId] = useState(context.parentId ?? ROOT);
   // Hedef kardeşler (başlığın kendisi hariç), içindekiler sırasıyla.
@@ -378,12 +384,13 @@ function MoveForm({
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
-    if (await move.request({ noteId: note.id, target: { parentId: parentId || null, index } })) onDone();
+    setError(null);
+    if (await move.request({ noteId: note.id, target: { parentId: parentId || null, index }, onError: setError })) onDone();
   }
 
   return (
     <form onSubmit={(e) => submit(e).catch(() => {})} className="space-y-4">
-      <Field label="Yeni üst başlık" htmlFor="move-parent" error={move.error} field="parentId">
+      <Field label="Yeni üst başlık" htmlFor="move-parent" error={error} field="parentId">
         <select
           id="move-parent"
           value={parentId}
@@ -404,7 +411,7 @@ function MoveForm({
             ))}
         </select>
       </Field>
-      <Field label="Yeri" htmlFor="move-position" error={move.error} field="index">
+      <Field label="Yeri" htmlFor="move-position" error={error} field="index">
         <select id="move-position" value={position} onChange={(e) => setPosition(e.target.value)} className={selectClass}>
           <option value="0">En başa</option>
           {siblings.map((s, i) => (
@@ -417,9 +424,8 @@ function MoveForm({
       <p className="text-xs text-muted-foreground">
         Başlık alt başlıklarıyla birlikte taşınır; numaraları yeniden hesaplanır, adresleri değişmez.
       </p>
-      <FormMessages messages={otherMessages(move.error, ["parentId", "index"])} />
+      <FormMessages messages={otherMessages(error, ["parentId", "index"])} />
       <FormButtons pending={move.pending} label="Taşı" />
-      {move.confirmDialog}
     </form>
   );
 }
@@ -445,7 +451,8 @@ export function NodeAdminActions({
   const siblings = toc.filter((e) => (e.parentId ?? null) === (context.parentId ?? null));
   const position = siblings.findIndex((e) => e.id === note.id);
 
-  // Aynı üst başlık içinde görünürlük değişmez; onay penceresi yine de konur (hiçbir taşıma onaysız kalmasın).
+  // Aynı üst başlık içinde görünürlük değişmez. Onay penceresi bir kez, burada konur ("Taşı" penceresi de bu
+  // örneği kullanır): pencere kapandıktan sonra tazeleme bitene kadar yukarı/aşağı da kapalı kalır.
   const shift = (delta: -1 | 1) =>
     move.request({ noteId: note.id, target: { parentId: context.parentId ?? null, index: position + delta } });
 
@@ -485,7 +492,7 @@ export function NodeAdminActions({
           </Button>
         }
       >
-        {(close) => <MoveForm note={note} context={context} course={course} onDone={close} />}
+        {(close) => <MoveForm note={note} context={context} course={course} move={move} onDone={close} />}
       </FormDialog>
       {move.confirmDialog}
       <ConfirmDelete
