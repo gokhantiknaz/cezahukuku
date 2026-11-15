@@ -3,7 +3,7 @@
 import { useMemo, useState, useTransition, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowDown, ArrowUp, FolderInput, Pencil, Plus, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, FileInput, FolderInput, Pencil, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import {
   useAddLectureNode,
@@ -93,13 +93,19 @@ function CourseForm({ course, onDone }: { course?: LectureCourseDetail; onDone: 
     title: course?.title ?? "",
     description: course?.description ?? "",
     visibility: course?.visibility ?? ("public" as Visibility),
+    chapterNumber: course?.chapterNumber?.toString() ?? "",
   });
   const error = create.error ?? update.error;
   const pending = create.isPending || update.isPending;
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
-    const data = { title: form.title, description: form.description || null, visibility: form.visibility };
+    const data = {
+      title: form.title,
+      description: form.description || null,
+      visibility: form.visibility,
+      chapterNumber: form.chapterNumber.trim() ? Number(form.chapterNumber) : null,
+    };
     if (course) {
       await update.mutateAsync({ id: course.id, data });
       toast.success("Ders kaydedildi.");
@@ -136,6 +142,25 @@ function CourseForm({ course, onDone }: { course?: LectureCourseDetail; onDone: 
         />
       </Field>
       <Field
+        label="Bölüm numarası (isteğe bağlı)"
+        htmlFor="course-chapter"
+        error={error}
+        field="chapterNumber"
+        hint={'Ders kitabın bir bölümüyse (ör. 2), başlıklar "2.1", "2.1.1" diye numaralanır; boşsa "1. Bölüm", "1.1".'}
+      >
+        <Input
+          id="course-chapter"
+          type="number"
+          inputMode="numeric"
+          min={1}
+          max={99}
+          step={1}
+          className="w-28"
+          value={form.chapterNumber}
+          onChange={(e) => setForm((f) => ({ ...f, chapterNumber: e.target.value }))}
+        />
+      </Field>
+      <Field
         label="Görünürlük"
         htmlFor="course-visibility"
         hint="Özel dersin bütün başlıkları yalnız giriş yapanlara görünür."
@@ -147,15 +172,28 @@ function CourseForm({ course, onDone }: { course?: LectureCourseDetail; onDone: 
           onChange={(visibility) => setForm((f) => ({ ...f, visibility }))}
         />
       </Field>
-      <FormMessages messages={otherMessages(error, ["title", "description"])} />
+      <FormMessages messages={otherMessages(error, ["title", "description", "chapterNumber"])} />
       <FormButtons pending={pending} label={course ? "Kaydet" : "Dersi ekle"} />
     </form>
   );
 }
 
-/** Dersler listesinde: yeni ders. */
+/** Dersler listesinde: yeni ders ve başlıkları içe aktarma (yeni ders kurar). */
 export function NewCourseButton() {
   if (!useIsAdmin()) return null;
+  return (
+    <div className="flex flex-wrap gap-2">
+      <Button variant="outline" asChild>
+        <Link href="/ders-notlari/ice-aktar">
+          <FileInput /> Başlıkları içe aktar
+        </Link>
+      </Button>
+      <NewCourseDialog />
+    </div>
+  );
+}
+
+function NewCourseDialog() {
   return (
     <FormDialog
       title="Yeni ders"

@@ -55,6 +55,8 @@
   from belge ekleme (137c5ea).
 - tsvector 1 MB'ı aşamaz — büyük gövdeyi indekslemeden önce kısalt (dosya metni 200.000 karakter) — from belge ekleme.
 - Bağlı istemci varken PostgreSQL `TEMPLATE` kopyası başarısız olur — `pg_dump | psql` kullan — from e2e hazırlığı.
+- Radix Select (ve benzeri açılır tetikleyiciler) `<fieldset disabled>`'ı dikkate almaz: menü pointerdown ile açılır,
+  seçim değişir — kilitlenecekse `disabled`'ı bileşene açıkça ver — from ders başlıkları içe aktarma (0004 review L-1').
 
 ## Enforced by tooling
 - C# derleyicisi: nullable uyarıları, xUnit analizörleri (`dotnet build`, check `build`).

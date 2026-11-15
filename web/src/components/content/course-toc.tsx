@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { type DropZone, resolveDrop } from "@/lib/lecture-moves";
 import { cn } from "@/lib/utils";
+import { courseHeading } from "@/lib/lecture-courses";
 
 type TocNode = LectureTocEntry & { children: TocNode[] };
 
@@ -207,7 +208,7 @@ export function CourseToc({ course, footer, sort }: { course: LectureCourseDetai
           aria-current={selectedSlug === null ? "page" : undefined}
           className="min-w-0 truncate text-lg hover:underline"
         >
-          {course.title}
+          {courseHeading(course)}
         </Link>
       </div>
       {canSort && sort && (
@@ -404,7 +405,7 @@ export function CourseShell({ course, tocFooter, children }: { course: LectureCo
             <ListTree /> İçindekiler
           </Button>
           <Link href={`/ders-notlari/${course.slug}`} className="min-w-0 truncate text-sm text-muted-foreground hover:text-primary">
-            {course.title}
+            {courseHeading(course)}
           </Link>
         </div>
         {children}

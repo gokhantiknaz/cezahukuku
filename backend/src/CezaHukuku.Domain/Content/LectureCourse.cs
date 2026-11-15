@@ -13,6 +13,8 @@ public sealed class LectureCourse : Entity
 {
     public const int MaxTitleLength = 300;
     public const int MaxDescriptionLength = 2000;
+    public const int MinChapterNumber = 1;
+    public const int MaxChapterNumber = 99;
 
     public string Title { get; set; } = "";
 
@@ -23,6 +25,12 @@ public sealed class LectureCourse : Entity
     public string Description { get; set; } = "";
 
     public Visibility Visibility { get; set; }
+
+    /// <summary>
+    /// İsteğe bağlı bölüm numarası (ders kitabının bir bölümü ayrı ders olunca): verilirse başlık numaraları onunla
+    /// başlar ("2.1", "2.1.1"); boşsa birinci düzey "1. Bölüm", altı "1.1".
+    /// </summary>
+    public int? ChapterNumber { get; set; }
 
     /// <summary>Dersler listesindeki sıra (küçük önce).</summary>
     public int SortOrder { get; set; }

@@ -9,14 +9,16 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CezaHukuku.Api.Content;
 
+/// <param name="ChapterNumber">İsteğe bağlı bölüm numarası; verilmişse başlık numaraları onunla başlar ("2.1").</param>
 /// <param name="NodeCount">Okuyanın görebildiği başlık sayısı.</param>
 public sealed record LectureCourseSummary(
-    Guid Id, string Slug, string Title, string Description, Visibility Visibility, int NodeCount);
+    Guid Id, string Slug, string Title, string Description, Visibility Visibility, int? ChapterNumber, int NodeCount);
 
 /// <summary>İçindekilerde bir başlık. Liste içindekilerdeki sıradadır (önce başlık, sonra alt başlıkları).</summary>
 /// <param name="ParentId">Üst başlık; birinci düzeyde boş.</param>
 /// <param name="Number">Ağaçtaki yerden hesaplanan numara ("1.5.1"); okuyandan bağımsızdır.</param>
-/// <param name="Label">Gösterilen numara: birinci düzeyde "1. Bölüm", altında numaranın kendisi.</param>
+/// <param name="Label">Gösterilen numara: birinci düzeyde "1. Bölüm", altında numaranın kendisi; bölüm numaralı derste
+/// her düzeyde numaranın kendisi ("2.1").</param>
 /// <param name="Depth">Düzey (birinci düzey 1).</param>
 /// <param name="Visibility">Başlığın kendi ayarı (düzenleme için).</param>
 /// <param name="EffectiveVisibility">Ders ve üst başlıklarla daralmış görünürlük ("Özel" rozeti için).</param>
@@ -25,10 +27,11 @@ public sealed record LectureTocEntry(
     Visibility Visibility, Visibility EffectiveVisibility);
 
 public sealed record LectureCourseDetail(
-    Guid Id, string Slug, string Title, string Description, Visibility Visibility, List<LectureTocEntry> Toc);
+    Guid Id, string Slug, string Title, string Description, Visibility Visibility, int? ChapterNumber, List<LectureTocEntry> Toc);
 
 /// <param name="Description">İsteğe bağlı kısa açıklama (düz metin).</param>
-public sealed record SaveLectureCourseRequest(string Title, string? Description, Visibility Visibility);
+/// <param name="ChapterNumber">İsteğe bağlı bölüm numarası (1–99); boşsa ders numarasızdır.</param>
+public sealed record SaveLectureCourseRequest(string Title, string? Description, Visibility Visibility, int? ChapterNumber = null);
 
 /// <param name="CourseIds">Bütün dersler, istenen sırayla.</param>
 public sealed record ReorderLectureCoursesRequest(List<Guid> CourseIds);
@@ -74,7 +77,7 @@ public static class LectureCourseEndpoints
             .ToListAsync(ct);
         var outlines = await LectureTree.OutlinesAsync(db, courses.Select(c => c.Id), includePrivate, ct);
         return TypedResults.Ok(courses
-            .Select(c => new LectureCourseSummary(c.Id, c.Slug, c.Title, c.Description, c.Visibility, outlines[c.Id].TocOrder.Count))
+            .Select(c => new LectureCourseSummary(c.Id, c.Slug, c.Title, c.Description, c.Visibility, c.ChapterNumber, outlines[c.Id].TocOrder.Count))
             .ToList());
     }
 
@@ -220,6 +223,8 @@ public static class LectureCourseEndpoints
         var errors = new ValidationErrors()
             .Required("title", request.Title, LectureCourse.MaxTitleLength)
             .MaxLength("description", request.Description, LectureCourse.MaxDescriptionLength);
+        if (request.ChapterNumber is < LectureCourse.MinChapterNumber or > LectureCourse.MaxChapterNumber)
+            errors.Add("chapterNumber", $"Bölüm numarası {LectureCourse.MinChapterNumber}–{LectureCourse.MaxChapterNumber} arası olmalı.");
         return errors.HasErrors ? errors.ToProblem() : null;
     }
 
@@ -228,6 +233,7 @@ public static class LectureCourseEndpoints
         course.Title = InputText.CleanRequired(request.Title);
         course.Description = InputText.Clean(request.Description) ?? "";
         course.Visibility = request.Visibility;
+        course.ChapterNumber = request.ChapterNumber;
     }
 
     private static async Task<LectureCourseDetail> DetailAsync(
@@ -235,7 +241,7 @@ public static class LectureCourseEndpoints
     {
         var nodes = await LectureTree.NodesAsync(db, [course.Id], ct);
         var outline = LectureOutline.Build(course, nodes, includePrivate);
-        return new(course.Id, course.Slug, course.Title, course.Description, course.Visibility,
+        return new(course.Id, course.Slug, course.Title, course.Description, course.Visibility, course.ChapterNumber,
             [.. outline.TocOrder.Select(n => new LectureTocEntry(
                 n.Note.Id,
                 n.Note.ParentId is { } parentId && outline.Find(parentId) is not null ? parentId : null,

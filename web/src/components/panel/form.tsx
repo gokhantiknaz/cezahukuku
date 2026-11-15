@@ -84,14 +84,17 @@ export function OptionSelect<T extends string>({
   value,
   options,
   onChange,
+  disabled,
 }: {
   id: string;
   value: T;
   options: Record<T, string>;
   onChange: (value: T) => void;
+  /** Radix Select `<fieldset disabled>`'ı dikkate almaz (menü pointerdown ile açılır); kilit açıkça verilir. */
+  disabled?: boolean;
 }) {
   return (
-    <Select value={value} onValueChange={(v) => onChange(v as T)}>
+    <Select value={value} onValueChange={(v) => onChange(v as T)} disabled={disabled}>
       <SelectTrigger id={id} className="w-full">
         <SelectValue />
       </SelectTrigger>

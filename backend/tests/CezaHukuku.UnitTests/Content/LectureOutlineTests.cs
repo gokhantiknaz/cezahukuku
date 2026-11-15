@@ -53,6 +53,30 @@ public class LectureOutlineTests
         Assert.Equal(["Genel Hükümler", "Özel Hükümler"], outline.Roots.Select(r => r.Note.Title));
     }
 
+    /// <summary>Spec 0004 AC-1: bölüm numaralı derste numaralar onunla başlar, birinci düzeyde "Bölüm" eklenmez.</summary>
+    [Fact]
+    public void ChapterNumber_PrefixesNumbers_AndLabels()
+    {
+        var unsurlar = Node(null, "Suçun Unsurları", 1);
+        var sartlar = Node(null, "Cezalandırılabilirliğin Diğer Şartları", 2);
+        var tipiklik = Node(unsurlar, "Tipiklik", 1);
+        var deep = Node(Node(tipiklik, "Genel Olarak", 1), "Alt", 1);
+        course.ChapterNumber = 2;
+
+        var outline = Build();
+
+        Assert.Equal(("2.1", 1), outline.NumberOf(unsurlar.Id));
+        Assert.Equal(["2.1", "2.2", "2.1.1", "2.1.1.1.1"],
+            new[] { unsurlar, sartlar, tipiklik, deep }.Select(n => outline.Find(n.Id)?.Label));
+        Assert.Equal(4, outline.Find(deep.Id)?.Depth);
+
+        // Numara kaldırılınca bugünkü biçim.
+        course.ChapterNumber = null;
+        outline = Build();
+        Assert.Equal(["1. Bölüm", "2. Bölüm", "1.1", "1.1.1.1"],
+            new[] { unsurlar, sartlar, tipiklik, deep }.Select(n => outline.Find(n.Id)?.Label));
+    }
+
     [Fact]
     public void SameSortOrder_FallsBackToCreationOrder()
     {
