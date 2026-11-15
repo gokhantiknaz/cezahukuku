@@ -96,6 +96,8 @@ public class LectureImportTests(ApiFactory factory)
     {
         var admin = await factory.CreateAdminClientAsync();
         var text = BookChapter(Word("tipik"));
+        // VERIFY G-2: "listenin sonunda" veritabanında başka ders olmasına bağlı kalmasın.
+        await CreateCourseAsync(admin, $"Önceki ders {tag}");
         var before = await CoursesAsync(admin);
 
         var preview = await PreviewAsync(admin, new(text, null, null, ApplyTitleSuggestion: true, ApplyChapterSuggestion: true));
