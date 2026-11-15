@@ -42,6 +42,8 @@ public class LectureHeadingParserTests
             result.Headings.Take(8).Select(h => h.Number));
         Assert.Equal([1, 2, 2, 1, 2, 3, 4, 5, 5], result.Headings.Take(9).Select(h => h.Depth));
         Assert.Equal(("Gerçek Olmayan İhmali Suçlar", "2.3.2.5.2.2"), (result.Headings[8].Title, result.Headings[8].SourceNumber));
+        // VERIFY G-1: araya giren sayfa numarası ("3") önceki başlığın adına eklenmez.
+        Assert.Equal("Gerçek İhmali Suçlar", result.Headings[7].Title);
     }
 
     [Fact]
