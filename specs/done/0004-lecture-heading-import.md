@@ -1,6 +1,6 @@
 # Spec 0004 — Ders başlıklarını toplu içe aktarma ve ders bölüm numarası
 
-- Status: In progress
+- Status: Shipped
 - Mode: lite
 - Plan: `specs/plans/0004-plan.md`
 - Self-critique: done
@@ -106,46 +106,46 @@ notları ağaca taşımak (spec 0005).
   taşıma (spec 0005).
 
 ## Acceptance criteria
-- [ ] AC-1 — Derse bölüm numarası 2 verilince başlık numaraları "2.1", "2.1.1"… olur: içindekiler, ders sayfası
+- [x] AC-1 — Derse bölüm numarası 2 verilince başlık numaraları "2.1", "2.1.1"… olur: içindekiler, ders sayfası
   "Bölümler", başlık sayfası, ders yolu, önceki/sonraki, madde ekranındaki bağlantı, arama ve taşıma bildirimi aynı
   numarayı gösterir; ders listede ve ders sayfasında "2. Bölüm — Ad" görünür. Numara kaldırılınca bugünkü biçime
   ("1. Bölüm", "1.1") döner; adresler değişmez. Numarasız dersler değişmez.
-- [ ] AC-2 — Örnek PDF'in tek bölümlük kısmı (ör. "2. BÖLÜM – SUÇ TEORİSİ" ve altı) aktarılınca ad önerisi "Suç
+- [x] AC-2 — Örnek PDF'in tek bölümlük kısmı (ör. "2. BÖLÜM – SUÇ TEORİSİ" ve altı) aktarılınca ad önerisi "Suç
   Teorisi", bölüm numarası önerisi 2 olur; önizlemedeki her numara PDF'tekiyle aynıdır (2.1 … 2.9.4.2.2); sayfa
   numarası satırları yok sayılır; başlık sayısı PDF'teki satır sayısına eşittir.
-- [ ] AC-3 — Örnek PDF'in tamamı (üç bölüm satırı) tek metin olarak aktarılınca numarasız bir ders önerilir; üç
+- [x] AC-3 — Örnek PDF'in tamamı (üç bölüm satırı) tek metin olarak aktarılınca numarasız bir ders önerilir; üç
   bölüm birinci düzeydir ("1. Bölüm Ceza Hukukuna Giriş"), bütün numaralar PDF'le aynıdır; tamamı büyük harfli adlar
   R-4'e göre düzeltilir, karışık harfli adlar değişmez.
-- [ ] AC-4 — Dosyadan alma: .pdf, .docx ve .txt dosyasının metni kutuya gelir; .doc, desteklenmeyen tür ve metni
+- [x] AC-4 — Dosyadan alma: .pdf, .docx ve .txt dosyasının metni kutuya gelir; .doc, desteklenmeyen tür ve metni
   olmayan PDF gerekçeli hata verir, kutu değişmez.
-- [ ] AC-5 — Hatalar satır numarasıyla gösterilir ve kaydı kapatır: atlanan düzey, bölüm numarası varken başka
+- [x] AC-5 — Hatalar satır numarasıyla gösterilir ve kaydı kapatır: atlanan düzey, bölüm numarası varken başka
   numarayla başlayan satır, hiç başlık yok, 300'den fazla başlık (300 geçer, 301 hata), 300 karakterden uzun ad,
   boş ders adı, 200.000 karakterden uzun metin; düzeltilip yeniden önizlenince kayıt açılır. Uyarılar (numara farkı, aynı adlı kardeş) kaydı
   kapatmaz. Numarasız satır önceki başlığın adına eklenir. Önizlemeden sonra metin/ad/numara değişince kayıt kapanır.
-- [ ] AC-6 — "Dersi kur" yeni dersi listenin sonunda, başlıkları metindeki sırayla kurar; yeni dersin sayfasına
+- [x] AC-6 — "Dersi kur" yeni dersi listenin sonunda, başlıkları metindeki sırayla kurar; yeni dersin sayfasına
   gidilir, bildirim başlık sayısını verir. Kayıt sunucuda başarısız olursa hiçbir ders ya da başlık oluşmaz; form ve
   metin korunur. 300 başlıklı kayıt yerelde 5 sn altında, önizlemesi 2 sn altında.
-- [ ] AC-7 — Görünürlük (hassas): görünürlük varsayılanı özeldir. Özel kurulan dersin başlıkları giriş yapmamış
+- [x] AC-7 — Görünürlük (hassas): görünürlük varsayılanı özeldir. Özel kurulan dersin başlıkları giriş yapmamış
   okuyucuya okumada 404, içindekiler, madde ekranı, arama ve site haritasında yoktur; üye görür. Açık seçilirse herkes
   görür. Aktarılan başlıkların kendi ayarı açıktır.
-- [ ] AC-8 — Yetki (hassas): önizleme ve kayıt yalnız yöneticiye açıktır — giriş yok 401, `standard` ve `reader` 403
+- [x] AC-8 — Yetki (hassas): önizleme ve kayıt yalnız yöneticiye açıktır — giriş yok 401, `standard` ve `reader` 403
   ve hiçbir şey oluşmaz; "Başlıkları içe aktar" yalnız yöneticide görünür; önizleme hiçbir kayıt oluşturmaz. Bölüm
   numarasını da yalnız yönetici verir.
-- [ ] AC-9 — Erişilebilirlik ve telefon: bütün akış klavyeyle yapılır; alanlar etiketli; hata/uyarı listesi ekran
+- [x] AC-9 — Erişilebilirlik ve telefon: bütün akış klavyeyle yapılır; alanlar etiketli; hata/uyarı listesi ekran
   okuyucuya bildirilir; 390 px'te yatay taşma yok.
 
 ## Definition of Done
-- [ ] Every acceptance criterion mapped to proof (test or reproducible observation)
-- [ ] `scripts/check` green
-- [ ] Independent review done; real findings fixed, noise rejected with written rationale, deferred ones in `specs/backlog.md`
-- [ ] Docs / ADRs updated if behavior or architecture changed
-- [ ] Spec moved to `specs/done/` (it becomes immutable there)
+- [x] Every acceptance criterion mapped to proof (test or reproducible observation)
+- [x] `scripts/check` green
+- [x] Independent review done; real findings fixed, noise rejected with written rationale, deferred ones in `specs/backlog.md`
+- [x] Docs / ADRs updated if behavior or architecture changed
+- [x] Spec moved to `specs/done/` (it becomes immutable there)
 
 ## Scorecard (fill at ship — honest numbers make the process improvable)
 | Metric | Value |
 |---|---|
-| Spec revisions | |
-| Fix rounds | |
-| Review findings: real / noise / deferred | |
-| Regressions introduced | |
-| Bugs escaped to production | |
+| Spec revisions | 0 onay sonrası (plan değişikliği A-1) |
+| Fix rounds | 3 (fix-3 VERIFY bulguları) |
+| Review findings: real / noise / deferred | 7 / 7 / 1 (B-12) — VERIFY: F-1, G-1, G-2 real (fix-3); G-3, F-5, F-6 noise |
+| Regressions introduced | 0 |
+| Bugs escaped to production | 0 (henüz canlıya alınmadı) |
