@@ -46,11 +46,15 @@ export function LectureImport() {
   const preview = previewed?.result;
   const canImport = upToDate && preview !== undefined && preview.errors.length === 0 && !importMutation.isPending;
 
-  /** Word (.docx), PDF ya da metin dosyasının metni kutuya alınır. */
+  /** Word (.docx), PDF ya da metin dosyasının metni kutuya alınır; metni olmayan dosyada kutu değişmez. */
   async function loadFile(file: File) {
     try {
       const response = await extract.mutateAsync({ data: { file } });
       if (response.status !== 200) return;
+      if (response.data.text.trim() === "") {
+        toast.error(`“${file.name}” dosyasında metin bulunamadı (taranmış PDF olabilir); başlık listesini yapıştırın.`);
+        return;
+      }
       setText(response.data.text);
       toast.success(`“${file.name}” metni alındı; önizleyip kontrol edin.`);
     } catch (error) {
