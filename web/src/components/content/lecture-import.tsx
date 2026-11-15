@@ -157,7 +157,13 @@ export function LectureImport() {
             />
           </Field>
           <Field label="Görünürlük" htmlFor="import-visibility">
-            <OptionSelect id="import-visibility" value={visibility} options={visibilityLabels} onChange={setVisibility} />
+            <OptionSelect
+              id="import-visibility"
+              value={visibility}
+              options={visibilityLabels}
+              onChange={setVisibility}
+              disabled={importMutation.isPending}
+            />
           </Field>
         </div>
         <p className="text-xs text-muted-foreground">
