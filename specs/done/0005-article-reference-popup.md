@@ -1,6 +1,6 @@
 # Spec 0005 — Metindeki "(madde X, Y)" atıflarını işaretleyip açılır pencerede gösterme
 
-- Status: In progress
+- Status: Shipped
 - Mode: lite
 - Plan: `specs/plans/0005-plan.md`
 - Self-critique: done
@@ -82,46 +82,46 @@ gerekçe, açıklama, içtihat gibi editoryal sekmelerde ve kişisel notlarda i�
   vurgu yapma ya da not alma.
 
 ## Acceptance criteria
-- [ ] AC-1 — Bir TCK maddesinin metnindeki "(madde 21, 22)" ifadesinde "21" ve "22" ayrı ayrı mavi işaretlidir.
+- [x] AC-1 — Bir TCK maddesinin metnindeki "(madde 21, 22)" ifadesinde "21" ve "22" ayrı ayrı mavi işaretlidir.
   "21"e tıklanınca TCK 21'in başlığı ve bugünkü metni pencerede açılır, okuma ekranı yerinde kalır.
-- [ ] AC-2 — Tanınan biçimler işaretlenir: "(madde 21)", "(Madde 21 ve 22)", "(maddeler 21, 22)", "(m. 21)", "(md.21)",
+- [x] AC-2 — Tanınan biçimler işaretlenir: "(madde 21)", "(Madde 21 ve 22)", "(maddeler 21, 22)", "(m. 21)", "(md.21)",
   "(madde 21/2)".
   Tanınmayanlar işaretlenmez: "madde 21'e göre" (parantezsiz), "(madde 21-23)", "(TCK m. 21)", "(geçici madde 1)".
-- [ ] AC-3 — Madde metnindeki atıf maddenin kendi kanununa gider. Örneğin CMK maddesindeki "(madde 231)" CMK
+- [x] AC-3 — Madde metnindeki atıf maddenin kendi kanununa gider. Örneğin CMK maddesindeki "(madde 231)" CMK
   231'i açar.
-- [ ] AC-4 — Ders notunda kanun seçimi doğrudur: CMK'ya bağlı notta "(madde 231)" CMK 231'i açar; hiçbir şeye
+- [x] AC-4 — Ders notunda kanun seçimi doğrudur: CMK'ya bağlı notta "(madde 231)" CMK 231'i açar; hiçbir şeye
   bağlı olmayan notta ve yalnız bir kanun grubuna bağlı notta "(madde 21)" TCK 21'i açar. Kural hem düz ders notunda hem ders başlığında geçerlidir.
-- [ ] AC-5 — Kanunda olmayan numara ("(madde 999)") işaretlenmez, düz metin kalır.
-- [ ] AC-6 — Giriş yapmamış okuyucu, herkese açık bir ders notunda özel bir kanunun maddesine yapılan atıfı
+- [x] AC-5 — Kanunda olmayan numara ("(madde 999)") işaretlenmez, düz metin kalır.
+- [x] AC-6 — Giriş yapmamış okuyucu, herkese açık bir ders notunda özel bir kanunun maddesine yapılan atıfı
   işaretsiz görür. Sayfa kaynağında o maddenin başlığı ya da metni bulunmaz. Giriş yapmış okuyucu aynı atıfı
   işaretli görür ve açabilir.
-- [ ] AC-7 — Mülga maddeye yapılan atıf işaretlidir; pencerede "Mülga" görünür.
-- [ ] AC-8 — Pencere Esc, kapat düğmesi ve dışarı tıklama ile kapanır; kapanınca odak tıklanan numaraya döner.
+- [x] AC-7 — Mülga maddeye yapılan atıf işaretlidir; pencerede "Mülga" görünür.
+- [x] AC-8 — Pencere Esc, kapat düğmesi ve dışarı tıklama ile kapanır; kapanınca odak tıklanan numaraya döner.
   "Maddeye git" maddenin sayfasını açar. Numara Tab ile odaklanıp Enter ile açılabilir.
-- [ ] AC-9 — Pencere yüklenemezse "Madde yüklenemedi" ve "Yeniden dene" görünür; "Yeniden dene" başarılı olunca
+- [x] AC-9 — Pencere yüklenemezse "Madde yüklenemedi" ve "Yeniden dene" görünür; "Yeniden dene" başarılı olunca
   madde gösterilir. Yüklenirken bekleme göstergesi görünür.
-- [ ] AC-10 — Mevcut davranış bozulmaz: madde metnindeki otomatik atıf bağlantıları, işaretli atıfın üstünden
+- [x] AC-10 — Mevcut davranış bozulmaz: madde metnindeki otomatik atıf bağlantıları, işaretli atıfın üstünden
   geçen kişisel vurgu, değişiklik işaretleri ve "Kopyala" bugünkü gibi çalışır; kopyalanan metin özgün metinle
   aynıdır.
-- [ ] AC-11 — Yönetim ekranlarında (madde düzenleme, ders notu düzenleme) atıflar işaretlenmez.
-- [ ] AC-12 — Dar ekranda (telefon genişliği) pencere ekrana sığar, uzun madde metni pencerenin içinde kayar.
-- [ ] AC-13 — Suç tarihi: madde ekranında, atıf yapılan maddenin değişmeden önceki sürümünün yürürlükte olduğu bir
+- [x] AC-11 — Yönetim ekranlarında (madde düzenleme, ders notu düzenleme) atıflar işaretlenmez.
+- [x] AC-12 — Dar ekranda (telefon genişliği) pencere ekrana sığar, uzun madde metni pencerenin içinde kayar.
+- [x] AC-13 — Suç tarihi: madde ekranında, atıf yapılan maddenin değişmeden önceki sürümünün yürürlükte olduğu bir
   tarih seçilmişse (`?tarih=`) pencere o eski metni gösterir. Tarih seçilmemişse ya da ders notundaysa bugünkü
   metni gösterir. O tarihte mülga olan madde için "Mülga" görünür. "Maddeye git" aynı tarihle açılır.
-- [ ] AC-14 — Pencerede gösterilen madde metnindeki "(madde X)" atıfları işaretli değildir ve tıklanmaz.
+- [x] AC-14 — Pencerede gösterilen madde metnindeki "(madde X)" atıfları işaretli değildir ve tıklanmaz.
 
 ## Definition of Done
-- [ ] Every acceptance criterion mapped to proof (test or reproducible observation)
-- [ ] `scripts/check` green
-- [ ] Independent review done; real findings fixed, noise rejected with written rationale, deferred ones in `specs/backlog.md`
-- [ ] Docs / ADRs updated if behavior or architecture changed
-- [ ] Spec moved to `specs/done/` (it becomes immutable there)
+- [x] Every acceptance criterion mapped to proof (test or reproducible observation)
+- [x] `scripts/check` green
+- [x] Independent review done; real findings fixed, noise rejected with written rationale, deferred ones in `specs/backlog.md`
+- [x] Docs / ADRs updated if behavior or architecture changed
+- [x] Spec moved to `specs/done/` (it becomes immutable there)
 
 ## Scorecard (fill at ship — honest numbers make the process improvable)
 | Metric | Value |
 |---|---|
-| Spec revisions | |
-| Fix rounds | |
-| Review findings: real / noise / deferred | |
-| Regressions introduced | |
-| Bugs escaped to production | |
+| Spec revisions | 0 onay sonrası (plan amendment'ları A-1, A-2) |
+| Fix rounds | 3 (fix-3 VERIFY bulgusu F-1) |
+| Review findings: real / noise / deferred | 9 / 2 / 3 (B-14, B-15, B-16) — review: M-1, M-2, L-1, L-2, L-3, I-2, L-1', I-1' real, I-1 noise; VERIFY: F-1 real, F-4 noise, F-2/F-3 defer |
+| Regressions introduced | 1 (L-1': M-2 düzeltmesi; round 2 incelemesi yakaladı, fix-2) |
+| Bugs escaped to production | 0 (henüz canlıya alınmadı) |
