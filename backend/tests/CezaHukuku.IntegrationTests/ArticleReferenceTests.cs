@@ -206,6 +206,28 @@ public partial class ArticleReferenceTests(ApiFactory factory)
         Assert.Contains("aria-label=\"", detail.ReadingHtml);
     }
 
+    /// <summary>Spec 0006 (CB-3, CB-5): kelimeyle fıkra yazımında yalnız madde numarası işaretlenir; TCK 233/4 metni.</summary>
+    [Fact]
+    public async Task ParagraphWords_MarkArticleOnly()
+    {
+        var admin = await factory.CreateAdminClientAsync();
+        var law = await CreateLawAsync(admin, Visibility.Public);
+        foreach (var number in (string[])["2", "4", "81", "82", "87"])
+            await CreateArticleAsync(admin, law, number, $"Madde {number} metni.");
+        const string text = "Birinci ve üçüncü fıkralarda tanımlanan fiiller nedeniyle çocuğun kasten öldürme (madde 81, 82) "
+            + "ve neticesi sebebiyle ağırlaşmış yaralama (madde 87, fıkra 2 ve 4) suçunu işlemesi halinde şikâyet aranmaksızın,";
+        await CreateArticleAsync(admin, law, "233", text);
+
+        var anonymous = factory.CreateAnonymousClient();
+        var detail = await GetArticleAsync(anonymous, law, "madde-233");
+        Assert.Equal([("81", "81"), ("82", "82"), ("87", "87")],
+            detail.References.Select(r => (text.Substring(r.Start, r.Length), r.Target.Number)));
+
+        // Ders notunda da: 2. ve 4. maddeler kütüphanede olduğu hâlde fıkra numaraları bağlanmaz.
+        var note = await CreateNoteAsync(admin, $"Fıkra {Guid.NewGuid():N}"[..16], "<p>Yaralama (madde 87, fıkra 2 ve 4).</p>", lawId: law.Id);
+        Assert.Equal([$"{law.Slug}/madde-87"], ReferencesIn(await GetNoteAsync(anonymous, note.Slug)));
+    }
+
     private static IEnumerable<string> ReferencesIn(LectureNoteDetail note) =>
         ArticleRefAttribute().Matches(note.ReadingHtml).Select(m => m.Groups[1].Value);
 
