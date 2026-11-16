@@ -11,6 +11,7 @@ import type {
 import { CourseAdminActions, NodeAdminActions } from "@/components/content/course-admin";
 import { LectureNoteFileList } from "@/components/content/lecture-note-files";
 import { RichTextView } from "@/components/rich-text/rich-text-view";
+import { ArticleRefHost } from "@/components/workspace/article-ref-dialog";
 import { Badge } from "@/components/ui/badge";
 import {
   Breadcrumb,
@@ -231,7 +232,12 @@ export function NodeView({
         <NodeAdminActions note={note} context={context} course={course} />
       </header>
 
-      {note.html && <RichTextView html={note.html} className="mt-6 rounded-lg border bg-card p-4 md:p-6" />}
+      {/* Okuma HTML'i: parantez içi atıflar ("(madde 21)") pencerede açılır (spec 0005). */}
+      {note.html && (
+        <ArticleRefHost>
+          <RichTextView html={note.readingHtml} className="mt-6 rounded-lg border bg-card p-4 md:p-6" />
+        </ArticleRefHost>
+      )}
       {isEmpty && <p className="mt-6 text-muted-foreground">Bu başlığa henüz içerik girilmedi.</p>}
       <LectureNoteFileList files={note.files} />
 
