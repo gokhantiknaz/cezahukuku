@@ -4,13 +4,14 @@ import { useCallback, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { BookOpen, ChevronLeft, ChevronRight, NotebookPen, PanelRightClose, PanelRightOpen } from "lucide-react";
 import { usePathname } from "next/navigation";
-import { useDefaultLayout, usePanelRef } from "react-resizable-panels";
+import { usePanelRef } from "react-resizable-panels";
 import { Button } from "@/components/ui/button";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { cn } from "@/lib/utils";
 import { CurrentArticleProvider, useCurrentArticle, type ArticleLink } from "./current-article";
+import { useWorkspaceLayout } from "./workspace-layout";
 
 type WorkspaceProps = {
   /** Sol panel: kütüphane / kanun ağacı. */
@@ -19,24 +20,6 @@ type WorkspaceProps = {
   content: ReactNode;
   /** Sağ panel: kişisel notlar ve vurgular. */
   notes: ReactNode;
-};
-
-// localStorage gizli pencerede ya da engelliyken hata atabilir; panel boyutu hatırlanmasa da düzen çalışır.
-const safeStorage = {
-  getItem(key: string) {
-    try {
-      return window.localStorage.getItem(key);
-    } catch {
-      return null;
-    }
-  },
-  setItem(key: string, value: string) {
-    try {
-      window.localStorage.setItem(key, value);
-    } catch {
-      // yoksay
-    }
-  },
 };
 
 /**
@@ -52,9 +35,7 @@ export function Workspace(props: WorkspaceProps) {
 function DesktopWorkspace({ navigation, content, notes }: WorkspaceProps) {
   const notesPanel = usePanelRef();
   const [notesOpen, setNotesOpen] = useState(true);
-  // Yalnız kullanıcının sürüklemesi kaydedilir: ilk hidrasyonda dar pencerede bir an kurulan masaüstü
-  // düzeninin uç oranları ya da pencere boyutu değişimleri kalıcı hâle gelmesin.
-  const layout = useDefaultLayout({ id: "workspace", storage: safeStorage, onlySaveAfterUserInteractions: true });
+  const layout = useWorkspaceLayout();
 
   function toggleNotes() {
     const panel = notesPanel.current;
@@ -67,8 +48,7 @@ function DesktopWorkspace({ navigation, content, notes }: WorkspaceProps) {
     <CurrentArticleProvider>
       <ResizablePanelGroup
         orientation="horizontal"
-        defaultLayout={layout.defaultLayout}
-        onLayoutChanged={layout.onLayoutChanged}
+        {...layout}
         className="min-h-0 flex-1"
       >
         <ResizablePanel id="navigation" defaultSize="24" minSize={260} maxSize="40" className="print:hidden">
