@@ -1,4 +1,4 @@
-import { useCallback, useLayoutEffect } from "react";
+import { useCallback, useLayoutEffect, useRef } from "react";
 import { useGroupRef, type Layout, type LayoutChangedMeta } from "react-resizable-panels";
 
 // localStorage gizli pencerede ya da engelliyken hata atabilir; panel boyutu hatırlanmasa da düzen çalışır.
@@ -51,12 +51,21 @@ function samePanels(a: Layout, b: Layout) {
  */
 export function useWorkspaceLayout() {
   const groupRef = useGroupRef();
+  // Kayıt grup başına bir kez uygulanır. cacheComponents ziyaret edilen sayfayı gizleyip geri gösterir; gösterilince
+  // effect yeniden çalışır ve o anki düzen (ör. düğmeyle kapatılan not paneli) kayıtla ezilmemelidir. Ref gizlenip
+  // gösterilmede korunur.
+  const savedLayoutApplied = useRef(false);
 
   useLayoutEffect(() => {
     const group = groupRef.current;
+    if (savedLayoutApplied.current || !group) return;
+    const current = group.getLayout();
+    // Grup henüz ölçülmediyse (boş düzen) karar verilmez.
+    if (Object.keys(current).length === 0) return;
+    savedLayoutApplied.current = true;
     const saved = parseSavedLayout(safeStorage.getItem(WORKSPACE_LAYOUT_KEY));
-    // Panel kümesi değiştiyse (eski kayıt) ya da grup henüz ölçülmediyse kayıt uygulanmaz, varsayılanlar kalır.
-    if (group && saved && samePanels(saved, group.getLayout())) group.setLayout(saved);
+    // Panel kümesi değiştiyse (eski kayıt) kayıt uygulanmaz, varsayılanlar kalır.
+    if (saved && samePanels(saved, current)) group.setLayout(saved);
   }, [groupRef]);
 
   // Yalnız kullanıcının sürüklemesi kaydedilir: ilk hidrasyonda dar pencerede bir an kurulan masaüstü
