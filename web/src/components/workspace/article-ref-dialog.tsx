@@ -52,6 +52,8 @@ export function ArticleRefHost({ asOf, className, children }: { asOf?: string; c
     const next = targetOf(element);
     if (!next) return;
     trigger.current = element;
+    // Önceki "Maddeye git" kapanışı odak olayını vermeden bittiyse bayrak kalmasın.
+    navigating.current = false;
     setTarget(next);
   }
 
