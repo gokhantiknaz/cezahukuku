@@ -1,6 +1,6 @@
 # Spec 0006 — Parantez içi atıflarda "fıkra" ve "bent" yazımı (mini)
 
-- Status: Approved
+- Status: In progress
 - Mode: lite
 - Plan: `specs/plans/0006-plan.md`
 - Self-critique: done
