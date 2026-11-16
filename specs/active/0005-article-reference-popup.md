@@ -1,6 +1,6 @@
 # Spec 0005 — Metindeki "(madde X, Y)" atıflarını işaretleyip açılır pencerede gösterme
 
-- Status: Approved
+- Status: In progress
 - Mode: lite
 - Plan: `specs/plans/0005-plan.md`
 - Self-critique: done
