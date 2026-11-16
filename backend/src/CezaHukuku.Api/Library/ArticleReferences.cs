@@ -1,5 +1,6 @@
 using CezaHukuku.Domain.Content;
 using CezaHukuku.Domain.Laws;
+using CezaHukuku.Infrastructure.Content;
 using CezaHukuku.Infrastructure.Persistence;
 using CezaHukuku.Parsing.Legislation;
 using Microsoft.EntityFrameworkCore;
@@ -10,7 +11,9 @@ namespace CezaHukuku.Api.Library;
 /// Madde metnindeki parantez içi atıf ("(madde 21, 22)" içindeki "21"): fıkra/bent içindeki konumu ve açılacak madde.
 /// </summary>
 /// <param name="ItemId">Atıf bentteyse bendin kimliği; fıkranın kendi metnindeyse null.</param>
-public sealed record ArticleReferenceSpan(Guid ParagraphId, Guid? ItemId, int Start, int Length, LinkedArticleRef Target);
+/// <param name="AccessibleName">Ekran okuyucu için ad: "TCK madde 21'i aç".</param>
+public sealed record ArticleReferenceSpan(
+    Guid ParagraphId, Guid? ItemId, int Start, int Length, LinkedArticleRef Target, string AccessibleName);
 
 /// <summary>
 /// Parantez içi madde atıflarını (<see cref="ParenthesizedArticleFinder"/>) okuyucunun görebildiği maddelere bağlar
@@ -49,7 +52,8 @@ internal static class ArticleReferences
                 var overlaps = citations.Any(c => c.ParagraphId == paragraphId && c.ItemId == itemId
                     && found.Start < c.Start + c.Length && c.Start < found.Start + found.Length);
                 if (!overlaps)
-                    spans.Add(new ArticleReferenceSpan(paragraphId, itemId, found.Start, found.Length, target));
+                    spans.Add(new ArticleReferenceSpan(paragraphId, itemId, found.Start, found.Length, target,
+                        ArticleReferenceHtml.AccessibleName(target.LawLabel, target.Number)));
             }
         }
 
@@ -78,5 +82,21 @@ internal static class ArticleReferences
             slug = linked;
         }
         return await LibraryEndpoints.LoadOutlineAsync(db, slug, includePrivate);
+    }
+
+    /// <summary>
+    /// Ders notunun okuma HTML'i: atıflar notun kanununda okuyucunun görebildiği maddelere bağlanır. Metinde atıf yoksa
+    /// kanun hiç yüklenmez; kanun belirlenemezse HTML olduğu gibi döner.
+    /// </summary>
+    public static async Task<string> ReadingHtmlAsync(AppDbContext db, LectureNote note, bool includePrivate)
+    {
+        if (ParenthesizedArticleFinder.Find(note.PlainText).Count == 0
+            || await LawForNoteAsync(db, note, includePrivate) is not ({ } law, { } outline))
+            return note.Html;
+
+        var targets = TargetsOf(law, outline);
+        return ArticleReferenceHtml.Mark(note.Html, number => targets.TryGetValue(number, out var t)
+            ? new ArticleReferenceTarget(t.LawSlug, t.ArticleSlug, t.LawLabel, t.Number)
+            : null);
     }
 }

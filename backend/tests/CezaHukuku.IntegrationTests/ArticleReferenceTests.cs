@@ -1,4 +1,5 @@
 using CezaHukuku.Api.Admin;
+using CezaHukuku.Api.Content;
 using CezaHukuku.Api.Library;
 using CezaHukuku.Domain.Laws;
 using CezaHukuku.Domain.Users;
@@ -11,7 +12,7 @@ namespace CezaHukuku.IntegrationTests;
 /// görünmeyen maddenin hiç bağlanmadığını (BR-1) kanıtlar.
 /// </summary>
 [Collection(ApiCollection.Name)]
-public class ArticleReferenceTests(ApiFactory factory)
+public partial class ArticleReferenceTests(ApiFactory factory)
 {
     [Fact]
     public async Task ArticleText_MarksEachNumber_TargetsSameLaw()
@@ -129,6 +130,105 @@ public class ArticleReferenceTests(ApiFactory factory)
         var shown = await GetArticleAsync(anonymous, law, $"{old.Target.ArticleSlug}?asOf=2010-01-01");
         Assert.Equal("Eski kast metni.", shown.Version!.Paragraphs.Single().Text);
         Assert.Equal("Yeni kast metni.", (await GetArticleAsync(anonymous, law, old.Target.ArticleSlug)).Version!.Paragraphs.Single().Text);
+    }
+
+    [Fact]
+    public async Task LectureNote_LawFromNoteLink_ElseTck()
+    {
+        var admin = await factory.CreateAdminClientAsync();
+        var tck = await EnsureTckAsync(admin);
+        var procedure = await CreateLawAsync(admin, Visibility.Public);
+        await CreateArticleAsync(admin, procedure, "231", "Hükmün açıklanmasının geri bırakılması.");
+        var tag = Guid.NewGuid().ToString("N")[..8];
+
+        var linked = await CreateNoteAsync(admin, $"Bağlı {tag}", "<p>Geri bırakma (madde 231).</p>", lawId: procedure.Id);
+        var plain = await CreateNoteAsync(admin, $"Bağsız {tag}", "<p>Kast (madde 21).</p>");
+        var groupOnly = await CreateNoteAsync(admin, $"Grup {tag}", "<p>Kast (madde 21).</p>", groupId: procedure.GroupId);
+
+        var course = await (await admin.PostJsonAsync("/api/admin/lecture-courses", new SaveLectureCourseRequest($"Ders {tag}", null, Visibility.Public)))
+            .ReadAsync<LectureCourseDetail>(201);
+        var linkedHeading = await AddHeadingAsync(admin, course.Id, $"Başlık bağlı {tag}", "<p>(md. 231)</p>", procedure.Id);
+        var plainHeading = await AddHeadingAsync(admin, course.Id, $"Başlık bağsız {tag}", "<p>(m. 21)</p>", null);
+
+        var anonymous = factory.CreateAnonymousClient();
+        Assert.Equal([$"{procedure.Slug}/madde-231"], ReferencesIn(await GetNoteAsync(anonymous, linked.Slug)));
+        Assert.Equal([$"{tck.Slug}/madde-21"], ReferencesIn(await GetNoteAsync(anonymous, plain.Slug)));
+        Assert.Equal([$"{tck.Slug}/madde-21"], ReferencesIn(await GetNoteAsync(anonymous, groupOnly.Slug)));
+        Assert.Equal([$"{procedure.Slug}/madde-231"], ReferencesIn(await GetNoteAsync(anonymous, linkedHeading.Slug)));
+        Assert.Equal([$"{tck.Slug}/madde-21"], ReferencesIn(await GetNoteAsync(anonymous, plainHeading.Slug)));
+    }
+
+    [Fact]
+    public async Task LectureNote_PrivateTarget_NotMarkedForAnonymous_MarkedForMember()
+    {
+        var admin = await factory.CreateAdminClientAsync();
+        var secretLaw = await CreateLawAsync(admin, Visibility.Private);
+        await CreateArticleAsync(admin, secretLaw, "5", "Gizli kanunun metni.");
+        var note = await CreateNoteAsync(admin, $"Açık not {Guid.NewGuid():N}"[..20], "<p>Bkz. (madde 5).</p>", lawId: secretLaw.Id);
+
+        var anonymous = factory.CreateAnonymousClient();
+        var body = await (await anonymous.GetAsync($"/api/lecture-notes/{note.Slug}")).Content.ReadAsStringAsync();
+        Assert.Empty(ReferencesIn(await GetNoteAsync(anonymous, note.Slug)));
+        // Gizli kanunun adı ve maddesinin adresi yanıtta yok (grubu herkese açıktır, o görünebilir).
+        Assert.DoesNotContain(secretLaw.Name, body);
+        Assert.DoesNotContain($"{secretLaw.Slug}/madde-5", body);
+
+        var member = await CreateUserClientAsync(admin, Roles.Standard);
+        Assert.Equal([$"{secretLaw.Slug}/madde-5"], ReferencesIn(await GetNoteAsync(member, note.Slug)));
+    }
+
+    [Fact]
+    public async Task LectureNote_HtmlUnchanged_ReadingHtmlMarked()
+    {
+        var admin = await factory.CreateAdminClientAsync();
+        var law = await CreateLawAsync(admin, Visibility.Public);
+        await CreateArticleAsync(admin, law, "21", "Kast.");
+        const string html = "<p>Kast (madde 21).</p>";
+        var note = await CreateNoteAsync(admin, $"Ham {Guid.NewGuid():N}"[..16], html, lawId: law.Id);
+
+        // Düzenleme formu kaydedilmiş HTML'i alır; işaret yalnız okuma HTML'indedir.
+        var detail = await GetNoteAsync(admin, note.Slug);
+        Assert.Equal(html, detail.Html);
+        Assert.Contains($"data-article-ref=\"{law.Slug}/madde-21\"", detail.ReadingHtml);
+        Assert.Contains("aria-label=\"", detail.ReadingHtml);
+    }
+
+    private static IEnumerable<string> ReferencesIn(LectureNoteDetail note) =>
+        ArticleRefAttribute().Matches(note.ReadingHtml).Select(m => m.Groups[1].Value);
+
+    [System.Text.RegularExpressions.GeneratedRegex("data-article-ref=\"([^\"]+)\"")]
+    private static partial System.Text.RegularExpressions.Regex ArticleRefAttribute();
+
+    private static async Task<LectureNoteDetail> GetNoteAsync(HttpClient client, string slug) =>
+        await (await client.GetAsync($"/api/lecture-notes/{slug}")).ReadAsync<LectureNoteDetail>();
+
+    private static async Task<LectureNoteDetail> CreateNoteAsync(
+        HttpClient admin, string title, string html, Guid? lawId = null, Guid? groupId = null) =>
+        await (await admin.PostJsonAsync("/api/admin/lecture-notes",
+                new SaveLectureNoteRequest(title, html, Visibility.Public, groupId, lawId, null)))
+            .ReadAsync<LectureNoteDetail>(201);
+
+    private static async Task<LectureNoteDetail> AddHeadingAsync(HttpClient admin, Guid courseId, string title, string html, Guid? lawId)
+    {
+        var node = await (await admin.PostJsonAsync($"/api/admin/lecture-courses/{courseId}/nodes", new AddLectureNodeRequest(title, null, Visibility.Public)))
+            .ReadAsync<LectureNoteDetail>(201);
+        return await (await admin.PutJsonAsync($"/api/admin/lecture-notes/{node.Id}",
+                new SaveLectureNoteRequest(title, html, Visibility.Public, null, lawId, null)))
+            .ReadAsync<LectureNoteDetail>();
+    }
+
+    /// <summary>Kanunu belirsiz ders notunda atıfın kanunu (ArticleReferences.DefaultLawSlug).</summary>
+    private const string TckSlug = "tck";
+
+    /// <summary>Varsayılan kanun: adres adı "tck" olan kanun (tekil). Bu oturumda ilk kez gerekiyorsa kurulur.</summary>
+    private static async Task<LawSummary> EnsureTckAsync(HttpClient admin)
+    {
+        var existing = await admin.GetAsync($"/api/library/laws/{TckSlug}");
+        if (existing.IsSuccessStatusCode)
+            return (await existing.ReadAsync<LawTreeResponse>()).Law;
+        var tck = await CreateLawAsync(admin, Visibility.Public, TckSlug);
+        await CreateArticleAsync(admin, tck, "21", "Kast.");
+        return tck;
     }
 
     private static async Task<ArticleDetailResponse> GetArticleAsync(HttpClient client, LawSummary law, string slugAndQuery) =>
