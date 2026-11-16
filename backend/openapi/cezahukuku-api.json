@@ -4314,6 +4314,7 @@
           "decisions",
           "links",
           "citations",
+          "references",
           "citedBy",
           "changes",
           "lectureNotes"
@@ -4390,6 +4391,12 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/CitationSpan"
+            }
+          },
+          "references": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ArticleReferenceSpan"
             }
           },
           "citedBy": {
@@ -4489,6 +4496,44 @@
             "type": "string"
           },
           "title": {
+            "type": "string"
+          }
+        }
+      },
+      "ArticleReferenceSpan": {
+        "required": [
+          "paragraphId",
+          "itemId",
+          "start",
+          "length",
+          "target",
+          "accessibleName"
+        ],
+        "type": "object",
+        "properties": {
+          "paragraphId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "itemId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "start": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "length": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "target": {
+            "$ref": "#/components/schemas/LinkedArticleRef"
+          },
+          "accessibleName": {
             "type": "string"
           }
         }
@@ -6868,6 +6913,7 @@
           "slug",
           "title",
           "html",
+          "readingHtml",
           "scope",
           "visibility",
           "createdAt",
@@ -6891,6 +6937,9 @@
             "type": "string"
           },
           "html": {
+            "type": "string"
+          },
+          "readingHtml": {
             "type": "string"
           },
           "scope": {

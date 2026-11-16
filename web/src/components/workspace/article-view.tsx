@@ -32,6 +32,7 @@ import { OldLawCounterparts, RelatedLinks } from "./link-list";
 import { NoteList } from "./note-list";
 import { paragraphsToText } from "./article-text";
 import { HighlightableText } from "./highlightable-text";
+import { ArticleRefHost } from "./article-ref-dialog";
 
 // Sekmeler ve yöneticinin sekmeden hızlıca ekleyebileceği kayıt.
 const tabs: { value: string; label: string; add?: QuickAddKind }[] = [
@@ -221,24 +222,28 @@ export function ArticleView({ detail, asOf, initialTab }: { detail: ArticleDetai
             {asOf && <span className="text-base">— {formatDate(asOf)} tarihinde yürürlükte olan metin</span>}
           </h3>
           <div className="px-3 py-3 md:px-4 md:py-4" onClick={openChange}>
-            {asOf && !version ? (
-              <p className="text-muted-foreground">
-                {formatDate(asOf)} tarihinde yürürlükte olan bir metin kayıtlı değil: madde o tarihte henüz yürürlükte
-                değildi ya da o tarihteki metni girilmedi. Kayıtlı sürümler için Değişiklikler sekmesine bakın.
-              </p>
-            ) : paragraphs.length === 0 ? (
-              <p className="text-muted-foreground">
-                {version?.isRepealed ? "Bu madde mülgadır." : "Bu maddenin metni henüz girilmedi."}
-              </p>
-            ) : (
-              <HighlightableText
-                articleId={article.id}
-                versionId={version!.id}
-                paragraphs={paragraphs}
-                citations={detail.citations}
-                changes={detail.changes}
-              />
-            )}
+            {/* Parantez içi atıflar ("(madde 21)") seçili suç tarihiyle pencerede açılır (spec 0005). */}
+            <ArticleRefHost asOf={asOf}>
+              {asOf && !version ? (
+                <p className="text-muted-foreground">
+                  {formatDate(asOf)} tarihinde yürürlükte olan bir metin kayıtlı değil: madde o tarihte henüz yürürlükte
+                  değildi ya da o tarihteki metni girilmedi. Kayıtlı sürümler için Değişiklikler sekmesine bakın.
+                </p>
+              ) : paragraphs.length === 0 ? (
+                <p className="text-muted-foreground">
+                  {version?.isRepealed ? "Bu madde mülgadır." : "Bu maddenin metni henüz girilmedi."}
+                </p>
+              ) : (
+                <HighlightableText
+                  articleId={article.id}
+                  versionId={version!.id}
+                  paragraphs={paragraphs}
+                  citations={detail.citations}
+                  references={detail.references}
+                  changes={detail.changes}
+                />
+              )}
+            </ArticleRefHost>
             {note && <p className="mt-4 border-t pt-3 text-sm text-muted-foreground">{note}</p>}
           </div>
         </section>

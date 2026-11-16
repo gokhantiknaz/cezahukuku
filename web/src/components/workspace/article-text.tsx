@@ -1,7 +1,7 @@
 import { Fragment, type CSSProperties, type ReactNode } from "react";
 import Link from "next/link";
 import { StickyNote } from "lucide-react";
-import type { ChangeMark, CitationSpan, ParagraphDto } from "@/api/generated/model";
+import type { ArticleReferenceSpan, ChangeMark, CitationSpan, ParagraphDto } from "@/api/generated/model";
 import { cn } from "@/lib/utils";
 
 /**
@@ -124,26 +124,51 @@ function withMarks(text: string, from: number, to: number, marks: TextMark[], ch
 }
 
 /**
- * Metni atıf bağlantıları, vurgular ve son değişiklikle böler: "… [13 üncü maddede] yazılı …" → metin, bağlantı,
- * metin. Metin sonradan değiştiyse (eski dizin) taşan ya da çakışan atıf atlanır.
+ * Metni atıf bağlantıları, parantez içi atıflar, vurgular ve son değişiklikle böler: "… [13 üncü maddede] yazılı …"
+ * → metin, bağlantı, metin. Metin sonradan değiştiyse (eski dizin) taşan ya da çakışan atıf atlanır.
+ * Parantez içi atıf ("(madde [21])", spec 0005) `data-article-ref` taşıyan bir bağlantıdır; `ArticleRefHost` onu
+ * açılır pencereye bağlar.
  */
-function renderText(text: string, spans: CitationSpan[] = [], marks: TextMark[] = [], change?: ChangeMark): ReactNode {
-  if (spans.length === 0 && marks.length === 0 && !change) return text;
+function renderText(
+  text: string,
+  spans: CitationSpan[] = [],
+  marks: TextMark[] = [],
+  change?: ChangeMark,
+  references: ArticleReferenceSpan[] = [],
+): ReactNode {
+  if (spans.length === 0 && references.length === 0 && marks.length === 0 && !change) return text;
   const parts: ReactNode[] = [];
   let position = 0;
-  for (const span of [...spans].sort((a, b) => a.start - b.start)) {
+  const linked = [
+    ...spans.map((span) => ({ span, reference: false as const })),
+    ...references.map((span) => ({ span, reference: true as const })),
+  ].sort((a, b) => a.span.start - b.span.start);
+  for (const { span, reference } of linked) {
     if (span.start < position || span.start + span.length > text.length) continue;
     parts.push(...withMarks(text, position, span.start, marks, change));
     const { target } = span;
+    const inner = withMarks(text, span.start, span.start + span.length, marks, change);
     parts.push(
-      <Link
-        key={`atif-${span.start}`}
-        href={`/${target.lawSlug}/${target.articleSlug}`}
-        title={`${target.lawLabel} Madde ${target.number}${target.title ? ` — ${target.title}` : ""}`}
-        className="text-primary underline decoration-primary/40 decoration-dotted underline-offset-4 hover:decoration-solid"
-      >
-        {withMarks(text, span.start, span.start + span.length, marks, change)}
-      </Link>,
+      reference ? (
+        <a
+          key={`ref-${span.start}`}
+          href={`/${target.lawSlug}/${target.articleSlug}`}
+          data-article-ref={`${target.lawSlug}/${target.articleSlug}`}
+          aria-label={(span as ArticleReferenceSpan).accessibleName}
+          className="article-ref"
+        >
+          {inner}
+        </a>
+      ) : (
+        <Link
+          key={`atif-${span.start}`}
+          href={`/${target.lawSlug}/${target.articleSlug}`}
+          title={`${target.lawLabel} Madde ${target.number}${target.title ? ` — ${target.title}` : ""}`}
+          className="text-primary underline decoration-primary/40 decoration-dotted underline-offset-4 hover:decoration-solid"
+        >
+          {inner}
+        </Link>
+      ),
     );
     position = span.start + span.length;
   }
@@ -170,7 +195,8 @@ function RemovedLine({ change, label }: { change: ChangeMark; label: string }) {
 
 /**
  * Madde metni: numaralı fıkralar, bentler ve alt bentler. `marked` içindeki fıkralar vurgulanır (değişenler);
- * `citations` verilirse metindeki madde atıfları bağlantı olur; `marks` kişisel vurgulardır; `changes` her
+ * `citations` verilirse metindeki madde atıfları bağlantı olur; `references` parantez içi atıflardır ("(madde 21)";
+ * pencerede açılır, `ArticleRefHost`); `marks` kişisel vurgulardır; `changes` her
  * fıkra/bentin son değişikliğidir (gelen kelimeler kırmızı, kaldırılan fıkra/bent eski yerinde "Mülga").
  * Her fıkra/bent metni `data-paragraph-id` / `data-item-id` taşır: seçimin metindeki konumu buradan hesaplanır
  * (öğenin metin içeriği fıkra/bent metninin aynısıdır).
@@ -179,12 +205,14 @@ export function ParagraphList({
   paragraphs,
   marked,
   citations,
+  references,
   marks,
   changes,
 }: {
   paragraphs: ParagraphDto[];
   marked?: Set<string>;
   citations?: CitationSpan[];
+  references?: ArticleReferenceSpan[];
   marks?: Map<string, TextMark[]>;
   changes?: ChangeMark[];
 }) {
@@ -192,6 +220,11 @@ export function ParagraphList({
   for (const span of citations ?? []) {
     const key = blockKey(span.paragraphId, span.itemId);
     byText.set(key, [...(byText.get(key) ?? []), span]);
+  }
+  const referencesByText = new Map<string, ArticleReferenceSpan[]>();
+  for (const span of references ?? []) {
+    const key = blockKey(span.paragraphId, span.itemId);
+    referencesByText.set(key, [...(referencesByText.get(key) ?? []), span]);
   }
   const changeOf = new Map<string, ChangeMark>();
   // Kaldırılanlar, yeni metinde ardından geldikleri fıkranın ("" en baş) ya da bentin anahtarıyla.
@@ -211,6 +244,7 @@ export function ParagraphList({
       byText.get(blockKey(paragraphId, itemId)),
       marks?.get(blockKey(paragraphId, itemId)),
       changeOf.get(blockKey(paragraphId, itemId)),
+      referencesByText.get(blockKey(paragraphId, itemId)),
     );
   const removedParagraphs = (afterParagraphId: string) =>
     (removedAfter.get(afterParagraphId) ?? []).map((change) => (

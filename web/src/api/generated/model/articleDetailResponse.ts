@@ -15,6 +15,7 @@ import type { EditorialNoteDto } from './editorialNoteDto';
 import type { DecisionDto } from './decisionDto';
 import type { ArticleLinkDto } from './articleLinkDto';
 import type { CitationSpan } from './citationSpan';
+import type { ArticleReferenceSpan } from './articleReferenceSpan';
 import type { LinkedArticleRef } from './linkedArticleRef';
 import type { ChangeMark } from './changeMark';
 import type { LectureNoteRef } from './lectureNoteRef';
@@ -31,6 +32,7 @@ export interface ArticleDetailResponse {
   decisions: DecisionDto[];
   links: ArticleLinkDto[];
   citations: CitationSpan[];
+  references: ArticleReferenceSpan[];
   citedBy: LinkedArticleRef[];
   changes: ChangeMark[];
   lectureNotes: LectureNoteRef[];

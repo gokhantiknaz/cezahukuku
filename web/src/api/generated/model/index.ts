@@ -27,6 +27,8 @@ export * from './articleLinkDtoNote';
 export * from './articleLinkDtoTargetVersion';
 export * from './articleLinkKind';
 export * from './articleRef';
+export * from './articleReferenceSpan';
+export * from './articleReferenceSpanItemId';
 export * from './articleSearchHit';
 export * from './articleSummary';
 export * from './articleSummaryNodeId';
