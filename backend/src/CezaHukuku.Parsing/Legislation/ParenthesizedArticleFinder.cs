@@ -49,14 +49,14 @@ public static partial class ParenthesizedArticleFinder
 
     // "madde 21", "maddeler 21, 22", "m. 21", "md.21"; numaralar virgül ya da "ve" ile; fıkra eki "/2", bent "/1-c".
     // Ardından isteğe bağlı kelimeyle fıkra ("fıkra 2 ve 4", "fık. 2") ve bent ("bent c", "bendi c ve d"); bunların
-    // numaraları "part" değildir. "FIKRA" büyük harfle de tanınsın diye f[ıi]kra (değişmez kültürde I, ı'ya eşlenmez).
+    // numaraları "part" değildir. "FIKRA" ve "BENDİ" büyük harfle de tanınsın diye f[ıi]kra, bend[iİ] (değişmez kültürde I ı'ya, İ i'ye eşlenmez).
     [GeneratedRegex("""
         ^\s*
         (?:maddeler\s+|madde\s+|md\.\s*|m\.\s*)
         (?<part>\d{1,3}(?:/\d{1,2}(?:-[a-zçğıöşü])?)?)
         (?:\s*(?:,|\s+ve\s+)\s*(?<part>\d{1,3}(?:/\d{1,2}(?:-[a-zçğıöşü])?)?))*
         (?:\s*,?\s*(?:f[ıi]kra\s+|f[ıi]k\.\s*)\d{1,2}(?:\s*(?:,|\s+ve\s+)\s*\d{1,2})*)?
-        (?:\s*,?\s*(?:bendi\s+|bent\s+)(?:[a-zçğıöşü]|\d{1,2})(?:\s*(?:,|\s+ve\s+)\s*(?:[a-zçğıöşü]|\d{1,2}))*)?
+        (?:\s*,?\s*(?:bend[iİ]\s+|bent\s+)(?:[a-zçğıöşü]|\d{1,2})(?:\s*(?:,|\s+ve\s+)\s*(?:[a-zçğıöşü]|\d{1,2}))*)?
         \s*$
         """, RegexOptions.IgnorePatternWhitespace | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex Reference();

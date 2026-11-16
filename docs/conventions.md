@@ -48,6 +48,8 @@
 - Next 16 `cacheComponents` gizli tuttuğu sayfanın açık pencere/katman durumunu da korur — başka sayfaya götüren
   bağlantı içeren pencere gezinmede durumunu açıkça sıfırlar, yoksa geri dönünce açık gelir — from atıf penceresi
   (0005 review M-2).
+- .NET Regex `IgnoreCase` + `CultureInvariant` Türkçe I/ı ve İ/i'yi eşlemez ("FIKRA" ≠ "fıkra", "BENDİ" ≠ "bendi") —
+  Türkçe anahtar kelimelerde harf sınıfı yaz: `f[ıi]kra`, `bend[iİ]` — from parantez içi atıf (0006 review F-1).
 - PowerShell `Get-Content`/`Set-Content` Türkçe karakterleri bozar (cp1254) — dosyalar bash ya da düzenleme aracıyla
   yazılır — from geliştirme deneyimi.
 - API projesini derlemek `backend/openapi/cezahukuku-api.json`'u yeniden üretir — DTO değişince ardından

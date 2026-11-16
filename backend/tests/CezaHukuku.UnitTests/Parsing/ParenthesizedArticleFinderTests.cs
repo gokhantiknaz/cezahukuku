@@ -94,6 +94,7 @@ public class ParenthesizedArticleFinderTests
     [InlineData("(madde 53, bent c)")]
     [InlineData("(madde 53, fıkra 1, bendi c ve d)")]
     [InlineData("(madde 53 fıkra 1 bent c)")]
+    [InlineData("(MADDE 53, FIKRA 1, BENDİ C)")]
     public void Finds_ItemWords(string text)
     {
         Assert.Equal([("53", "53")], Found(text));
