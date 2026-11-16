@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { createElement as h } from "react";
 import { renderToString } from "react-dom/server";
 import { Group, Panel } from "react-resizable-panels";
-import { useWorkspaceLayout } from "./workspace-layout.ts";
+import { parseSavedLayout, useWorkspaceLayout, WORKSPACE_LAYOUT_KEY } from "./workspace-layout.ts";
 
 // Bug 1: masaüstü çalışma alanında sunucu panelleri varsayılan genişlikle çiziyor, tarayıcı hidrasyon sırasında
 // localStorage'daki kayıtlı genişlikle; React "hydration mismatch" (ResizablePanel style) uyarısı veriyor.
@@ -41,10 +41,29 @@ function storageWith(entries: Record<string, string>): Storage {
 test("kayıtlı panel genişliği hidrasyon çizimini sunucu çiziminden ayırmaz", () => {
   const server = renderToString(h(WorkspaceGroup));
   const saved = storageWith({
-    "react-resizable-panels:workspace": JSON.stringify({ navigation: 30, content: 50, notes: 20 }),
+    [WORKSPACE_LAYOUT_KEY]: JSON.stringify({ navigation: 30, content: 50, notes: 20 }),
   });
 
   const hydration = renderInBrowser(saved);
 
   assert.equal(hydration, server);
+});
+
+test("kayıt anahtarı kütüphanenin önceki kayıtlarıyla aynı: kullanıcının ayarladığı genişlik kaybolmaz", () => {
+  assert.equal(WORKSPACE_LAYOUT_KEY, "react-resizable-panels:workspace");
+  assert.deepEqual(parseSavedLayout(JSON.stringify({ navigation: 30, content: 50, notes: 20 })), {
+    navigation: 30,
+    content: 50,
+    notes: 20,
+  });
+  assert.deepEqual(parseSavedLayout(JSON.stringify({ navigation: 24, content: 76, notes: 0 })), {
+    navigation: 24,
+    content: 76,
+    notes: 0,
+  });
+});
+
+test("bozuk ya da beklenmeyen kayıt yok sayılır", () => {
+  for (const raw of [null, "", "bozuk", "null", "[]", "42", "{}", '{"navigation":"30"}', '{"navigation":null}'])
+    assert.equal(parseSavedLayout(raw), undefined, String(raw));
 });

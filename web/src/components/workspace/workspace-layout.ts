@@ -1,4 +1,5 @@
-import { useDefaultLayout } from "react-resizable-panels";
+import { useCallback, useLayoutEffect } from "react";
+import { useGroupRef, type Layout, type LayoutChangedMeta } from "react-resizable-panels";
 
 // localStorage gizli pencerede ya da engelliyken hata atabilir; panel boyutu hatırlanmasa da düzen çalışır.
 const safeStorage = {
@@ -18,13 +19,52 @@ const safeStorage = {
   },
 };
 
+/** Kayıt anahtarı ve biçimi kütüphanenin `useDefaultLayout({ id: "workspace" })` ile aynı: eski kayıtlar geçerli. */
+export const WORKSPACE_LAYOUT_KEY = "react-resizable-panels:workspace";
+
+/** Kayıtlı düzeni okur: panel kimliği → yüzde. Bozuk ya da beklenmeyen kayıt yok sayılır. */
+export function parseSavedLayout(raw: string | null): Layout | undefined {
+  if (!raw) return undefined;
+  try {
+    const value: unknown = JSON.parse(raw);
+    if (typeof value !== "object" || value === null || Array.isArray(value)) return undefined;
+    const entries = Object.entries(value);
+    if (entries.length === 0 || !entries.every(([, size]) => typeof size === "number" && Number.isFinite(size)))
+      return undefined;
+    return Object.fromEntries(entries) as Layout;
+  } catch {
+    return undefined;
+  }
+}
+
+function samePanels(a: Layout, b: Layout) {
+  const keys = Object.keys(a);
+  return keys.length === Object.keys(b).length && keys.every((key) => key in b);
+}
+
 /**
  * Masaüstü çalışma alanının panel genişlikleri: kullanıcının sürüklediği düzen hatırlanır. Dönen değer olduğu gibi
  * `ResizablePanelGroup`'a verilir.
+ *
+ * Kayıtlı düzen ilk çizimde kullanılmaz (bug 1): sunucuda localStorage yoktur, hidrasyon çizimi sunucununkiyle aynı
+ * olmalıdır. Grup kurulduktan sonra, boyamadan önce (layout effect) kayıtlı düzen grubun kendisine uygulanır.
  */
 export function useWorkspaceLayout() {
+  const groupRef = useGroupRef();
+
+  useLayoutEffect(() => {
+    const group = groupRef.current;
+    const saved = parseSavedLayout(safeStorage.getItem(WORKSPACE_LAYOUT_KEY));
+    // Panel kümesi değiştiyse (eski kayıt) ya da grup henüz ölçülmediyse kayıt uygulanmaz, varsayılanlar kalır.
+    if (group && saved && samePanels(saved, group.getLayout())) group.setLayout(saved);
+  }, [groupRef]);
+
   // Yalnız kullanıcının sürüklemesi kaydedilir: ilk hidrasyonda dar pencerede bir an kurulan masaüstü
-  // düzeninin uç oranları ya da pencere boyutu değişimleri kalıcı hâle gelmesin.
-  const layout = useDefaultLayout({ id: "workspace", storage: safeStorage, onlySaveAfterUserInteractions: true });
-  return { defaultLayout: layout.defaultLayout, onLayoutChanged: layout.onLayoutChanged };
+  // düzeninin uç oranları, pencere boyutu değişimleri ya da kayıtlı düzenin uygulanması kalıcı hâle gelmesin.
+  const onLayoutChanged = useCallback((layout: Layout, meta: LayoutChangedMeta) => {
+    if (meta.isUserInteraction)
+      safeStorage.setItem(WORKSPACE_LAYOUT_KEY, JSON.stringify(meta.requestedLayout ?? layout));
+  }, []);
+
+  return { groupRef, onLayoutChanged };
 }
