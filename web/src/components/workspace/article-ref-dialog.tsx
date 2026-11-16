@@ -46,8 +46,9 @@ export function ArticleRefHost({ asOf, className, children }: { asOf?: string; c
     event.preventDefault();
     // Değişiklik işareti ya da başka bir üst tıklama işleyicisi aynı tıklamayla çalışmasın.
     event.stopPropagation();
-    // Metin seçilirken (sürükleyerek) bırakılan tıklama atıfı açmaz.
-    if (event.type === "click" && window.getSelection()?.isCollapsed === false) return;
+    // Metin seçilirken (sürükleyerek) bırakılan fare tıklaması atıfı açmaz; klavyeden gelen tıklama (Enter,
+    // detail 0) seçim olsa da açar.
+    if (event.type === "click" && (event as MouseEvent).detail > 0 && window.getSelection()?.isCollapsed === false) return;
     const next = targetOf(element);
     if (!next) return;
     trigger.current = element;
