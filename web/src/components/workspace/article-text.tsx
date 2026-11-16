@@ -157,6 +157,8 @@ function renderText(
           href={`/${target.lawSlug}/${target.articleSlug}${asOf ? `?tarih=${asOf}` : ""}`}
           data-article-ref={`${target.lawSlug}/${target.articleSlug}`}
           aria-label={(span as ArticleReferenceSpan).accessibleName}
+          // Vurgu için seçim numaranın üstünden de başlatılabilsin (bağlantı sürüklenmesin).
+          draggable={false}
           className="article-ref"
         >
           {inner}
