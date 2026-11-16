@@ -175,6 +175,19 @@ public partial class ArticleReferenceTests(ApiFactory factory)
 
         var member = await CreateUserClientAsync(admin, Roles.Standard);
         Assert.Equal([$"{secretLaw.Slug}/madde-5"], ReferencesIn(await GetNoteAsync(member, note.Slug)));
+
+        // Açık kanunun gizli maddesi de (I-2): anonim okuyucuya yalnız açık madde işaretli, başlığı da yanıtta yok.
+        var openLaw = await CreateLawAsync(admin, Visibility.Public);
+        await CreateArticleAsync(admin, openLaw, "7", "Açık madde.");
+        var secretTitle = "Gizli " + Guid.NewGuid().ToString("N")[..8];
+        await CreateArticleAsync(admin, openLaw, "8", "Gizli madde.", visibility: Visibility.Private, title: secretTitle);
+        var mixed = await CreateNoteAsync(admin, $"Karma not {Guid.NewGuid():N}"[..20], "<p>Bkz. (madde 7, 8).</p>", lawId: openLaw.Id);
+
+        var mixedBody = await (await anonymous.GetAsync($"/api/lecture-notes/{mixed.Slug}")).Content.ReadAsStringAsync();
+        Assert.Equal([$"{openLaw.Slug}/madde-7"], ReferencesIn(await GetNoteAsync(anonymous, mixed.Slug)));
+        Assert.DoesNotContain($"{openLaw.Slug}/madde-8", mixedBody);
+        Assert.DoesNotContain(secretTitle, mixedBody);
+        Assert.Equal([$"{openLaw.Slug}/madde-7", $"{openLaw.Slug}/madde-8"], ReferencesIn(await GetNoteAsync(member, mixed.Slug)));
     }
 
     [Fact]
