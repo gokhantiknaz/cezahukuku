@@ -135,6 +135,7 @@ function renderText(
   marks: TextMark[] = [],
   change?: ChangeMark,
   references: ArticleReferenceSpan[] = [],
+  asOf?: string,
 ): ReactNode {
   if (spans.length === 0 && references.length === 0 && marks.length === 0 && !change) return text;
   const parts: ReactNode[] = [];
@@ -152,7 +153,8 @@ function renderText(
       reference ? (
         <a
           key={`ref-${span.start}`}
-          href={`/${target.lawSlug}/${target.articleSlug}`}
+          // Yeni sekmede ya da betik çalışmadan açılınca da seçili suç tarihi korunur.
+          href={`/${target.lawSlug}/${target.articleSlug}${asOf ? `?tarih=${asOf}` : ""}`}
           data-article-ref={`${target.lawSlug}/${target.articleSlug}`}
           aria-label={(span as ArticleReferenceSpan).accessibleName}
           className="article-ref"
@@ -206,6 +208,7 @@ export function ParagraphList({
   marked,
   citations,
   references,
+  asOf,
   marks,
   changes,
 }: {
@@ -213,6 +216,8 @@ export function ParagraphList({
   marked?: Set<string>;
   citations?: CitationSpan[];
   references?: ArticleReferenceSpan[];
+  /** Seçili suç tarihi (?tarih=): parantez içi atıfların adresine eklenir. */
+  asOf?: string;
   marks?: Map<string, TextMark[]>;
   changes?: ChangeMark[];
 }) {
@@ -245,6 +250,7 @@ export function ParagraphList({
       marks?.get(blockKey(paragraphId, itemId)),
       changeOf.get(blockKey(paragraphId, itemId)),
       referencesByText.get(blockKey(paragraphId, itemId)),
+      asOf,
     );
   const removedParagraphs = (afterParagraphId: string) =>
     (removedAfter.get(afterParagraphId) ?? []).map((change) => (

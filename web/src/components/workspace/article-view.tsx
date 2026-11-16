@@ -240,6 +240,7 @@ export function ArticleView({ detail, asOf, initialTab }: { detail: ArticleDetai
                   paragraphs={paragraphs}
                   citations={detail.citations}
                   references={detail.references}
+                  asOf={asOf}
                   changes={detail.changes}
                 />
               )}

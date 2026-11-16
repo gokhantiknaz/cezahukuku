@@ -82,6 +82,7 @@ export function HighlightableText({
   paragraphs,
   citations,
   references,
+  asOf,
   changes,
 }: {
   articleId: string;
@@ -89,6 +90,7 @@ export function HighlightableText({
   paragraphs: ParagraphDto[];
   citations: CitationSpan[];
   references?: ArticleReferenceSpan[];
+  asOf?: string;
   changes?: ChangeMark[];
 }) {
   const layer = usePersonalLayer(articleId, versionId);
@@ -248,7 +250,7 @@ export function HighlightableText({
         onClickCapture={(e) => e.target instanceof Element && e.target.closest("[data-note-for]") && e.preventDefault()}
         className={cn(enabled && "[&_mark[data-highlight-id]]:cursor-pointer")}
       >
-        <ParagraphList paragraphs={paragraphs} citations={citations} references={references} marks={marks} changes={changes} />
+        <ParagraphList paragraphs={paragraphs} citations={citations} references={references} asOf={asOf} marks={marks} changes={changes} />
       </div>
       {staleCount > 0 && (
         <p className="mt-3 text-sm text-muted-foreground">
