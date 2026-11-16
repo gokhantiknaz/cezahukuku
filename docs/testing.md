@@ -19,6 +19,10 @@
   yalnız saf mantık (React ve DOM yok; ör. `src/lib/lecture-moves.ts`). Test dosyası modülü `./x.ts` uzantısıyla içe
   aktarır, modülde yalnız `import type` olabilir (tür silme; `@/` yolu çalışma anında çözülmez). Bağımlılık yok;
   check'te `web unit` (fast) adımı (spec 0003, plan A-1). Bileşen testi yok.
+  İstisna, hidrasyon eşitliği (bug 1): sunucu çizimi ile tarayıcının hidrasyon çizimi uygulamanın mevcut
+  bağımlılıklarıyla (`react`, `react-dom/server`, UI kütüphanesi) `renderToString` karşılaştırmasıyla sınanabilir. DOM
+  yoktur; gerekirse yalnız `window` taklit edilir. Test edilen modül paket adıyla değer içe aktarabilir, `@/` yolu ve
+  `.tsx` kullanamaz (ör. `src/components/workspace/workspace-layout.ts`).
 - **Web arayüzü:** Web için kanıt: `typecheck`, `lint`, `web unit`, `web build` adımları + VERIFY'daki ekran
   görüntüleri (Evidence for UI criteria). Ekran görüntüleri depo dışında, tek seferlik Playwright betikleriyle (headless
   Edge, ayrı deneme veritabanı kopyası, API :5180 + web :3100) alınır; bunlar gözlemdir, check adımı değildir.
