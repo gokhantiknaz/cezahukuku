@@ -186,14 +186,15 @@ export function HighlightableText({
     }
 
     const target = event.target instanceof Element ? event.target : null;
-    // Parantez içi atıfa tıklama pencereyi açar (ArticleRefHost); vurgu araçları açılmaz.
-    if (target?.closest("[data-article-ref]")) {
-      setOverlay(null);
-      return;
-    }
+    // Not simgesi önce gelir: parantez içi atıfın içine düşse de notu açar.
     const marker = target?.closest("[data-note-for]");
     if (marker) {
       setOverlay({ kind: "note", anchor: toAnchor(marker.getBoundingClientRect()), highlightId: marker.getAttribute("data-note-for")! });
+      return;
+    }
+    // Parantez içi atıfa tıklama pencereyi açar (ArticleRefHost); vurgu araçları açılmaz.
+    if (target?.closest("[data-article-ref]")) {
+      setOverlay(null);
       return;
     }
     const mark = target?.closest("mark[data-highlight-id]");

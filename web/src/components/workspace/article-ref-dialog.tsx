@@ -37,6 +37,8 @@ export function ArticleRefHost({ asOf, className, children }: { asOf?: string; c
   const trigger = useRef<HTMLElement | null>(null);
 
   function open(event: MouseEvent | KeyboardEvent) {
+    // Atıfın içine düşen not simgesi notu açar (HighlightableText), pencereyi değil.
+    if (event.target instanceof Element && event.target.closest("[data-note-for]")) return;
     const element = event.target instanceof Element ? event.target.closest("[data-article-ref]") : null;
     if (!element || !(element instanceof HTMLElement)) return;
     event.preventDefault();
