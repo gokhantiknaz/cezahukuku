@@ -35,6 +35,8 @@ function targetOf(element: Element): ArticleRefTarget | null {
 export function ArticleRefHost({ asOf, className, children }: { asOf?: string; className?: string; children: ReactNode }) {
   const [target, setTarget] = useState<ArticleRefTarget | null>(null);
   const trigger = useRef<HTMLElement | null>(null);
+  // "Maddeye git" ile kapanınca odak geri götürülmez: sayfa değişiyor (cacheComponents eski sayfayı gizli tutar).
+  const navigating = useRef(false);
 
   function open(event: MouseEvent | KeyboardEvent) {
     // Atıfın içine düşen not simgesi notu açar (HighlightableText), pencereyi değil.
@@ -64,10 +66,22 @@ export function ArticleRefHost({ asOf, className, children }: { asOf?: string; c
           className="flex max-h-[85dvh] flex-col gap-3 sm:max-w-2xl"
           onCloseAutoFocus={(e) => {
             e.preventDefault();
-            trigger.current?.focus();
+            if (!navigating.current) trigger.current?.focus();
+            navigating.current = false;
           }}
         >
-          {target && <ArticleRefContent key={`${target.lawSlug}/${target.articleSlug}`} target={target} asOf={asOf} />}
+          {target && (
+            <ArticleRefContent
+              key={`${target.lawSlug}/${target.articleSlug}`}
+              target={target}
+              asOf={asOf}
+              onNavigate={() => {
+                // Gizli tutulan sayfa geri gelince pencere açık kalmasın (Known traps: cacheComponents).
+                navigating.current = true;
+                setTarget(null);
+              }}
+            />
+          )}
         </DialogContent>
       </Dialog>
     </div>
@@ -75,7 +89,7 @@ export function ArticleRefHost({ asOf, className, children }: { asOf?: string; c
 }
 
 /** Pencerenin içi: madde başlığı, metni (atıflar işaretsiz — pencereden pencere açılmaz), mülga ibaresi, "Maddeye git". */
-function ArticleRefContent({ target, asOf }: { target: ArticleRefTarget; asOf?: string }) {
+function ArticleRefContent({ target, asOf, onNavigate }: { target: ArticleRefTarget; asOf?: string; onNavigate: () => void }) {
   const query = useGetArticle(target.lawSlug, target.articleSlug, asOf ? { asOf } : undefined, {
     // Hata hemen gösterilsin; okuyucu "Yeniden dene" ile tekrarlar.
     query: { retry: false },
@@ -143,7 +157,7 @@ function ArticleRefContent({ target, asOf }: { target: ArticleRefTarget; asOf?: 
           <Button variant="outline">Kapat</Button>
         </DialogClose>
         <Button asChild>
-          <Link href={href}>
+          <Link href={href} onClick={onNavigate}>
             Maddeye git <ArrowRight aria-hidden />
           </Link>
         </Button>
