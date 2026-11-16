@@ -12,7 +12,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { Check, NotebookPen, Trash2 } from "lucide-react";
-import type { ChangeMark, CitationSpan, HighlightColor, ParagraphDto, PersonalNoteDto, TextPosition } from "@/api/generated/model";
+import type { ArticleReferenceSpan, ChangeMark, CitationSpan, HighlightColor, ParagraphDto, PersonalNoteDto, TextPosition } from "@/api/generated/model";
 import { Button } from "@/components/ui/button";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { highlightClassName, highlightColors } from "@/lib/highlights";
@@ -81,12 +81,16 @@ export function HighlightableText({
   versionId,
   paragraphs,
   citations,
+  references,
+  asOf,
   changes,
 }: {
   articleId: string;
   versionId: string;
   paragraphs: ParagraphDto[];
   citations: CitationSpan[];
+  references?: ArticleReferenceSpan[];
+  asOf?: string;
   changes?: ChangeMark[];
 }) {
   const layer = usePersonalLayer(articleId, versionId);
@@ -184,9 +188,15 @@ export function HighlightableText({
     }
 
     const target = event.target instanceof Element ? event.target : null;
+    // Not simgesi önce gelir: parantez içi atıfın içine düşse de notu açar.
     const marker = target?.closest("[data-note-for]");
     if (marker) {
       setOverlay({ kind: "note", anchor: toAnchor(marker.getBoundingClientRect()), highlightId: marker.getAttribute("data-note-for")! });
+      return;
+    }
+    // Parantez içi atıfa tıklama pencereyi açar (ArticleRefHost); vurgu araçları açılmaz.
+    if (target?.closest("[data-article-ref]")) {
+      setOverlay(null);
       return;
     }
     const mark = target?.closest("mark[data-highlight-id]");
@@ -240,7 +250,7 @@ export function HighlightableText({
         onClickCapture={(e) => e.target instanceof Element && e.target.closest("[data-note-for]") && e.preventDefault()}
         className={cn(enabled && "[&_mark[data-highlight-id]]:cursor-pointer")}
       >
-        <ParagraphList paragraphs={paragraphs} citations={citations} marks={marks} changes={changes} />
+        <ParagraphList paragraphs={paragraphs} citations={citations} references={references} asOf={asOf} marks={marks} changes={changes} />
       </div>
       {staleCount > 0 && (
         <p className="mt-3 text-sm text-muted-foreground">

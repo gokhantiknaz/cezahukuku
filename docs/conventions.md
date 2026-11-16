@@ -45,6 +45,9 @@
 ## Known traps
 - Next 16 `cacheComponents` ziyaret edilen sayfayı gizli tutar ve durumunu korur — formlar `key` ile ya da kayıttan
   sonra sıfırlanır, yoksa eski veriyle açılır — from ders notu formu (137c5ea).
+- Next 16 `cacheComponents` gizli tuttuğu sayfanın açık pencere/katman durumunu da korur — başka sayfaya götüren
+  bağlantı içeren pencere gezinmede durumunu açıkça sıfırlar, yoksa geri dönünce açık gelir — from atıf penceresi
+  (0005 review M-2).
 - PowerShell `Get-Content`/`Set-Content` Türkçe karakterleri bozar (cp1254) — dosyalar bash ya da düzenleme aracıyla
   yazılır — from geliştirme deneyimi.
 - API projesini derlemek `backend/openapi/cezahukuku-api.json`'u yeniden üretir — DTO değişince ardından

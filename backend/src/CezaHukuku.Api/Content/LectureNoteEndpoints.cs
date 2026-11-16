@@ -42,12 +42,16 @@ public sealed record UpdateLectureNoteFileRequest(string Title);
 /// <param name="FileIds">Ders notunun bütün belgeleri, istenen sırayla.</param>
 public sealed record ReorderLectureNoteFilesRequest(List<Guid> FileIds);
 
+/// <param name="Html">Kaydedilmiş HTML (düzenleme formu bunu kullanır).</param>
+/// <param name="ReadingHtml">Okuma için HTML: parantez içi madde atıfları ("(madde 21)") okuyucunun görebildiği maddeye
+/// bağlanmış (spec 0005). Kaydedilmez; düzenlemede kullanılmaz.</param>
 /// <param name="LawGroupId">Düzenleme formu için bağlantının kimlikleri (kapsamdaki adlar okuyana göre süzülür).</param>
 public sealed record LectureNoteDetail(
     Guid Id,
     string Slug,
     string Title,
     string Html,
+    string ReadingHtml,
     LectureNoteScope Scope,
     Visibility Visibility,
     DateTimeOffset CreatedAt,
@@ -299,7 +303,8 @@ public static class LectureNoteEndpoints
         var scopes = await ScopesAsync(db, [n], includePrivate, ct);
         var files = await db.LectureNoteFiles.AsNoTracking().Where(f => f.LectureNoteId == n.Id)
             .OrderBy(f => f.SortOrder).ThenBy(f => f.CreatedAt).ToListAsync(ct);
-        return new(n.Id, n.Slug, n.Title, n.Html, scopes[n.Id], n.Visibility, n.CreatedAt, n.UpdatedAt, n.LawGroupId, n.LawId, n.ArticleId,
+        var readingHtml = await ArticleReferences.ReadingHtmlAsync(db, n, includePrivate);
+        return new(n.Id, n.Slug, n.Title, n.Html, readingHtml, scopes[n.Id], n.Visibility, n.CreatedAt, n.UpdatedAt, n.LawGroupId, n.LawId, n.ArticleId,
             [.. files.Select(f => ToFileDto(n, f))], context);
     }
 

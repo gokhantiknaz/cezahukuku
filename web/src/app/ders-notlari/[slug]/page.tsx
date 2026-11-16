@@ -7,6 +7,7 @@ import { CourseHome, LectureNoteScopeBadges } from "@/components/content/course-
 import { LectureNoteFileList } from "@/components/content/lecture-note-files";
 import { LectureNoteAdminActions } from "@/components/content/lecture-notes";
 import { RichTextView } from "@/components/rich-text/rich-text-view";
+import { ArticleRefHost } from "@/components/workspace/article-ref-dialog";
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/dates";
 import { getLectureCourse, getLectureNote } from "@/lib/server-api";
@@ -69,7 +70,12 @@ async function SlugContent({ params }: { params: Promise<{ slug: string }> }) {
           </div>
           <LectureNoteAdminActions id={note.id} slug={note.slug} />
         </header>
-        {note.html && <RichTextView html={note.html} className="mt-6 rounded-lg border bg-card p-4 md:p-6" />}
+        {/* Okuma HTML'i: parantez içi atıflar ("(madde 21)") pencerede açılır (spec 0005). */}
+        {note.html && (
+          <ArticleRefHost>
+            <RichTextView html={note.readingHtml} className="mt-6 rounded-lg border bg-card p-4 md:p-6" />
+          </ArticleRefHost>
+        )}
         <LectureNoteFileList files={note.files} />
       </article>
     </div>

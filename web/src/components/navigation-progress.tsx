@@ -14,6 +14,9 @@ function isPageNavigation(event: MouseEvent) {
   if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return false;
   const anchor = event.target instanceof Element ? event.target.closest("a[href]") : null;
   if (!(anchor instanceof HTMLAnchorElement) || anchor.hasAttribute("download")) return false;
+  // Parantez içi madde atıfı sayfayı değiştirmez, açılır pencerede açılır (ArticleRefHost, spec 0005).
+  // (event.defaultPrevented'a bakılamaz: Next Link sayfa içi gezinmede de preventDefault çağırır.)
+  if (anchor.hasAttribute("data-article-ref")) return false;
   if (anchor.target && anchor.target !== "_self") return false;
   const url = new URL(anchor.href);
   return (

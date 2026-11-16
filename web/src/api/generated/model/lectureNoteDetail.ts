@@ -17,6 +17,7 @@ export interface LectureNoteDetail {
   slug: string;
   title: string;
   html: string;
+  readingHtml: string;
   scope: LectureNoteScope;
   visibility: Visibility;
   createdAt: string;

@@ -46,6 +46,11 @@
 
   /* Maddede son değişiklikle gelen kelimeler (okuma ekranı ve Değişiklikler sekmesi). */
   --change: #d01f1f;
+
+  /* Parantez içi madde atıfı ("(madde 21)", spec 0005): mavi yazı + noktalı alt çizgi; kişisel vurgudan (düz zemin)
+     ayrılsın diye zemini mavi vurgudan açık. Yazı/zemin karşıtlığı ~5,9:1. */
+  --article-ref: #1a56b0;
+  --article-ref-bg: #ebf3fe;
 }
 
 /* Gece modu hazır; <html class="dark"> ile açılır (anahtar ileride eklenecek). */
@@ -83,6 +88,9 @@
   --highlight-orange: #5c3a12;
 
   --change: #ff6b6b;
+
+  --article-ref: #9cc4fa;
+  --article-ref-bg: #16263a;
 }
 
 @theme inline {
@@ -194,8 +202,36 @@
   }
 }
 
+/* Parantez içi madde atıfı: tıklanınca madde pencerede açılır (ArticleRefHost). Ders notu HTML'indeki bağlantı
+   biçimini (.rich-text a) de ezer. */
+.article-ref,
+.rich-text a.article-ref {
+  color: var(--article-ref);
+  background-color: var(--article-ref-bg);
+  border-radius: 2px;
+  padding-inline: 0.12em;
+  cursor: pointer;
+  text-decoration-line: underline;
+  text-decoration-style: dotted;
+  text-decoration-color: currentColor;
+  text-underline-offset: 4px;
+  &:hover {
+    text-decoration-style: solid;
+  }
+  &:focus-visible {
+    outline: 2px solid var(--article-ref);
+    outline-offset: 1px;
+  }
+}
+
 /* Yazdırırken kaydırma alanları kesilmesin; madde metni tam basılsın. */
 @media print {
+  .article-ref,
+  .rich-text a.article-ref {
+    color: inherit;
+    background: none;
+    text-decoration: none;
+  }
   [data-slot="scroll-area"],
   [data-slot="scroll-area-viewport"] {
     height: auto !important;

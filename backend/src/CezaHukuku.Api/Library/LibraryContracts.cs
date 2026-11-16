@@ -83,6 +83,7 @@ public sealed record ArticleRef(string Slug, string Number, string Title);
 /// <param name="Path">Kökten maddenin bağlı olduğu düğüme kadar (breadcrumb).</param>
 /// <param name="Version">Gösterilen sürüm; istenen tarihte yürürlükte sürüm yoksa ya da metin girilmediyse null.</param>
 /// <param name="Versions">Tüm sürümler, en yeni önce (değişiklik tarihçesi).</param>
+/// <param name="References">Gösterilen metindeki parantez içi atıflar ("(madde 21, 22)"); okuyucunun göremediği madde yer almaz.</param>
 /// <param name="Changes">Gösterilen metinde her fıkra/bentin en son değişikliği (okuma ekranında kırmızı).</param>
 /// <param name="LectureNotes">Maddeye bağlanmış ders notları (Ders Notları bölümündeki sayfalarına bağlantı).</param>
 public sealed record ArticleDetailResponse(
@@ -97,6 +98,7 @@ public sealed record ArticleDetailResponse(
     List<DecisionDto> Decisions,
     List<ArticleLinkDto> Links,
     List<CitationSpan> Citations,
+    List<ArticleReferenceSpan> References,
     List<LinkedArticleRef> CitedBy,
     IReadOnlyList<ChangeMark> Changes,
     List<LectureNoteRef> LectureNotes);

@@ -113,6 +113,8 @@ public static class LibraryEndpoints
         var citations = shown is null
             ? []
             : await CitationQueries.ForVersionAsync(db, shown.Id, law, outline, principal.CanSeePrivate());
+        // Parantez içi atıflar ("(madde 21, 22)") gösterilen sürümden okunurken bulunur (spec 0005).
+        var references = shown is null ? [] : ArticleReferences.ForVersion(shown, law, outline, citations);
         var citedBy = await CitationQueries.CitedByAsync(db, item.Article, law, principal.CanSeePrivate());
 
         var response = new ArticleDetailResponse(
@@ -127,6 +129,7 @@ public static class LibraryEndpoints
             decisions,
             links,
             citations,
+            references,
             citedBy,
             shown is null ? [] : ChangeMarks.For(versions, shown),
             await LectureNoteEndpoints.ForArticleAsync(db, item.Article.Id, principal.CanSeePrivate()));
