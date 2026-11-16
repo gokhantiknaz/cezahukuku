@@ -158,7 +158,8 @@ function ArticleRefContent({ target, asOf, onNavigate }: { target: ArticleRefTar
           <Button variant="outline">Kapat</Button>
         </DialogClose>
         <Button asChild>
-          <Link href={href} onClick={onNavigate}>
+          {/* onNavigate yalnız sayfa içi gezinmede çalışır: Ctrl/orta tıklamayla yeni sekmede açılınca pencere açık kalır. */}
+          <Link href={href} onNavigate={onNavigate}>
             Maddeye git <ArrowRight aria-hidden />
           </Link>
         </Button>
