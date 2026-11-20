@@ -1,6 +1,6 @@
 # Spec 0008 — Next.js güvenlik yükseltmesi (16.4.2 → 16.4.6) (mini)
 
-- Status: In progress
+- Status: Shipped
 - Mode: lite
 - Plan: `specs/plans/0008-plan.md`
 - Self-critique: done
@@ -15,18 +15,18 @@ komutu bu yüzden her iki çalıştırmadan birinde durup hata veriyor. Canlıya
 16.4.6'ya geçilir. Okuyucunun ve yöneticinin gördüğü hiçbir şey değişmez.
 
 ## Changed behavior
-- [ ] CB-1 — Web `next` ve `eslint-config-next` 16.4.6 sürümüyle (sabit sürüm) kurulur ve derlenir.
-- [ ] CB-2 — `npm audit --omit=dev` çıktısında `next` için bildirim yoktur.
-- [ ] CB-3 — `next build` art arda 3 çalıştırmada da hatasız biter; güvenlik bildirimi yüzünden durmaz.
+- [x] CB-1 — Web `next` ve `eslint-config-next` 16.4.6 sürümüyle (sabit sürüm) kurulur ve derlenir.
+- [x] CB-2 — `npm audit --omit=dev` çıktısında `next` için bildirim yoktur.
+- [x] CB-3 — `next build` art arda 3 çalıştırmada da hatasız biter; güvenlik bildirimi yüzünden durmaz.
 
 ## Preserved behavior
-- [ ] PB-1 — Tür denetimi, lint, web birim testleri ve üretim derlemesi (`scripts/check` tam profil) yerelde ve GitHub
+- [x] PB-1 — Tür denetimi, lint, web birim testleri ve üretim derlemesi (`scripts/check` tam profil) yerelde ve GitHub
   Actions'ta yeşildir (S-2); mevcut testlerde değişiklik yoktur. Kilit dosyasındaki değişiklik yalnız `next`,
   `eslint-config-next` ve onların bağımlılıklarıyla sınırlıdır; ilgisiz paket sürümü değişmez (S-1).
-- [ ] PB-2 — Üretim derlemesi yerel API ve veriyle açıldığında ana ekranlar açılır ve içerikleri gelir: ana sayfa,
+- [x] PB-2 — Üretim derlemesi yerel API ve veriyle açıldığında ana ekranlar açılır ve içerikleri gelir: ana sayfa,
   kanun (`/tck`), madde (`/tck/madde-233`), ders notları, giriş. Geliştirme sunucusu (`next dev`) da açılır ve sayfa
   döner (S-3).
-- [ ] PB-3 — Son işlerin davranışı aynıdır: madde metnindeki parantez içi atıfa tıklayınca madde pencerede açılır
+- [x] PB-3 — Son işlerin davranışı aynıdır: madde metnindeki parantez içi atıfa tıklayınca madde pencerede açılır
   (0005/0006) ve kayıtlı panel düzeniyle açılışta hydration uyarısı çıkmaz (bug 1).
 
 ## Out of scope
@@ -39,7 +39,7 @@ komutu bu yüzden her iki çalıştırmadan birinde durup hata veriyor. Canlıya
 - Ekran görüntüsü: görünüm değişmediği için alınmaz; PB-2/PB-3 HTTP ve headless Edge gözlemiyle kanıtlanır (G-4).
 
 ## Definition of Done
-- [ ] `scripts/check` green
-- [ ] Independent review done; real findings fixed, noise rejected with written rationale, deferred ones in `specs/backlog.md`
-- [ ] Criterion ↔ evidence table complete for CB-* **and** PB-* (UI: before/after screenshots, agent-captured, judged at SHIP)
-- [ ] Spec moved to `specs/done/` (immutable there)
+- [x] `scripts/check` green
+- [x] Independent review done; real findings fixed, noise rejected with written rationale, deferred ones in `specs/backlog.md`
+- [x] Criterion ↔ evidence table complete for CB-* **and** PB-* (UI: before/after screenshots, agent-captured, judged at SHIP)
+- [x] Spec moved to `specs/done/` (immutable there)
