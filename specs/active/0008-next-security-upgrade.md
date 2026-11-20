@@ -1,6 +1,6 @@
 # Spec 0008 — Next.js güvenlik yükseltmesi (16.4.2 → 16.4.6) (mini)
 
-- Status: Approved
+- Status: In progress
 - Mode: lite
 - Plan: `specs/plans/0008-plan.md`
 - Self-critique: done
